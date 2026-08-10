@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="570" viewBox="0 0 1200 570" role="img" aria-labelledby="title desc">
+  <title id="title">RTK Hermes Plus architecture</title>
+  <desc id="desc">Terminal commands are transparently rewritten through RTK. Large native tool results are compressed with full output retained in a private recovery store. Both paths produce smaller model context.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset="1" stop-color="#11152c"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#23d5ff"/>
+      <stop offset="1" stop-color="#7868ff"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#42d7ff"/>
+    </marker>
+    <style>
+      .heading { font: 700 25px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #f5f7ff; }
+      .lane { font: 700 16px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #7ee8ff; letter-spacing: .8px; }
+      .box-title { font: 700 17px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #f4f6ff; }
+      .box-sub { font: 400 13px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #aab4d0; }
+      .small { font: 600 12px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #9aa8c8; }
+      .box { fill: #111c31; stroke: #334262; stroke-width: 1.4; }
+      .accent { fill: #121f38; stroke: url(#cyan); stroke-width: 2; }
+      .flow { fill: none; stroke: #42d7ff; stroke-width: 2.2; marker-end: url(#arrow); }
+      .muted-flow { fill: none; stroke: #667494; stroke-width: 1.6; stroke-dasharray: 5 5; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1200" height="570" rx="24" fill="url(#bg)"/>
+  <path d="M0 84 H1200" stroke="#27334d"/>
+  <text x="48" y="52" class="heading">Two compression paths. Zero prompt overhead.</text>
+  <text x="1150" y="51" text-anchor="end" class="small">fail-open by design</text>
+
+  <text x="48" y="128" class="lane">TERMINAL PATH</text>
+  <rect x="48" y="150" width="210" height="94" rx="14" class="box"/>
+  <text x="70" y="184" class="box-title">Hermes terminal call</text>
+  <text x="70" y="209" class="box-sub">git status · pytest · rg</text>
+  <text x="70" y="229" class="box-sub">original arguments preserved</text>
+
+  <path d="M258 197 H322" class="flow"/>
+  <rect x="324" y="150" width="210" height="94" rx="14" class="accent"/>
+  <text x="346" y="184" class="box-title">Request middleware</text>
+  <text x="346" y="209" class="box-sub">backend + pytest guard</text>
+  <text x="346" y="229" class="box-sub">exact-command cache</text>
+
+  <path d="M534 197 H598" class="flow"/>
+  <rect x="600" y="150" width="210" height="94" rx="14" class="box"/>
+  <text x="622" y="184" class="box-title">rtk rewrite</text>
+  <text x="622" y="209" class="box-sub">safe command substitution</text>
+  <text x="622" y="229" class="box-sub">timeout → pass through</text>
+
+  <path d="M810 197 H874" class="flow"/>
+  <rect x="876" y="150" width="276" height="94" rx="14" class="accent"/>
+  <text x="898" y="184" class="box-title">Compact terminal result</text>
+  <text x="898" y="209" class="box-sub">same task · fewer context tokens</text>
+  <rect x="1082" y="171" width="46" height="24" rx="12" fill="#193f46"/>
+  <text x="1105" y="188" text-anchor="middle" class="small" fill="#77f3c2">RTK</text>
+
+  <text x="48" y="316" class="lane">NATIVE TOOL PATH</text>
+  <rect x="48" y="338" width="210" height="108" rx="14" class="box"/>
+  <text x="70" y="372" class="box-title">Large native result</text>
+  <text x="70" y="397" class="box-sub">search_files · process</text>
+  <text x="70" y="417" class="box-sub">read_file in aggressive mode</text>
+
+  <path d="M258 392 H322" class="flow"/>
+  <rect x="324" y="338" width="210" height="108" rx="14" class="accent"/>
+  <text x="346" y="372" class="box-title">Deterministic gate</text>
+  <text x="346" y="397" class="box-sub">size + backend + mode</text>
+  <text x="346" y="417" class="box-sub">only keep a smaller result</text>
+
+  <path d="M534 392 H598" class="flow"/>
+  <rect x="600" y="338" width="210" height="108" rx="14" class="box"/>
+  <text x="622" y="372" class="box-title">Context compressor</text>
+  <text x="622" y="397" class="box-sub">collapse repeats</text>
+  <text x="622" y="417" class="box-sub">retain useful head + tail</text>
+
+  <path d="M810 392 H874" class="flow"/>
+  <rect x="876" y="338" width="276" height="108" rx="14" class="accent"/>
+  <text x="898" y="372" class="box-title">Compact model context</text>
+  <text x="898" y="397" class="box-sub">recovery pointer attached</text>
+  <text x="898" y="417" class="box-sub">full result remains accessible</text>
+
+  <path d="M705 446 V497 H876" class="muted-flow"/>
+  <rect x="876" y="478" width="276" height="62" rx="13" class="box"/>
+  <circle cx="905" cy="509" r="12" fill="#273855" stroke="#6c7fa7"/>
+  <path d="M900 509 l4 4 7 -9" fill="none" stroke="#8ff2cd" stroke-width="2"/>
+  <text x="929" y="505" class="box-title" font-size="15">Private recovery store</text>
+  <text x="929" y="525" class="box-sub">0700 directory · 0600 rotating files</text>
+
+  <text x="48" y="520" class="small">Metrics retain category totals only — never command strings or tool content.</text>
+  <circle cx="48" cy="545" r="3" fill="#42d7ff" filter="url(#glow)"/>
+  <path d="M58 545 H822" stroke="url(#cyan)" stroke-width="1" opacity=".45"/>
+</svg>

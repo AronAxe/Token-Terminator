@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rtk-hermes-plus"
+version = "0.1.0"
+description = "Token-first RTK integration for Hermes Agent, including native tool-result compression"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{name = "Aron Bijl"}]
+dependencies = ["tomli>=2.0; python_version < '3.11'"]
+keywords = ["hermes-agent", "rtk", "llm", "token-savings", "context-compression"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+[project.optional-dependencies]
+dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "twine>=5"]
+
+[project.entry-points."hermes_agent.plugins"]
+rtk-plus = "rtk_hermes_plus"
+
+[project.urls]
+Homepage = "https://github.com/AronAxe/rtk-hermes-plus"
+Repository = "https://github.com/AronAxe/rtk-hermes-plus"
+Issues = "https://github.com/AronAxe/rtk-hermes-plus/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+addopts = "-q"
