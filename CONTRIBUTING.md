@@ -13,5 +13,5 @@ python -m twine check dist/*
 ```
 
 New compressors must be deterministic, return a strictly smaller final result,
-retain an owner-only recovery copy, and include tests for both compression and
-pass-through behavior.
+retain a platform-appropriately private recovery copy, and include tests for
+both compression and pass-through behavior.

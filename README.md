@@ -70,7 +70,7 @@ There are two independent paths:
    token-efficient RTK equivalent. The exact decision is cached. A timeout,
    unsupported command, excluded backend, or error means pass-through.
 2. **Native results** — large results from selected Hermes tools are
-   deterministically compacted. The full original is stored in an owner-only,
+   deterministically compacted. The full original is stored in a private,
    rotating recovery file and a short pointer is appended to the compact result.
 
 For example, the model can request this normally:
