@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a `native` mode that compresses Hermes-native search/process results
+  without registering terminal middleware or invoking RTK.
 - Made the default-home and recovery-permission tests portable to Windows.
 - Added a Windows CI job and documented Windows ACL semantics.
 

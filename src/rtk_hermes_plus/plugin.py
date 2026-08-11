@@ -145,14 +145,15 @@ def register(ctx) -> None:
             description="RTK token savings, configuration, and metrics",
         )
 
-    if runtime.rewriter.available:
-        register_middleware = getattr(ctx, "register_middleware", None)
-        if callable(register_middleware):
-            register_middleware("tool_request", runtime.tool_request_middleware)
+    if runtime.config.terminal_enabled:
+        if runtime.rewriter.available:
+            register_middleware = getattr(ctx, "register_middleware", None)
+            if callable(register_middleware):
+                register_middleware("tool_request", runtime.tool_request_middleware)
+            else:
+                ctx.register_hook("pre_tool_call", runtime.pre_tool_call)
         else:
-            ctx.register_hook("pre_tool_call", runtime.pre_tool_call)
-    else:
-        logger.warning("rtk binary not found; terminal rewriting disabled")
+            logger.warning("rtk binary not found; terminal rewriting disabled")
 
     if runtime.config.native_enabled:
         ctx.register_hook("transform_tool_result", runtime.transform_tool_result)

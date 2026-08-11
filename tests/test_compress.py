@@ -60,6 +60,15 @@ def test_balanced_compresses_large_search_and_saves_original(tmp_path):
     assert metrics.snapshot()["native_compressed"] == 1
 
 
+def test_native_mode_compresses_search_without_rtk(tmp_path):
+    cfg = config(tmp_path, mode="native")
+    compressor = NativeCompressor(cfg, Metrics(), None)
+    raw = "match\n" * 3_000
+    output = compressor.transform(tool_name="search_files", args={}, result=raw)
+    assert output is not None
+    assert len(output) < len(raw)
+
+
 def test_balanced_leaves_read_file_unchanged(tmp_path):
     compressor = NativeCompressor(config(tmp_path), Metrics(), "/fake/rtk")
     assert (

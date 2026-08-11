@@ -96,6 +96,9 @@ brew install rtk
 # Or use an installer from https://github.com/rtk-ai/rtk
 ```
 
+Skip this step if you intend to use `native` mode exclusively; that mode never
+invokes RTK.
+
 ### 2. Install Plus into Hermes
 
 ```bash
@@ -127,23 +130,30 @@ then confirm the integration with:
 |---|:---:|:---:|:---:|
 | `balanced` **default** | ✓ | ✓ | — |
 | `aggressive` | ✓ | ✓ | ✓ |
+| `native` | — | ✓ | — |
 | `terminal` | ✓ | — | — |
 | `suggest` | Measure candidates only | — | — |
 | `off` | — | — | — |
 
 Start with `balanced`. Use `aggressive` when native reads are a material part of
 your context bill and you prefer compact structure plus recoverability over
-verbatim in-context files.
+verbatim in-context files. Use `native` to run only the deterministic Hermes
+`search_files`/`process` compressor, with no RTK terminal middleware registered
+and no RTK installation required. This is also the clean experimental arm for
+measuring whether native compression reduces end-to-end session cost.
 
 ```bash
 export RTK_HERMES_PLUS_MODE=aggressive
+
+# Native compression only; bypass all RTK command rewriting
+export RTK_HERMES_PLUS_MODE=native
 ```
 
 ## Configuration
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `RTK_HERMES_PLUS_MODE` | `balanced` | `balanced`, `aggressive`, `terminal`, `suggest`, or `off` |
+| `RTK_HERMES_PLUS_MODE` | `balanced` | `balanced`, `aggressive`, `native`, `terminal`, `suggest`, or `off` |
 | `RTK_HERMES_PLUS_TIMEOUT_MS` | `500` | Deadline for RTK helper calls |
 | `RTK_HERMES_PLUS_BACKENDS` | `local` | Allowed terminal backends, comma-separated, or `all` |
 | `RTK_HERMES_PLUS_CACHE_TTL` | `600` | Rewrite-cache lifetime in seconds |

@@ -42,6 +42,15 @@ def test_invalid_values_fall_back(monkeypatch):
     assert cfg.native_min_chars == 12_000
 
 
+def test_native_mode_enables_only_native_compression(monkeypatch):
+    monkeypatch.setenv("RTK_HERMES_PLUS_MODE", "native")
+    cfg = load_config()
+    assert cfg.mode == "native"
+    assert cfg.native_enabled is True
+    assert cfg.terminal_enabled is False
+    assert cfg.aggressive is False
+
+
 def test_all_backend_collapses(monkeypatch):
     monkeypatch.setenv("RTK_HERMES_PLUS_BACKENDS", "local,all,ssh")
     assert load_config().enabled_backends == ("all",)

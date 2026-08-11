@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-MODES = frozenset({"balanced", "aggressive", "terminal", "suggest", "off"})
+MODES = frozenset({"balanced", "aggressive", "native", "terminal", "suggest", "off"})
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 FALSE_VALUES = frozenset({"0", "false", "no", "off"})
 
@@ -56,11 +56,11 @@ class Config:
 
     @property
     def terminal_enabled(self) -> bool:
-        return self.mode not in {"off"}
+        return self.mode not in {"native", "off"}
 
     @property
     def native_enabled(self) -> bool:
-        return self.mode in {"balanced", "aggressive"}
+        return self.mode in {"balanced", "aggressive", "native"}
 
     @property
     def aggressive(self) -> bool:

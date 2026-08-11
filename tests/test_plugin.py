@@ -69,6 +69,16 @@ def test_suggest_mode_does_not_rewrite(tmp_path):
     assert rt.metrics.snapshot()["rewrite_suggested"] == 1
 
 
+def test_native_mode_does_not_call_terminal_rewriter(tmp_path):
+    rt = runtime(tmp_path, mode="native")
+    with patch.object(rt.rewriter, "rewrite") as rewrite:
+        result = rt.tool_request_middleware(
+            tool_name="terminal", args={"command": "git status"}
+        )
+    assert result is None
+    rewrite.assert_not_called()
+
+
 def test_quiet_pytest_project_is_not_rewritten(tmp_path):
     (tmp_path / "pyproject.toml").write_text(
         '[tool.pytest.ini_options]\naddopts = "-q"\n', encoding="utf-8"
@@ -149,3 +159,15 @@ def test_register_falls_back_to_hook(monkeypatch, tmp_path):
     ctx = OldContext()
     plugin.register(ctx)
     assert [name for name, _ in ctx.hooks] == ["pre_tool_call"]
+
+
+def test_register_native_mode_skips_terminal_middleware(tmp_path, monkeypatch):
+    from rtk_hermes_plus import plugin
+
+    fake_runtime = runtime(tmp_path, mode="native")
+    monkeypatch.setattr(plugin, "Runtime", lambda: fake_runtime)
+    ctx = MagicMock()
+    plugin.register(ctx)
+    ctx.register_middleware.assert_not_called()
+    hooks = [call.args[0] for call in ctx.register_hook.call_args_list]
+    assert hooks == ["transform_tool_result"]
