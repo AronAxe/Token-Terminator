@@ -16,6 +16,8 @@ def test_defaults(monkeypatch, tmp_path):
     assert cfg.native_enabled is True
     assert cfg.aggressive is False
     assert cfg.recovery_dir == tmp_path / ".hermes" / "rtk-plus" / "recovery"
+    assert cfg.ledger_path == tmp_path / ".hermes" / "rtk-plus" / "experiments.sqlite3"
+    assert cfg.state_db_path == tmp_path / ".hermes" / "state.db"
 
 
 def test_overrides(monkeypatch, tmp_path):
@@ -24,12 +26,22 @@ def test_overrides(monkeypatch, tmp_path):
     monkeypatch.setenv("RTK_HERMES_PLUS_BACKENDS", "local,ssh")
     monkeypatch.setenv("RTK_HERMES_PLUS_EXCLUDE", "git push, Docker Exec")
     monkeypatch.setenv("RTK_HERMES_PLUS_RECOVERY_DIR", str(tmp_path / "recover"))
+    monkeypatch.setenv("RTK_HERMES_PLUS_LEDGER_PATH", str(tmp_path / "ledger.db"))
+    monkeypatch.setenv("RTK_HERMES_PLUS_STATE_DB", str(tmp_path / "state.db"))
+    monkeypatch.setenv("RTK_HERMES_PLUS_EXPERIMENT", "discord-test")
+    monkeypatch.setenv("RTK_HERMES_PLUS_EQ_INPUT_USD_PER_M", "2.5")
+    monkeypatch.setenv("RTK_HERMES_PLUS_EQ_RATE_CARD", "example-2026-08")
     cfg = load_config()
     assert cfg.aggressive is True
     assert cfg.timeout_ms == 750
     assert cfg.enabled_backends == ("local", "ssh")
     assert cfg.excluded_prefixes == ("git push", "docker exec")
     assert cfg.recovery_dir == tmp_path / "recover"
+    assert cfg.ledger_path == tmp_path / "ledger.db"
+    assert cfg.state_db_path == tmp_path / "state.db"
+    assert cfg.experiment == "discord-test"
+    assert cfg.equivalent_input_usd_per_million == 2.5
+    assert cfg.equivalent_rate_card == "example-2026-08"
 
 
 def test_invalid_values_fall_back(monkeypatch):

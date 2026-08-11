@@ -20,7 +20,14 @@ def test_current_hermes_tool_request_middleware_contract(monkeypatch, tmp_path):
         from rtk_hermes_plus.plugin import Runtime
         from rtk_hermes_plus.rewrite import RewriteResult
 
-        runtime = Runtime(Config(mode="terminal", recovery_dir=tmp_path / "recovery"))
+        runtime = Runtime(
+            Config(
+                mode="terminal",
+                recovery_dir=tmp_path / "recovery",
+                ledger_path=tmp_path / "experiments.sqlite3",
+                state_db_path=tmp_path / "state.db",
+            )
+        )
         monkeypatch.setattr(runtime.rewriter, "rtk_path", "/fake/rtk")
         monkeypatch.setattr(
             runtime.rewriter,
@@ -49,7 +56,13 @@ def test_current_rtk_rewrites_terminal_and_pytest_guard_blocks_known_bad_case(tm
 
     rtk = str(Path(os.environ["RTK_INTEGRATION_BIN"]).resolve())
     runtime = Runtime(
-        Config(mode="terminal", timeout_ms=1_000, recovery_dir=tmp_path / "recover")
+        Config(
+            mode="terminal",
+            timeout_ms=1_000,
+            recovery_dir=tmp_path / "recover",
+            ledger_path=tmp_path / "experiments.sqlite3",
+            state_db_path=tmp_path / "state.db",
+        )
     )
     runtime.rewriter.rtk_path = rtk
 

@@ -25,7 +25,11 @@ def test_package_metadata_matches_module():
 
 
 def runtime(tmp_path, **kwargs):
-    values = {"recovery_dir": tmp_path / "recovery"}
+    values = {
+        "recovery_dir": tmp_path / "recovery",
+        "ledger_path": tmp_path / "experiments.sqlite3",
+        "state_db_path": tmp_path / "state.db",
+    }
     values.update(kwargs)
     instance = Runtime(Config(**values))
     instance.rewriter.rtk_path = "/fake/rtk"
@@ -131,20 +135,22 @@ def test_register_prefers_middleware(monkeypatch, tmp_path):
     from rtk_hermes_plus import plugin
 
     fake_runtime = runtime(tmp_path)
-    monkeypatch.setattr(plugin, "Runtime", lambda: fake_runtime)
+    monkeypatch.setattr(plugin, "Runtime", lambda **_kwargs: fake_runtime)
     ctx = MagicMock()
     plugin.register(ctx)
     ctx.register_middleware.assert_called_once()
     hooks = [call.args[0] for call in ctx.register_hook.call_args_list]
-    assert "pre_tool_call" not in hooks
+    assert "pre_tool_call" in hooks
     assert "transform_tool_result" in hooks
+    assert "pre_llm_call" in hooks
+    assert "on_session_end" in hooks
 
 
 def test_register_falls_back_to_hook(monkeypatch, tmp_path):
     from rtk_hermes_plus import plugin
 
     fake_runtime = runtime(tmp_path, mode="terminal")
-    monkeypatch.setattr(plugin, "Runtime", lambda: fake_runtime)
+    monkeypatch.setattr(plugin, "Runtime", lambda **_kwargs: fake_runtime)
 
     class OldContext:
         def __init__(self):
@@ -158,16 +164,37 @@ def test_register_falls_back_to_hook(monkeypatch, tmp_path):
 
     ctx = OldContext()
     plugin.register(ctx)
-    assert [name for name, _ in ctx.hooks] == ["pre_tool_call"]
+    assert [name for name, _ in ctx.hooks] == [
+        "pre_tool_call",
+        "on_session_start",
+        "pre_llm_call",
+        "on_session_end",
+        "on_session_finalize",
+    ]
 
 
 def test_register_native_mode_skips_terminal_middleware(tmp_path, monkeypatch):
     from rtk_hermes_plus import plugin
 
     fake_runtime = runtime(tmp_path, mode="native")
-    monkeypatch.setattr(plugin, "Runtime", lambda: fake_runtime)
+    monkeypatch.setattr(plugin, "Runtime", lambda **_kwargs: fake_runtime)
     ctx = MagicMock()
     plugin.register(ctx)
     ctx.register_middleware.assert_not_called()
     hooks = [call.args[0] for call in ctx.register_hook.call_args_list]
-    assert hooks == ["transform_tool_result"]
+    assert hooks == [
+        "transform_tool_result",
+        "pre_tool_call",
+        "on_session_start",
+        "pre_llm_call",
+        "on_session_end",
+        "on_session_finalize",
+    ]
+
+
+def test_compare_command_uses_durable_ledger(tmp_path):
+    rt = runtime(tmp_path, mode="native")
+    payload = json.loads(rt.command("compare"))
+    assert payload["experiment"] == "default"
+    assert payload["modes"]["native"]["sessions"] == 0
+    assert payload["modes"]["balanced"]["sessions"] == 0

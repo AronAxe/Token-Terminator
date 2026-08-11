@@ -55,7 +55,7 @@ advertising itself to the model.
 | Full-result recovery | RTK terminal behavior | ✓ native + terminal |
 | Remote-backend safety gate | varies | ✓ |
 | RTK/pytest double-quiet guard | — | ✓ |
-| Content-free runtime metrics | — | ✓ |
+| Durable, content-free mode comparison | — | ✓ |
 | Standing prompt/tool-schema tokens | 0 | **0** |
 
 ## How it works
@@ -149,6 +149,49 @@ export RTK_HERMES_PLUS_MODE=aggressive
 export RTK_HERMES_PLUS_MODE=native
 ```
 
+## Run an honest native-vs-balanced experiment
+
+Plus records the mode a session **started** with and copies Hermes' canonical
+token/cost counters into a private SQLite ledger after each turn. It does not
+auto-toggle modes: changing treatment inside one session would make the result
+ambiguous, so that session is marked contaminated and excluded.
+
+1. Start fresh Hermes sessions in `native` mode and complete representative
+   tasks.
+2. Restart Hermes in `balanced` mode, start fresh sessions, and repeat the same
+   tasks with the same model and settings.
+3. Ask Hermes for the comparison:
+
+```text
+/rtk-plus compare
+```
+
+The default comparison is `native` vs `balanced`; any two modes can be named:
+
+```text
+/rtk-plus compare terminal aggressive
+```
+
+The report includes mean and median total tokens per session, separate actual
+and Hermes-estimated costs, native character savings, rewrite/recovery counts,
+and paired-turn deltas where the same normalized prompt and model appeared in
+both arms. Reasoning remains visible as an output-detail bucket but is not
+double-counted in the total. A resumed session starts from its existing Hermes
+accounting baseline, so earlier tokens are not attributed to Plus.
+
+For Codex OAuth/subscription routes, actual marginal API cost correctly remains
+`$0/included`. If you want a clearly labelled API-equivalent comparison, provide
+your own per-million-token rate card; Plus never substitutes that estimate for
+actual cost:
+
+```bash
+export RTK_HERMES_PLUS_EQ_INPUT_USD_PER_M=2.00
+export RTK_HERMES_PLUS_EQ_OUTPUT_USD_PER_M=10.00
+export RTK_HERMES_PLUS_EQ_CACHE_READ_USD_PER_M=0.20
+export RTK_HERMES_PLUS_EQ_CACHE_WRITE_USD_PER_M=2.00
+export RTK_HERMES_PLUS_EQ_RATE_CARD='example-2026-08'
+```
+
 ## Configuration
 
 | Variable | Default | Purpose |
@@ -162,6 +205,15 @@ export RTK_HERMES_PLUS_MODE=native
 | `RTK_HERMES_PLUS_NATIVE_MAX_CHARS` | `8000` | Target maximum compact result size |
 | `RTK_HERMES_PLUS_RECOVERY_FILES` | `20` | Number of full native results to retain |
 | `RTK_HERMES_PLUS_RECOVERY_DIR` | `~/.hermes/rtk-plus/recovery` | Recovery directory |
+| `RTK_HERMES_PLUS_LEDGER` | `true` | Persist private per-session experiment accounting |
+| `RTK_HERMES_PLUS_LEDGER_PATH` | `~/.hermes/rtk-plus/experiments.sqlite3` | Experiment ledger location |
+| `RTK_HERMES_PLUS_STATE_DB` | Hermes `state.db` | Override canonical Hermes accounting database |
+| `RTK_HERMES_PLUS_EXPERIMENT` | `default` | Isolate comparisons under a named experiment |
+| `RTK_HERMES_PLUS_EQ_INPUT_USD_PER_M` | `0` | Optional API-equivalent input rate per million tokens |
+| `RTK_HERMES_PLUS_EQ_OUTPUT_USD_PER_M` | `0` | Optional API-equivalent output rate per million tokens |
+| `RTK_HERMES_PLUS_EQ_CACHE_READ_USD_PER_M` | `0` | Optional API-equivalent cache-read rate |
+| `RTK_HERMES_PLUS_EQ_CACHE_WRITE_USD_PER_M` | `0` | Optional API-equivalent cache-write rate |
+| `RTK_HERMES_PLUS_EQ_RATE_CARD` | empty | Label saved with a configured equivalent rate card |
 | `RTK_HERMES_PLUS_EXCLUDE` | empty | Command prefixes that must never be rewritten |
 | `RTK_HERMES_PLUS_PYTEST_GUARD` | `true` | Avoid RTK's pytest double-quiet edge case |
 
@@ -175,12 +227,19 @@ Inside Hermes:
 ```text
 /rtk-plus status
 /rtk-plus stats
+/rtk-plus compare
 /rtk-plus reset-stats
 ```
 
-Metrics contain category totals, character savings, and rewrite timing. They do
-**not** retain command strings or tool contents, and they disappear when the
-Hermes process exits.
+`stats` contains process-local category totals, character savings, and rewrite
+timing. These counters reset when Hermes exits. `compare` reads the durable
+experiment ledger, whose per-session token and cost totals survive restarts.
+
+Neither store retains command strings, prompts, or tool contents. To recognize a
+repeated task across modes, the ledger saves only a salted local SHA-256
+fingerprint of the normalized prompt. The salt is generated locally; the ledger
+is never uploaded by Plus. Mode/model changes within a session are flagged and
+excluded from comparison rather than quietly blended into a result.
 
 ## Recovery and privacy
 
@@ -193,7 +252,9 @@ When Plus shortens a native result, it appends a pointer like:
 On POSIX systems, the recovery directory is forced to mode `0700` and new files
 use `0600`. On Windows, recovery artifacts remain under the user's profile and
 inherit its Windows ACLs. Files rotate automatically. Terminal recovery remains
-governed by RTK itself.
+governed by RTK itself. The experiment ledger uses the same private parent
+directory and is forced to `0600` on POSIX; on Windows it inherits the user's
+profile ACLs.
 
 ## Safety model
 
@@ -204,7 +265,8 @@ governed by RTK itself.
 - **No silent remote execution:** non-local backends require explicit opt-in.
 - **No nominal compression:** metadata is counted before a compact result is
   accepted.
-- **No content telemetry:** metrics never include the material being compressed.
+- **No content telemetry:** metrics and the ledger never include commands,
+  prompts, or tool contents.
 - **Pytest correctness guard:** projects already configured with quiet pytest
   output bypass RTK's currently incorrect double-quiet result.
 
@@ -222,7 +284,7 @@ python -m venv .venv
 .venv/bin/python -m twine check dist/*
 ```
 
-The standard suite contains 40 tests. Two optional integration tests exercise
+The standard suite contains 52 tests. Two optional integration tests exercise
 the current Hermes middleware contract and a real RTK executable:
 
 ```bash

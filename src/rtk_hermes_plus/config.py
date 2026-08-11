@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -31,12 +32,42 @@ def _boolean(name: str, default: bool) -> bool:
     return default
 
 
+def _decimal(name: str, default: float = 0.0) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return default
+
+
 def _csv(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     raw = os.getenv(name)
     if raw is None:
         return default
     parts = tuple(part.strip().lower() for part in raw.split(",") if part.strip())
     return parts or default
+
+
+def _hermes_home() -> Path:
+    try:
+        from hermes_constants import get_hermes_home
+
+        return get_hermes_home()
+    except ImportError:
+        configured = os.getenv("HERMES_HOME", "").strip()
+        if configured:
+            return Path(configured).expanduser()
+        if sys.platform == "win32":
+            local_appdata = os.getenv("LOCALAPPDATA", "").strip()
+            base = (
+                Path(local_appdata)
+                if local_appdata
+                else Path.home() / "AppData" / "Local"
+            )
+            return base / "hermes"
+        return Path.home() / ".hermes"
 
 
 @dataclass(frozen=True)
@@ -52,6 +83,15 @@ class Config:
     native_max_chars: int = 8_000
     recovery_files: int = 20
     recovery_dir: Path = Path.home() / ".hermes" / "rtk-plus" / "recovery"
+    ledger_enabled: bool = True
+    ledger_path: Path = Path.home() / ".hermes" / "rtk-plus" / "experiments.sqlite3"
+    state_db_path: Path = Path.home() / ".hermes" / "state.db"
+    experiment: str = "default"
+    equivalent_input_usd_per_million: float = 0.0
+    equivalent_output_usd_per_million: float = 0.0
+    equivalent_cache_read_usd_per_million: float = 0.0
+    equivalent_cache_write_usd_per_million: float = 0.0
+    equivalent_rate_card: str = ""
     excluded_prefixes: tuple[str, ...] = ()
 
     @property
@@ -76,12 +116,17 @@ def load_config() -> Config:
     if "all" in backends:
         backends = ("all",)
 
+    hermes_home = _hermes_home()
     recovery_raw = os.getenv("RTK_HERMES_PLUS_RECOVERY_DIR")
     recovery_dir = (
         Path(recovery_raw).expanduser()
         if recovery_raw
-        else Path.home() / ".hermes" / "rtk-plus" / "recovery"
+        else hermes_home / "rtk-plus" / "recovery"
     )
+    ledger_raw = os.getenv("RTK_HERMES_PLUS_LEDGER_PATH")
+    state_db_raw = os.getenv("RTK_HERMES_PLUS_STATE_DB")
+    experiment = os.getenv("RTK_HERMES_PLUS_EXPERIMENT", "default").strip()
+    experiment = experiment[:80] or "default"
 
     return Config(
         mode=mode,
@@ -99,5 +144,30 @@ def load_config() -> Config:
         ),
         recovery_files=_integer("RTK_HERMES_PLUS_RECOVERY_FILES", 20),
         recovery_dir=recovery_dir,
+        ledger_enabled=_boolean("RTK_HERMES_PLUS_LEDGER", True),
+        ledger_path=(
+            Path(ledger_raw).expanduser()
+            if ledger_raw
+            else hermes_home / "rtk-plus" / "experiments.sqlite3"
+        ),
+        state_db_path=(
+            Path(state_db_raw).expanduser()
+            if state_db_raw
+            else hermes_home / "state.db"
+        ),
+        experiment=experiment,
+        equivalent_input_usd_per_million=_decimal("RTK_HERMES_PLUS_EQ_INPUT_USD_PER_M"),
+        equivalent_output_usd_per_million=_decimal(
+            "RTK_HERMES_PLUS_EQ_OUTPUT_USD_PER_M"
+        ),
+        equivalent_cache_read_usd_per_million=_decimal(
+            "RTK_HERMES_PLUS_EQ_CACHE_READ_USD_PER_M"
+        ),
+        equivalent_cache_write_usd_per_million=_decimal(
+            "RTK_HERMES_PLUS_EQ_CACHE_WRITE_USD_PER_M"
+        ),
+        equivalent_rate_card=os.getenv("RTK_HERMES_PLUS_EQ_RATE_CARD", "").strip()[
+            :120
+        ],
         excluded_prefixes=_csv("RTK_HERMES_PLUS_EXCLUDE", ()),
     )
