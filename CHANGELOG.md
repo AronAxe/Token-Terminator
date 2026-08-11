@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Made the default-home and recovery-permission tests portable to Windows.
+- Added a Windows CI job and documented Windows ACL semantics.
+
 ## 0.1.0 - 2026-08-10
 
 - Added modern Hermes `tool_request` middleware integration with legacy hook fallback.

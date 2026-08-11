@@ -89,7 +89,7 @@
   <circle cx="905" cy="509" r="12" fill="#273855" stroke="#6c7fa7"/>
   <path d="M900 509 l4 4 7 -9" fill="none" stroke="#8ff2cd" stroke-width="2"/>
   <text x="929" y="505" class="box-title" font-size="15">Private recovery store</text>
-  <text x="929" y="525" class="box-sub">0700 directory · 0600 rotating files</text>
+  <text x="929" y="525" class="box-sub">private rotating files · POSIX 0700/0600</text>
 
   <text x="48" y="520" class="small">Metrics retain category totals only — never command strings or tool content.</text>
   <circle cx="48" cy="545" r="3" fill="#42d7ff" filter="url(#glow)"/>

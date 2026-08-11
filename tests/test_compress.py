@@ -1,3 +1,4 @@
+import os
 import subprocess
 from unittest.mock import patch
 
@@ -39,9 +40,13 @@ def test_recovery_store_permissions_and_rotation(tmp_path):
     paths = [store.write("search_files", f"result {index}") for index in range(3)]
     existing = list((tmp_path / "recovery").glob("*.log"))
     assert len(existing) == 2
-    assert all((path.stat().st_mode & 0o777) == 0o600 for path in existing)
-    assert (tmp_path / "recovery").stat().st_mode & 0o777 == 0o700
     assert paths[-1] in existing
+    assert paths[-1].read_text(encoding="utf-8") == "result 2"
+    if os.name != "nt":
+        # Windows security is ACL-based; POSIX mode-bit assertions are not
+        # meaningful there. Recovery files inherit the user's profile ACL.
+        assert all((path.stat().st_mode & 0o777) == 0o600 for path in existing)
+        assert (tmp_path / "recovery").stat().st_mode & 0o777 == 0o700
 
 
 def test_balanced_compresses_large_search_and_saves_original(tmp_path):

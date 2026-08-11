@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from rtk_hermes_plus.config import load_config
 
 
@@ -5,7 +7,9 @@ def test_defaults(monkeypatch, tmp_path):
     for key in tuple(__import__("os").environ):
         if key.startswith("RTK_HERMES_PLUS_"):
             monkeypatch.delenv(key, raising=False)
-    monkeypatch.setenv("HOME", str(tmp_path))
+    # Path.home() follows platform-specific rules. In particular, changing HOME
+    # does not redefine the Windows profile directory, so patch the API we use.
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
     cfg = load_config()
     assert cfg.mode == "balanced"
     assert cfg.enabled_backends == ("local",)

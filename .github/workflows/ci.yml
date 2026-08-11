@@ -36,3 +36,15 @@ jobs:
       - run: python -m pip install build twine
       - run: python -m build
       - run: python -m twine check dist/*
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m ruff check .
+      - run: python -m ruff format --check .
+      - run: python -m pytest

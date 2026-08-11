@@ -180,8 +180,10 @@ When Plus shortens a native result, it appends a pointer like:
 [rtk-plus: 76.4% fewer characters; full output: ~/.hermes/rtk-plus/recovery/...]
 ```
 
-The recovery directory is forced to mode `0700`; new files use `0600` and rotate
-automatically. Terminal recovery remains governed by RTK itself.
+On POSIX systems, the recovery directory is forced to mode `0700` and new files
+use `0600`. On Windows, recovery artifacts remain under the user's profile and
+inherit its Windows ACLs. Files rotate automatically. Terminal recovery remains
+governed by RTK itself.
 
 ## Safety model
 
