@@ -17,7 +17,7 @@ from .metrics import Metrics
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover - Python 3.10
-    tomllib = None
+    import tomli as tomllib
 
 
 PYTEST_COMMAND = re.compile(
