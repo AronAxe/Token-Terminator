@@ -23,9 +23,9 @@ def test_current_hermes_tool_request_middleware_contract(monkeypatch, tmp_path):
         runtime = Runtime(
             Config(
                 mode="terminal",
-                recovery_dir=tmp_path / "recovery",
                 ledger_path=tmp_path / "experiments.sqlite3",
                 state_db_path=tmp_path / "state.db",
+                db_path=tmp_path / "artifacts.sqlite3",
             )
         )
         monkeypatch.setattr(runtime.rewriter, "rtk_path", "/fake/rtk")
@@ -41,7 +41,7 @@ def test_current_hermes_tool_request_middleware_contract(monkeypatch, tmp_path):
         result = apply_tool_request_middleware("terminal", {"command": "git status"})
         assert result.payload["command"] == "rtk git status"
         assert result.original_payload["command"] == "git status"
-        assert result.trace[-1]["source"] == "rtk-hermes-plus"
+        assert result.trace[-1]["source"] == "token-terminator"
     finally:
         sys.path.remove(str(source))
 
@@ -59,9 +59,9 @@ def test_current_rtk_rewrites_terminal_and_pytest_guard_blocks_known_bad_case(tm
         Config(
             mode="terminal",
             timeout_ms=1_000,
-            recovery_dir=tmp_path / "recover",
             ledger_path=tmp_path / "experiments.sqlite3",
             state_db_path=tmp_path / "state.db",
+            db_path=tmp_path / "artifacts.sqlite3",
         )
     )
     runtime.rewriter.rtk_path = rtk

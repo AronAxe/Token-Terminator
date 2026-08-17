@@ -1,17 +1,17 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rtk-hermes-plus"
-version = "0.2.0"
-description = "Token-first RTK integration for Hermes Agent, including native tool-result compression"
+name = "token-terminator"
+version = "0.3.0"
+description = "Fail-open token reduction, exact recovery, and request compilation for Hermes Agent"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{name = "Aron Bijl"}]
 dependencies = ["tomli>=2.0; python_version < '3.11'"]
-keywords = ["hermes-agent", "rtk", "llm", "token-savings", "context-compression"]
+keywords = ["hermes-agent", "rtk", "llm", "token-savings", "context-compression", "artifact-vault"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python :: 3",
@@ -22,15 +22,18 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "twine>=5"]
+dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "tiktoken>=0.12", "twine>=5"]
+
+[project.scripts]
+token-terminator = "rtk_hermes_plus.cli:main"
 
 [project.entry-points."hermes_agent.plugins"]
-rtk-plus = "rtk_hermes_plus"
+token-terminator = "rtk_hermes_plus"
 
 [project.urls]
-Homepage = "https://github.com/AronAxe/rtk-hermes-plus"
-Repository = "https://github.com/AronAxe/rtk-hermes-plus"
-Issues = "https://github.com/AronAxe/rtk-hermes-plus/issues"
+Homepage = "https://github.com/AronAxe/Token-Terminator"
+Repository = "https://github.com/AronAxe/Token-Terminator"
+Issues = "https://github.com/AronAxe/Token-Terminator/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

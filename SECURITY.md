@@ -1,22 +1,35 @@
 # Security
 
-Please report suspected vulnerabilities through a private GitHub security
-advisory rather than a public issue.
+Please report suspected vulnerabilities through a private GitHub security advisory rather than a public issue.
 
-RTK Hermes Plus executes the locally installed `rtk` binary without `shell=True`.
-It never stores terminal command strings in its own metrics. Native results are
-written only when compression occurs and use bounded rotation. POSIX systems
-enforce a `0700` recovery directory and `0600` files; Windows artifacts remain
-inside the user's profile and inherit its Windows ACLs.
+## Data boundaries
 
-The optional experiment ledger stores session/turn identifiers, RTK mode,
-model/provider labels, token/cost totals, transformation counts, and a salted
-local SHA-256 fingerprint used to match repeated prompts across modes. It does
-not store prompt text, commands, or tool contents and is never uploaded by the
-plugin. The ledger lives in the same private `rtk-plus` directory, uses `0600`
-on POSIX, and inherits the user's profile ACLs on Windows. Anyone who can read
-the user's Hermes profile can still read its metadata; treat that profile as
-sensitive local application data.
+Token Terminator stores exact large tool artifacts and private provenance locally because exact recovery is part of its acceptance contract. By default, plugin-owned files live under:
 
-Remote terminal backends are disabled by default because both RTK and any local
-file paths used by aggressive compression must exist in the execution backend.
+```text
+<HERMES_HOME>/token-terminator/
+```
+
+The artifact vault stores raw artifact text, content digests, tool names, tool arguments, observations, exposure leases, optional bounded working state, and request-reduction metrics. The separate experiment ledger stores session/turn identifiers, mode/model/provider labels, token/cost totals, transformation counts, and salted local prompt fingerprints. It does **not** store command strings, prompts, or tool contents.
+
+Nothing is uploaded by the plugin.
+
+On POSIX, Token Terminator enforces `0700` on private parent directories and `0600` on SQLite files. On Windows, files remain under the user's Hermes profile and inherit its Windows ACLs. Anyone who can read that profile can read private artifacts; treat the profile as sensitive application data.
+
+## Execution and transformation safety
+
+- RTK is invoked with an argument array and `shell=False`.
+- Remote terminal backends are disabled by default.
+- Native compression is accepted only after exact artifact write and read-back succeeds.
+- The complete model-visible payload, including receipts and optional working state, must be strictly smaller.
+- Request compilation operates on deep copies and fails open if a request cannot be copied safely.
+- Malformed requests, unavailable storage, migration failures, vault-capacity failures, missing host APIs, and non-smaller output leave normal Hermes behavior unchanged.
+- Token Terminator does not register a Hermes context engine and does not modify LCM state.
+- Receipt metadata is bounded and excludes raw tool arguments and content.
+- Artifact reads, searches, graph operations, identifiers, metadata, and replay batches are bounded in the domain layer.
+
+## Operational guidance
+
+Do not install two distributions that own the `rtk_hermes_plus` Python package. When migrating from `rtk-hermes-plus` 0.2.0, uninstall it before installing `token-terminator` 0.3.0. Enable only one Token Terminator/RTK rewrite plugin at a time.
+
+Back up or remove `<HERMES_HOME>/token-terminator/` separately from package uninstall. Disabling or uninstalling code intentionally does not erase private artifacts.

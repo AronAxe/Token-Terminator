@@ -9,6 +9,7 @@ import threading
 import time
 import unicodedata
 from collections.abc import Callable
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +50,7 @@ def _snapshot(row: dict[str, Any] | None = None) -> dict[str, Any]:
     row = row or {}
     output: dict[str, Any] = {field: _integer(row.get(field)) for field in COUNT_FIELDS}
     output.update({field: _number(row.get(field)) for field in COST_FIELDS})
+    output["accounting_available"] = bool(row.get("accounting_available", True))
     for field in (
         "model",
         "billing_provider",
@@ -71,10 +73,10 @@ class HermesAccounting:
 
     def read(self, session_id: str) -> dict[str, Any]:
         if not session_id or not self.state_db_path.is_file():
-            return _snapshot()
+            return _snapshot({"accounting_available": False})
         uri = f"file:{self.state_db_path.as_posix()}?mode=ro"
         try:
-            with sqlite3.connect(uri, uri=True, timeout=2) as connection:
+            with closing(sqlite3.connect(uri, uri=True, timeout=2)) as connection:
                 connection.row_factory = sqlite3.Row
                 row = connection.execute(
                     """SELECT model, billing_provider, billing_mode,
@@ -87,8 +89,12 @@ class HermesAccounting:
                     (session_id,),
                 ).fetchone()
         except (OSError, sqlite3.Error):
-            return _snapshot()
-        return _snapshot(dict(row)) if row is not None else _snapshot()
+            return _snapshot({"accounting_available": False})
+        return (
+            _snapshot(dict(row))
+            if row is not None
+            else _snapshot({"accounting_available": False})
+        )
 
 
 SCHEMA = """
@@ -239,7 +245,7 @@ class ExperimentLedger:
                 self.path.parent.chmod(0o700)
             except OSError:
                 pass
-            with self._connect() as connection:
+            with closing(self._connect()) as connection, connection:
                 connection.executescript(SCHEMA)
                 row = connection.execute(
                     "SELECT value FROM meta WHERE key = 'fingerprint_salt'"
@@ -272,7 +278,7 @@ class ExperimentLedger:
         try:
             return _snapshot(self._reader(session_id))
         except Exception:  # noqa: BLE001 - host accounting must fail open
-            return _snapshot()
+            return _snapshot({"accounting_available": False})
 
     def _fingerprint(self, user_message: Any) -> str:
         text = _message_text(user_message)
@@ -291,7 +297,7 @@ class ExperimentLedger:
             current[field] for field in COST_FIELDS
         ]
         try:
-            with self._lock, self._connect() as connection:
+            with self._lock, closing(self._connect()) as connection, connection:
                 connection.execute(
                     """INSERT OR IGNORE INTO sessions(
                            session_id, mode, plugin_version, experiment, profile,
@@ -330,7 +336,9 @@ class ExperimentLedger:
                 ).fetchone()
                 stored_mode = str(row["mode"]) if row is not None else mode
                 contamination = ""
-                if stored_mode != mode:
+                if not current["accounting_available"]:
+                    contamination = "accounting unavailable"
+                elif stored_mode != mode:
                     contamination = f"runtime mode changed from {stored_mode} to {mode}"
                 connection.execute(
                     """UPDATE sessions SET last_seen_at = ?, last_model = ?,
@@ -376,7 +384,7 @@ class ExperimentLedger:
             current[field] for field in COST_FIELDS
         ]
         try:
-            with self._lock, self._connect() as connection:
+            with self._lock, closing(self._connect()) as connection, connection:
                 connection.execute(
                     """INSERT OR IGNORE INTO turns(
                            session_id, turn_id, task_id, prompt_fingerprint,
@@ -421,7 +429,7 @@ class ExperimentLedger:
         self.ensure_session(session_id, mode)
         current = self._read(session_id)
         try:
-            with self._lock, self._connect() as connection:
+            with self._lock, closing(self._connect()) as connection, connection:
                 row = connection.execute(
                     "SELECT * FROM turns WHERE session_id = ? AND turn_id = ?",
                     (session_id, turn_id),
@@ -479,7 +487,7 @@ class ExperimentLedger:
         self.ensure_session(session_id, mode)
         current = self._read(session_id)
         try:
-            with self._lock, self._connect() as connection:
+            with self._lock, closing(self._connect()) as connection, connection:
                 self._sync_session(connection, session_id, current)
                 connection.execute(
                     "UPDATE sessions SET finalized_at = COALESCE(finalized_at, ?) "
@@ -529,7 +537,7 @@ class ExperimentLedger:
         assignment = ", ".join(f"{key} = {key} + ?" for key in values)
         params = list(values.values())
         try:
-            with self._lock, self._connect() as connection:
+            with self._lock, closing(self._connect()) as connection, connection:
                 connection.execute(
                     f"UPDATE sessions SET {assignment}, last_seen_at = ? WHERE session_id = ?",
                     (*params, time.time(), session_id),
@@ -557,6 +565,7 @@ class ExperimentLedger:
         route_changed = bool(
             initial_model and current_model and initial_model != current_model
         )
+        accounting_unavailable = not current["accounting_available"]
         connection.execute(
             """UPDATE sessions SET last_seen_at = ?, last_model = ?,
                       initial_model = COALESCE(NULLIF(initial_model, ''), ?),
@@ -571,9 +580,11 @@ class ExperimentLedger:
                       tool_call_count = ?, estimated_cost_usd = ?,
                       actual_cost_usd = ?, api_equivalent_cost_usd = ?,
                       equivalent_rate_card = ?,
-                      contaminated = CASE WHEN ? THEN 1 ELSE contaminated END,
-                      contamination_reason = CASE WHEN ? THEN 'model changed within session'
-                                                   ELSE contamination_reason END
+                      contaminated = CASE WHEN ? OR ? THEN 1 ELSE contaminated END,
+                      contamination_reason = CASE
+                          WHEN ? THEN 'accounting unavailable'
+                          WHEN ? THEN 'model changed within session'
+                          ELSE contamination_reason END
                WHERE session_id = ?""",
             (
                 time.time(),
@@ -589,7 +600,9 @@ class ExperimentLedger:
                 values["actual_cost_usd"],
                 equivalent_cost,
                 self._equivalent_rate_card,
+                accounting_unavailable,
                 route_changed,
+                accounting_unavailable,
                 route_changed,
                 session_id,
             ),
@@ -623,7 +636,7 @@ class ExperimentLedger:
             result["error"] = self.error or "experiment ledger disabled"
             return result
         try:
-            with self._lock, self._connect() as connection:
+            with self._lock, closing(self._connect()) as connection, connection:
                 excluded = connection.execute(
                     "SELECT COUNT(*) FROM sessions WHERE experiment = ? AND contaminated = 1",
                     (self.experiment,),
@@ -780,6 +793,7 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     saved_chars = max(0, raw_chars - output_chars)
     return {
         "sessions": len(rows),
+        "token_coverage": len(rows),
         "mean_total_tokens": _mean(token_values),
         "median_total_tokens": _median(token_values),
         "mean_estimated_cost_usd": _mean(estimated),

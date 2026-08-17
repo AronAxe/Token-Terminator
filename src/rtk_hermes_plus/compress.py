@@ -1,68 +1,94 @@
 from __future__ import annotations
 
-import os
 import re
 import subprocess
-import time
-from pathlib import Path
 
 from .config import Config
 from .metrics import Metrics
 from .rewrite import backend_enabled, command_workdir, terminal_backend
+from .storage import TokenTerminatorStore
 
 ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
 class RecoveryStore:
-    def __init__(self, config: Config, metrics: Metrics):
+    """Compatibility facade over Token Terminator's content-addressed vault."""
+
+    def __init__(
+        self,
+        config: Config,
+        metrics: Metrics,
+        store: TokenTerminatorStore | None = None,
+    ):
         self.config = config
         self.metrics = metrics
-
-    def write(self, tool_name: str, content: str) -> Path | None:
+        self.error = ""
         try:
-            directory = self.config.recovery_dir
-            directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-            try:
-                directory.chmod(0o700)
-            except OSError:
-                pass
-            safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", tool_name)[:40] or "tool"
-            path = directory / f"{time.time_ns()}_{safe_name}.log"
-            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(fd, "w", encoding="utf-8", errors="replace") as handle:
-                handle.write(content)
-            self._rotate()
-            self.metrics.add("recovery_files_written")
-            return path
-        except OSError:
+            self.store = store or TokenTerminatorStore(
+                config.db_path,
+                max_artifact_chars=config.max_artifact_chars,
+                max_vault_bytes=config.vault_max_bytes,
+                max_page_chars=config.max_artifact_page_chars,
+            )
+        except Exception as exc:  # noqa: BLE001 - plugin must remain fail-open
+            self.store = None
+            self.error = f"{type(exc).__name__}: {exc}"
+            self.metrics.add("recovery_errors")
+
+    def write(
+        self,
+        tool_name: str,
+        content: str,
+        *,
+        args: dict | None = None,
+        session_id: str = "",
+        tool_call_id: str = "",
+    ) -> str | None:
+        """Persist and verify exact recovery before returning an artifact ID."""
+        if self.store is None:
             self.metrics.add("recovery_errors")
             return None
-
-    def _rotate(self) -> None:
-        files = sorted(
-            (item for item in self.config.recovery_dir.glob("*.log") if item.is_file()),
-            key=lambda item: item.stat().st_mtime_ns,
-            reverse=True,
-        )
-        for stale in files[self.config.recovery_files :]:
-            try:
-                stale.unlink()
-            except OSError:
-                continue
+        try:
+            stored = self.store.put_artifact(
+                content,
+                tool_name=tool_name,
+                args=args or {},
+                session_id=session_id,
+                tool_call_id=tool_call_id,
+            )
+            recovered = self.store.get_artifact(stored.artifact_id)
+            if recovered.content != content or recovered.sha256 != stored.sha256:
+                self.metrics.add("recovery_errors")
+                return None
+            self.metrics.add(
+                "recovery_artifacts_written"
+                if stored.created
+                else "recovery_artifacts_reused"
+            )
+            return stored.artifact_id
+        except Exception:  # noqa: BLE001 - recovery failure must degrade to original result
+            self.metrics.add("recovery_errors")
+            return None
 
 
 class NativeCompressor:
     BALANCED_TOOLS = frozenset({"search_files", "process"})
     AGGRESSIVE_TOOLS = frozenset({"read_file"})
 
-    def __init__(self, config: Config, metrics: Metrics, rtk_path: str | None):
+    def __init__(
+        self,
+        config: Config,
+        metrics: Metrics,
+        rtk_path: str | None,
+        store: TokenTerminatorStore | None = None,
+    ):
         self.config = config
         self.metrics = metrics
         self.rtk_path = rtk_path
-        self.recovery = RecoveryStore(config, metrics)
+        self.recovery = RecoveryStore(config, metrics, store)
 
     def transform(
-        self, *, tool_name: str, args: dict, result: str, **_kwargs
+        self, *, tool_name: str, args: dict, result: str, **kwargs
     ) -> str | None:
         if not self.config.native_enabled or not isinstance(result, str):
             return None
@@ -87,15 +113,27 @@ class NativeCompressor:
             self.metrics.add("native_not_smaller")
             return None
 
-        # The recovery annotation is deliberately small, but it still counts
-        # against the context budget. Avoid a nominal "compression" that grows
-        # the final tool result after metadata is attached.
-        if len(compact) + 256 >= len(result):
+        # Use the longest possible content-address identifier to reject a
+        # metadata-bloated candidate before writing anything to the vault.
+        prospective_note = _recovery_note(len(result), len(compact), "a_" + ("0" * 64))
+        if len(f"{compact.rstrip()}\n\n{prospective_note}") >= len(result):
             self.metrics.add("native_not_smaller")
             return None
 
-        recovery_path = self.recovery.write(tool_name, result)
-        note = _recovery_note(len(result), len(compact), recovery_path)
+        artifact_id = self.recovery.write(
+            tool_name,
+            result,
+            args=args,
+            session_id=str(kwargs.get("session_id") or ""),
+            tool_call_id=str(kwargs.get("tool_call_id") or ""),
+        )
+        if artifact_id is None:
+            # Exact recovery is part of the acceptance contract, not optional
+            # metadata. Leave the complete native result untouched.
+            self.metrics.add("native_recovery_unavailable")
+            return None
+
+        note = _recovery_note(len(result), len(compact), artifact_id)
         transformed = f"{compact.rstrip()}\n\n{note}"
         if len(transformed) >= len(result):
             self.metrics.add("native_not_smaller")
@@ -132,19 +170,22 @@ class NativeCompressor:
 
 
 def compact_text(text: str, max_chars: int) -> str:
+    max_chars = max(1, int(max_chars))
     clean = ANSI.sub("", text)
     lines = _collapse_consecutive(clean.splitlines())
     collapsed = "\n".join(lines)
     if len(collapsed) <= max_chars:
         return collapsed
 
-    head_budget = int(max_chars * 0.72)
-    tail_budget = max_chars - head_budget
-    head = _take_head(lines, head_budget)
-    tail = _take_tail(lines[len(head) :], tail_budget)
-    omitted = max(0, len(lines) - len(head) - len(tail))
-    middle = f"… {omitted} lines omitted …"
-    return "\n".join([*head, middle, *tail])
+    marker = "… lines omitted …"
+    if max_chars <= len(marker):
+        return marker[:max_chars]
+    payload_budget = max_chars - len(marker) - 2
+    head_chars = int(payload_budget * 0.72)
+    tail_chars = payload_budget - head_chars
+    head = collapsed[:head_chars].rstrip("\n")
+    tail = collapsed[-tail_chars:].lstrip("\n") if tail_chars else ""
+    return "\n".join(part for part in (head, marker, tail) if part)[:max_chars]
 
 
 def _collapse_consecutive(lines: list[str]) -> list[str]:
@@ -167,33 +208,11 @@ def _collapsed_line(line: str, count: int) -> str:
     return f"{line}  [repeated ×{count}]" if count > 2 else "\n".join([line] * count)
 
 
-def _take_head(lines: list[str], budget: int) -> list[str]:
-    selected: list[str] = []
-    used = 0
-    for line in lines:
-        cost = len(line) + 1
-        if selected and used + cost > budget:
-            break
-        selected.append(line)
-        used += cost
-    return selected
-
-
-def _take_tail(lines: list[str], budget: int) -> list[str]:
-    selected: list[str] = []
-    used = 0
-    for line in reversed(lines):
-        cost = len(line) + 1
-        if selected and used + cost > budget:
-            break
-        selected.append(line)
-        used += cost
-    return list(reversed(selected))
-
-
-def _recovery_note(raw_chars: int, compact_chars: int, path: Path | None) -> str:
+def _recovery_note(raw_chars: int, compact_chars: int, artifact_id: str) -> str:
     savings = (
         round((raw_chars - compact_chars) / raw_chars * 100, 1) if raw_chars else 0.0
     )
-    location = str(path) if path else "unavailable"
-    return f"[rtk-plus: {savings}% fewer characters; full output: {location}]"
+    return (
+        f"[Token Terminator: {savings}% fewer characters; "
+        f"full artifact={artifact_id}; recover with token_terminator action=artifact_get]"
+    )

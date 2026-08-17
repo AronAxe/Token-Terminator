@@ -1,5 +1,10 @@
 include CHANGELOG.md
 include CONTRIBUTING.md
 include LICENSE
+include MIGRATION.md
 include README.md
 include SECURITY.md
+recursive-include docs *.svg *.webp
+include scripts/smoke_hermes.py
+include scripts/verify_release.py
+include scripts/benchmark.py

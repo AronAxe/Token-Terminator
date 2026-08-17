@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from contextlib import closing
 
 from rtk_hermes_plus.ledger import ExperimentLedger, HermesAccounting
 
@@ -168,14 +169,36 @@ def test_ledger_is_durable_and_stores_no_prompt_content(tmp_path):
     )
     second = ledger(tmp_path, current)
     assert second.compare()["modes"]["native"]["sessions"] == 1
-    assert secret_prompt.encode() not in second.path.read_bytes()
+    with closing(sqlite3.connect(second.path)) as connection:
+        connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    payload = b"".join(
+        path.read_bytes()
+        for path in (
+            second.path,
+            second.path.with_name(second.path.name + "-wal"),
+            second.path.with_name(second.path.name + "-shm"),
+        )
+        if path.is_file()
+    )
+    assert secret_prompt.encode() not in payload
     if os.name != "nt":
         assert second.path.stat().st_mode & 0o777 == 0o600
 
 
+def test_ledger_operations_leave_no_open_database_handle(tmp_path):
+    current = {"s": snapshot()}
+    store = ledger(tmp_path, current)
+    store.ensure_session("s", "native")
+    store.compare()
+
+    moved = tmp_path / "experiments-moved.sqlite3"
+    store.path.replace(moved)
+    assert moved.is_file()
+
+
 def test_hermes_accounting_reads_canonical_columns(tmp_path):
     state_db = tmp_path / "state.db"
-    with sqlite3.connect(state_db) as connection:
+    with closing(sqlite3.connect(state_db)) as connection, connection:
         connection.execute(
             """CREATE TABLE sessions(
                    id TEXT PRIMARY KEY, model TEXT, billing_provider TEXT,
@@ -210,6 +233,43 @@ def test_hermes_accounting_reads_canonical_columns(tmp_path):
     result = HermesAccounting(state_db).read("s1")
     assert result["cache_read_tokens"] == 20
     assert result["actual_cost_usd"] == 0.0
+
+    moved = tmp_path / "state-moved.db"
+    state_db.replace(moved)
+    assert moved.is_file()
+
+
+def test_unavailable_hermes_accounting_contaminates_measurement(tmp_path):
+    store = ExperimentLedger(
+        tmp_path / "experiments.sqlite3",
+        tmp_path / "missing-state.db",
+        plugin_version="test",
+        experiment="paired-test",
+    )
+    store.start_turn(
+        session_id="missing",
+        turn_id="t1",
+        task_id="task",
+        mode="native",
+        user_message="measurement must not become zero usage",
+    )
+    store.finish_turn(
+        session_id="missing",
+        turn_id="t1",
+        mode="native",
+        completed=True,
+        failed=False,
+        interrupted=False,
+    )
+
+    result = store.compare()
+    assert result["excluded_contaminated_sessions"] == 1
+    assert result["modes"]["native"]["sessions"] == 0
+    with closing(sqlite3.connect(store.path)) as connection:
+        row = connection.execute(
+            "SELECT contamination_reason FROM sessions WHERE session_id='missing'"
+        ).fetchone()
+    assert row[0] == "accounting unavailable"
 
 
 def test_optional_api_equivalent_cost_stays_separate_from_actual(tmp_path):

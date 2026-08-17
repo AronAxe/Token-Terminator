@@ -19,16 +19,16 @@ def test_package_metadata_matches_module():
     metadata = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     assert metadata["project"]["version"] == rtk_hermes_plus.__version__
     assert (
-        metadata["project"]["entry-points"]["hermes_agent.plugins"]["rtk-plus"]
+        metadata["project"]["entry-points"]["hermes_agent.plugins"]["token-terminator"]
         == "rtk_hermes_plus"
     )
 
 
 def runtime(tmp_path, **kwargs):
     values = {
-        "recovery_dir": tmp_path / "recovery",
         "ledger_path": tmp_path / "experiments.sqlite3",
         "state_db_path": tmp_path / "state.db",
+        "db_path": tmp_path / "artifacts.sqlite3",
     }
     values.update(kwargs)
     instance = Runtime(Config(**values))
@@ -46,7 +46,7 @@ def test_modern_middleware_returns_replacement_without_mutating(tmp_path):
         result = rt.tool_request_middleware(tool_name="terminal", args=args)
     assert args == {"command": "git status", "timeout": 30}
     assert result["args"] == {"command": "rtk git status", "timeout": 30}
-    assert result["source"] == "rtk-hermes-plus"
+    assert result["source"] == "token-terminator"
 
 
 def test_legacy_hook_mutates_same_dict(tmp_path):
@@ -127,7 +127,7 @@ def test_status_and_reset_commands(tmp_path):
     status = json.loads(rt.command("status"))
     assert status["rtk_available"] is True
     assert status["metrics"]["rewritten"] == 3
-    assert rt.command("reset-stats") == "RTK Hermes Plus metrics reset."
+    assert rt.command("reset-stats") == "Token Terminator metrics reset."
     assert rt.metrics.snapshot().get("rewritten", 0) == 0
 
 
@@ -138,12 +138,84 @@ def test_register_prefers_middleware(monkeypatch, tmp_path):
     monkeypatch.setattr(plugin, "Runtime", lambda **_kwargs: fake_runtime)
     ctx = MagicMock()
     plugin.register(ctx)
-    ctx.register_middleware.assert_called_once()
+    middleware = [call.args[0] for call in ctx.register_middleware.call_args_list]
+    assert middleware == ["tool_request", "llm_request"]
     hooks = [call.args[0] for call in ctx.register_hook.call_args_list]
     assert "pre_tool_call" in hooks
+    assert "post_tool_call" in hooks
     assert "transform_tool_result" in hooks
     assert "pre_llm_call" in hooks
     assert "on_session_end" in hooks
+
+
+def test_recovery_tool_uses_host_session_and_filters_model_extras(
+    monkeypatch, tmp_path
+):
+    from rtk_hermes_plus import plugin
+
+    fake_runtime = runtime(tmp_path)
+    monkeypatch.setattr(plugin, "Runtime", lambda **_kwargs: fake_runtime)
+    ctx = MagicMock()
+    plugin.register(ctx)
+    registered = ctx.register_tool.call_args.kwargs
+
+    registered["handler"](
+        {
+            "action": "working_state_apply",
+            "operations": [{"op": "NODE_CREATE", "node_id": "N1", "kind": "claim"}],
+            "session_id": "model-spoofed",
+            "unexpected": "ignored",
+        },
+        session_id="host-authoritative",
+    )
+
+    assert registered["schema"]["parameters"]["additionalProperties"] is False
+    assert "session_id" not in registered["schema"]["parameters"]["properties"]
+    assert fake_runtime.graph is not None
+    assert fake_runtime.graph.events()[0]["session_id"] == "host-authoritative"
+
+
+def test_missing_recovery_tool_disables_receipt_transformations(monkeypatch, tmp_path):
+    from rtk_hermes_plus import plugin
+
+    fake_runtime = runtime(tmp_path)
+    monkeypatch.setattr(plugin, "Runtime", lambda **_kwargs: fake_runtime)
+
+    class ContextWithoutTools:
+        profile_name = "test"
+
+        def __init__(self):
+            self.middleware = []
+            self.hooks = []
+
+        def register_middleware(self, name, callback):
+            self.middleware.append((name, callback))
+
+        def register_hook(self, name, callback):
+            self.hooks.append((name, callback))
+
+        def register_command(self, *_args, **_kwargs):
+            pass
+
+    ctx = ContextWithoutTools()
+    plugin.register(ctx)
+
+    assert [name for name, _ in ctx.middleware] == ["tool_request"]
+    assert "transform_tool_result" not in [name for name, _ in ctx.hooks]
+    assert "post_tool_call" not in [name for name, _ in ctx.hooks]
+
+
+def test_recovery_metrics_hook_remains_when_ledger_is_disabled(monkeypatch, tmp_path):
+    from rtk_hermes_plus import plugin
+
+    fake_runtime = runtime(tmp_path, ledger_enabled=False)
+    monkeypatch.setattr(plugin, "Runtime", lambda **_kwargs: fake_runtime)
+    ctx = MagicMock()
+    plugin.register(ctx)
+
+    hooks = [call.args[0] for call in ctx.register_hook.call_args_list]
+    assert "pre_tool_call" in hooks
+    assert "on_session_start" not in hooks
 
 
 def test_register_falls_back_to_hook(monkeypatch, tmp_path):
