@@ -123,6 +123,12 @@ class Config:
     max_artifact_chars: int = 2_000_000
     vault_max_bytes: int = 536_870_912
     inline_lease_exposures: int = 1
+    # Context compaction: aggressive vaulting of old tool results and turn collapsing.
+    context_compaction_enabled: bool = True
+    context_min_vault_chars: int = 4_000
+    context_collapse_after_turns: int = 6
+    context_inline_recent_turns: int = 5
+
     # Disabled by default. This is a bounded working-state selector, not the
     # principal's broader graph-reasoning architecture.
     graph_context_chars: int = 0
@@ -325,6 +331,25 @@ def load_config() -> Config:
             50,
             minimum=1,
             maximum=500,
+        ),
+        context_compaction_enabled=_boolean(
+            "TOKEN_TERMINATOR_CONTEXT_COMPACTION",
+            True,
+        ),
+        context_min_vault_chars=_integer(
+            "TOKEN_TERMINATOR_CONTEXT_MIN_VAULT_CHARS",
+            4_000,
+            minimum=100,
+        ),
+        context_collapse_after_turns=_integer(
+            "TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS",
+            6,
+            minimum=0,
+        ),
+        context_inline_recent_turns=_integer(
+            "TOKEN_TERMINATOR_CONTEXT_INLINE_RECENT_TURNS",
+            3,
+            minimum=0,
         ),
     )
     return config

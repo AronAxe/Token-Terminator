@@ -11,6 +11,7 @@ from ._version import __version__
 from .compiler import RequestCompiler
 from .compress import NativeCompressor
 from .config import MODES, Config, load_config
+from .context_compactor import ContextCompactor
 from .graph import MAX_BATCH_OPERATIONS, WorkingStateGraph
 from .ledger import ExperimentLedger, dump_compare
 from .metrics import Metrics
@@ -45,6 +46,16 @@ class Runtime:
         self.compiler = (
             RequestCompiler(self.store, self.graph, self.config)
             if self.store is not None and self.graph is not None
+            else None
+        )
+        self.context_compactor = (
+            ContextCompactor(
+                self.store,
+                min_vault_chars=self.config.context_min_vault_chars,
+                collapse_after_turns=self.config.context_collapse_after_turns,
+                inline_recent_turns=self.config.context_inline_recent_turns,
+            )
+            if self.store is not None and self.config.context_compaction_enabled
             else None
         )
         self.ledger = ExperimentLedger(
@@ -174,6 +185,36 @@ class Runtime:
                 kwargs.get("api_request_id") or kwargs.get("request_id") or ""
             ),
         )
+
+        # Phase 2: Context compaction — vault old tool results and collapse
+        # old turns across the full conversation history.
+        compaction_metrics: dict[str, Any] = {}
+        if (
+            self.context_compactor is not None
+            and not result.failed_open
+            and result.saved_chars >= 0
+        ):
+            compacted = self.context_compactor.compact(
+                result.request if result.saved_chars > 0 else request,
+                session_id=str(kwargs.get("session_id") or ""),
+            )
+            if not compacted.failed_open and compacted.saved_chars > 0:
+                result = type(result)(
+                    request=compacted.request,
+                    raw_chars=compacted.raw_chars,
+                    compiled_chars=compacted.compacted_chars,
+                    saved_chars=compacted.raw_chars - compacted.compacted_chars,
+                    artifact_ids=result.artifact_ids,
+                    receipts=result.receipts,
+                    duplicates_collapsed=result.duplicates_collapsed,
+                    graph_context_injected=result.graph_context_injected,
+                    failed_open=False,
+                    error="",
+                    request_mode=result.request_mode,
+                    tool_schema_chars=result.tool_schema_chars,
+                )
+                compaction_metrics = compacted.as_dict()
+
         if result.failed_open or result.saved_chars <= 0:
             return None
         return {
@@ -187,6 +228,7 @@ class Runtime:
                 "artifacts": len(result.artifact_ids),
                 "receipts": result.receipts,
                 "duplicates_collapsed": result.duplicates_collapsed,
+                "context_compaction": compaction_metrics,
             },
         }
 

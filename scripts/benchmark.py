@@ -20,6 +20,7 @@ import tiktoken
 from rtk_hermes_plus.compiler import RequestCompiler
 from rtk_hermes_plus.compress import NativeCompressor
 from rtk_hermes_plus.config import Config
+from rtk_hermes_plus.context_compactor import ContextCompactor
 from rtk_hermes_plus.graph import WorkingStateGraph
 from rtk_hermes_plus.metrics import Metrics
 from rtk_hermes_plus.rewrite import Rewriter
@@ -341,6 +342,75 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
 
+        # Context compaction: simulate a 10-turn conversation where each turn
+        # produced a large tool result. Without compaction, all 10 results are
+        # resent every turn. With compaction, old turns get vaulted and collapsed.
+        big_tool_results = [
+            "\n".join(
+                f"turn_{turn} line {i}: diagnostic evidence block {i % 20}"
+                for i in range(800)
+            )
+            for turn in range(8)
+        ]
+        conv_messages: list[dict] = [{"role": "system", "content": "System prompt."}]
+        for turn in range(8):
+            conv_messages.append(
+                {"role": "user", "content": f"Question for turn {turn}"}
+            )
+            conv_messages.append(
+                {
+                    "role": "assistant",
+                    "content": f"Let me search for turn {turn}.",
+                    "tool_calls": [
+                        {
+                            "id": f"conv-call-{turn}",
+                            "type": "function",
+                            "function": {"name": "search_files", "arguments": "{}"},
+                        }
+                    ],
+                }
+            )
+            conv_messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": f"conv-call-{turn}",
+                    "content": big_tool_results[turn],
+                }
+            )
+            conv_messages.append(
+                {"role": "assistant", "content": f"Based on turn {turn} results, done."}
+            )
+        conv_request = {"model": "benchmark-model", "messages": conv_messages}
+        conv_original = copy.deepcopy(conv_request)
+        compactor = ContextCompactor(
+            store,
+            min_vault_chars=1_000,
+            collapse_after_turns=4,
+            inline_recent_turns=2,
+        )
+        conv_result = compactor.compact(conv_original, session_id="conv-benchmark")
+        if conv_result.failed_open or conv_result.saved_chars <= 0:
+            raise AssertionError("context compaction benchmark did not reduce")
+        if conv_result.vaulted_results < 1:
+            raise AssertionError(
+                "context compaction benchmark did not vault any results"
+            )
+        if conv_result.collapsed_turns < 1:
+            raise AssertionError(
+                "context compaction benchmark did not collapse any turns"
+            )
+        # Verify the original was not mutated.
+        if conv_original != conv_request:
+            raise AssertionError("context compaction mutated the original request")
+        cases.append(
+            measurement(
+                "context_compaction_multi_turn",
+                serialized(conv_request),
+                serialized(conv_result.request),
+                encoding,
+            )
+        )
+
         floors = {
             "rtk_terminal_rewrite": 90.0,
             "native_search_result": 90.0,
@@ -349,6 +419,7 @@ def main(argv: list[str] | None = None) -> int:
             "working_state_guard_no_bloat": 0.0,
             "receipt_plus_working_state_combined": 90.0,
             "small_request_fail_open": 0.0,
+            "context_compaction_multi_turn": 50.0,
         }
         for case in cases:
             floor = floors[case["name"]]
