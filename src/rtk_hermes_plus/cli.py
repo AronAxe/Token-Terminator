@@ -90,9 +90,12 @@ def run(args: argparse.Namespace) -> int:
     config, store, graph, compiler = _runtime()
     if args.command == "status":
         payload = {
+            # counts() separates compiler-stage totals from rows whose final
+            # provider payload was actually measured.
             **store.counts(),
             "mode": config.mode,
             "enabled": config.enabled,
+            "context_compaction_enabled": config.context_compaction_enabled,
             "min_artifact_chars": config.min_artifact_chars,
             "max_artifact_chars": config.max_artifact_chars,
             "vault_max_bytes": config.vault_max_bytes,

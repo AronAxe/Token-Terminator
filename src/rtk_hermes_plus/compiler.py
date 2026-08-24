@@ -4,7 +4,6 @@ import copy
 import hashlib
 import json
 import logging
-import uuid
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -41,6 +40,10 @@ class CompileResult:
     error: str = ""
     request_mode: str = "unknown"
     tool_schema_chars: int = 0
+    #: Identity this compilation would be (or was) recorded under. Callers that
+    #: defer metric recording until the provider-bound payload is known must
+    #: reuse it so both stages land on one row.
+    request_id: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -217,9 +220,18 @@ class RequestCompiler:
                 return True
         return False
 
-    def _record_metric(
-        self, result: CompileResult, session_id: str, request_id: str
-    ) -> None:
+    def _finalize(
+        self,
+        result: CompileResult,
+        session_id: str,
+        request_id: str,
+        *,
+        record_metric: bool,
+    ) -> CompileResult:
+        """Stamp metric identity and optionally write the compiler-only row."""
+        result.request_id = request_id
+        if not record_metric:
+            return result
         try:
             self.store.record_request_metric(
                 session_id=session_id,
@@ -233,10 +245,12 @@ class RequestCompiler:
                 duplicates_collapsed=result.duplicates_collapsed,
                 tool_schema_chars=result.tool_schema_chars,
                 failed_open=result.failed_open,
+                end_to_end_measured=False,
             )
         except Exception:
             # Metrics are observational and must never affect provider behavior.
             logger.debug("Token Terminator request metric write failed", exc_info=True)
+        return result
 
     def compile(
         self,
@@ -244,6 +258,7 @@ class RequestCompiler:
         *,
         session_id: str = "",
         request_id: str = "",
+        record_metric: bool = True,
     ) -> CompileResult:
         original = request
         raw_chars = 0
@@ -272,8 +287,9 @@ class RequestCompiler:
                     request_mode=mode,
                     tool_schema_chars=tool_schema_chars,
                 )
-                self._record_metric(result, session_id, request_id)
-                return result
+                return self._finalize(
+                    result, session_id, request_id, record_metric=record_metric
+                )
 
             working = copy.deepcopy(original)
             slots = (
@@ -389,8 +405,9 @@ class RequestCompiler:
                     request_mode=mode,
                     tool_schema_chars=tool_schema_chars,
                 )
-                self._record_metric(result, session_id, request_id)
-                return result
+                return self._finalize(
+                    result, session_id, request_id, record_metric=record_metric
+                )
             result = CompileResult(
                 request=working,
                 raw_chars=raw_chars,
@@ -403,10 +420,10 @@ class RequestCompiler:
                 request_mode=mode,
                 tool_schema_chars=tool_schema_chars,
             )
-            self._record_metric(result, session_id, request_id)
-            return result
+            return self._finalize(
+                result, session_id, request_id, record_metric=record_metric
+            )
         except Exception as exc:  # noqa: BLE001 - fail-open is the middleware contract
-            metric_request_id = request_id or f"failopen_{uuid.uuid4().hex}"
             result = CompileResult(
                 request=original,
                 raw_chars=raw_chars,
@@ -418,5 +435,9 @@ class RequestCompiler:
                 request_mode=mode,
                 tool_schema_chars=tool_schema_chars,
             )
-            self._record_metric(result, session_id, metric_request_id)
-            return result
+            if raw_chars <= 0:
+                result.request_id = str(request_id or "")
+                return result
+            return self._finalize(
+                result, session_id, request_id, record_metric=record_metric
+            )

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "token-terminator"
-version = "0.3.0"
+version = "0.3.1"
 description = "Fail-open token reduction, exact recovery, and request compilation for Hermes Agent"
 readme = "README.md"
 requires-python = ">=3.10"

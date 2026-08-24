@@ -22,6 +22,21 @@ def _json(value: Any) -> str:
     )
 
 
+# Additive telemetry columns deliberately remain within schema version 2. Older
+# 0.3.0 code names every column it writes, so it safely ignores these defaulted
+# columns. Keeping user_version=2 makes package rollback possible without also
+# requiring a destructive database downgrade.
+_END_TO_END_COLUMNS = (
+    "final_chars",
+    "compactor_saved_chars",
+    "end_to_end_saved_chars",
+    "vaulted_results",
+    "collapsed_turns",
+    "compactor_failed_open",
+    "end_to_end_measured",
+)
+
+
 @dataclass(frozen=True)
 class ArtifactPut:
     artifact_id: str
@@ -201,7 +216,14 @@ class TokenTerminatorStore:
                     duplicates_collapsed INTEGER NOT NULL,
                     tool_schema_chars INTEGER NOT NULL,
                     failed_open INTEGER NOT NULL CHECK(failed_open IN (0, 1)),
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    final_chars INTEGER NOT NULL DEFAULT 0,
+                    compactor_saved_chars INTEGER NOT NULL DEFAULT 0,
+                    end_to_end_saved_chars INTEGER NOT NULL DEFAULT 0,
+                    vaulted_results INTEGER NOT NULL DEFAULT 0,
+                    collapsed_turns INTEGER NOT NULL DEFAULT 0,
+                    compactor_failed_open INTEGER NOT NULL DEFAULT 0,
+                    end_to_end_measured INTEGER NOT NULL DEFAULT 0
                 );
                 """
             for statement in schema_sql.split(";"):
@@ -253,6 +275,47 @@ class TokenTerminatorStore:
                     """
                 )
                 conn.execute(f"PRAGMA user_version={self.SCHEMA_VERSION}")
+
+            # Compatibility-preserving additive migration for existing schema-2
+            # databases. Legacy rows stay explicitly unmeasured; legacy code can
+            # continue opening the database because user_version remains 2.
+            metric_columns = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(request_metrics)")
+            }
+            for column in _END_TO_END_COLUMNS:
+                if column not in metric_columns:
+                    conn.execute(
+                        f"ALTER TABLE request_metrics "
+                        f"ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0"
+                    )
+            # The original 0.3.0 writer only updates legacy columns. If it
+            # touches a row measured by this release, invalidate the newer
+            # fields rather than retaining telemetry that no longer describes
+            # the legacy values. The current writer restores a fresh final
+            # measurement later in the same transaction.
+            conn.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS invalidate_request_metric_end_to_end
+                AFTER UPDATE OF
+                    request_mode, raw_chars, compiled_chars, saved_chars,
+                    artifact_count, receipts, duplicates_collapsed,
+                    tool_schema_chars, failed_open, created_at
+                ON request_metrics
+                WHEN OLD.end_to_end_measured = 1
+                BEGIN
+                    UPDATE request_metrics SET
+                        final_chars = 0,
+                        compactor_saved_chars = 0,
+                        end_to_end_saved_chars = 0,
+                        vaulted_results = 0,
+                        collapsed_turns = 0,
+                        compactor_failed_open = 0,
+                        end_to_end_measured = 0
+                    WHERE metric_id = NEW.metric_id;
+                END
+                """
+            )
 
     @staticmethod
     def _artifact_id(sha256: str) -> str:
@@ -495,6 +558,32 @@ class TokenTerminatorStore:
         return bool(used < max(0, int(inline_limit)))
 
     def record_request_metric(self, **metric: Any) -> None:
+        """Persist one compiler/final-payload measurement without double-counting."""
+        raw_chars = int(metric.get("raw_chars") or 0)
+        compiled_chars = int(metric.get("compiled_chars") or 0)
+        measured = int(bool(metric.get("end_to_end_measured")))
+        final_chars = int(metric.get("final_chars") or 0) if measured else 0
+        compiler_saved_chars = (
+            int(metric.get("saved_chars") or 0)
+            if "saved_chars" in metric
+            else raw_chars - compiled_chars
+        )
+        if min(raw_chars, compiled_chars, compiler_saved_chars) < 0:
+            raise ValueError("request metric character counts must be non-negative")
+        if (
+            compiled_chars > raw_chars
+            or compiler_saved_chars != raw_chars - compiled_chars
+        ):
+            raise ValueError("request metric compiler savings algebra is inconsistent")
+        if measured and (final_chars < 0 or final_chars > compiled_chars):
+            raise ValueError(
+                "request metric final characters exceed compiled characters"
+            )
+        compactor_saved = compiled_chars - final_chars if measured else 0
+        end_to_end_saved = raw_chars - final_chars if measured else 0
+        session_id = str(metric.get("session_id") or "")
+        request_id = str(metric.get("request_id") or "")
+        now = _utc_now()
         with self.connection(write=True) as conn:
             conn.execute(
                 """
@@ -514,22 +603,72 @@ class TokenTerminatorStore:
                     tool_schema_chars=excluded.tool_schema_chars,
                     failed_open=excluded.failed_open,
                     created_at=excluded.created_at
+                WHERE request_metrics.end_to_end_measured = 0 OR ? = 1
                 """,
                 (
-                    str(metric.get("session_id") or ""),
-                    str(metric.get("request_id") or ""),
+                    session_id,
+                    request_id,
                     str(metric.get("request_mode") or "unknown"),
-                    int(metric.get("raw_chars") or 0),
-                    int(metric.get("compiled_chars") or 0),
-                    int(metric.get("saved_chars") or 0),
+                    raw_chars,
+                    compiled_chars,
+                    compiler_saved_chars,
                     int(metric.get("artifact_count") or 0),
                     int(metric.get("receipts") or 0),
                     int(metric.get("duplicates_collapsed") or 0),
                     int(metric.get("tool_schema_chars") or 0),
                     int(bool(metric.get("failed_open"))),
-                    _utc_now(),
+                    now,
+                    measured,
                 ),
             )
+            if measured:
+                conn.execute(
+                    """
+                    UPDATE request_metrics SET
+                        final_chars=?,
+                        compactor_saved_chars=?,
+                        end_to_end_saved_chars=?,
+                        vaulted_results=?,
+                        collapsed_turns=?,
+                        compactor_failed_open=?,
+                        end_to_end_measured=1
+                    WHERE session_id=? AND request_id=?
+                    """,
+                    (
+                        final_chars,
+                        compactor_saved,
+                        end_to_end_saved,
+                        int(metric.get("vaulted_results") or 0),
+                        int(metric.get("collapsed_turns") or 0),
+                        int(bool(metric.get("compactor_failed_open"))),
+                        session_id,
+                        request_id,
+                    ),
+                )
+
+    COUNT_KEYS = (
+        "artifacts",
+        "artifact_observations",
+        "graph_events",
+        "active_nodes",
+        "active_edges",
+        "requests",
+        "saved_chars",
+        "compiler_saved_chars",
+        "failed_open_requests",
+        "end_to_end_requests",
+        "compiler_only_requests",
+        "measured_raw_chars",
+        "measured_compiled_chars",
+        "measured_final_chars",
+        "measured_compiler_saved_chars",
+        "measured_compactor_saved_chars",
+        "end_to_end_saved_chars",
+        "vaulted_results",
+        "collapsed_turns",
+        "compactor_failed_open_requests",
+        "any_failed_open_requests",
+    )
 
     def counts(self) -> dict[str, int]:
         queries = {
@@ -540,7 +679,20 @@ class TokenTerminatorStore:
             "active_edges": "SELECT COUNT(*) FROM graph_edges WHERE status='active'",
             "requests": "SELECT COUNT(*) FROM request_metrics",
             "saved_chars": "SELECT COALESCE(SUM(saved_chars), 0) FROM request_metrics",
+            "compiler_saved_chars": "SELECT COALESCE(SUM(saved_chars), 0) FROM request_metrics",
             "failed_open_requests": "SELECT COUNT(*) FROM request_metrics WHERE failed_open=1",
+            "end_to_end_requests": "SELECT COUNT(*) FROM request_metrics WHERE end_to_end_measured=1",
+            "compiler_only_requests": "SELECT COUNT(*) FROM request_metrics WHERE end_to_end_measured=0",
+            "measured_raw_chars": "SELECT COALESCE(SUM(raw_chars), 0) FROM request_metrics WHERE end_to_end_measured=1",
+            "measured_compiled_chars": "SELECT COALESCE(SUM(compiled_chars), 0) FROM request_metrics WHERE end_to_end_measured=1",
+            "measured_final_chars": "SELECT COALESCE(SUM(final_chars), 0) FROM request_metrics WHERE end_to_end_measured=1",
+            "measured_compiler_saved_chars": "SELECT COALESCE(SUM(saved_chars), 0) FROM request_metrics WHERE end_to_end_measured=1",
+            "measured_compactor_saved_chars": "SELECT COALESCE(SUM(compactor_saved_chars), 0) FROM request_metrics WHERE end_to_end_measured=1",
+            "end_to_end_saved_chars": "SELECT COALESCE(SUM(end_to_end_saved_chars), 0) FROM request_metrics WHERE end_to_end_measured=1",
+            "vaulted_results": "SELECT COALESCE(SUM(vaulted_results), 0) FROM request_metrics WHERE end_to_end_measured=1",
+            "collapsed_turns": "SELECT COALESCE(SUM(collapsed_turns), 0) FROM request_metrics WHERE end_to_end_measured=1",
+            "compactor_failed_open_requests": "SELECT COUNT(*) FROM request_metrics WHERE compactor_failed_open=1",
+            "any_failed_open_requests": "SELECT COUNT(*) FROM request_metrics WHERE failed_open=1 OR compactor_failed_open=1",
         }
         with self.connection() as conn:
             return {

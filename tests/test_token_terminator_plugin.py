@@ -4,6 +4,7 @@ import copy
 import json
 
 from rtk_hermes_plus.config import Config
+from rtk_hermes_plus.context_compactor import CompactionResult
 from rtk_hermes_plus.plugin import Runtime, register
 
 
@@ -93,7 +94,109 @@ def test_request_middleware_returns_only_a_strictly_smaller_copy(tmp_path):
     assert second is not None
     assert second["source"] == "token-terminator"
     assert second["metrics"]["saved_chars"] > 0
+    assert not any(key.startswith("_tt_") for key in second["request"])
+    serialized = json.dumps(
+        second["request"], ensure_ascii=False, sort_keys=True, default=str
+    )
+    assert "_tt_vaulted" not in serialized
+    assert "_tt_collapsed" not in serialized
     assert request == original
+
+    assert runtime.store is not None
+    counts = runtime.store.counts()
+    assert counts["requests"] == 2
+    assert counts["end_to_end_requests"] == 2
+    assert counts["compiler_only_requests"] == 0
+    assert (
+        counts["measured_compiler_saved_chars"]
+        + counts["measured_compactor_saved_chars"]
+        == counts["end_to_end_saved_chars"]
+    )
+    assert (
+        counts["measured_raw_chars"] - counts["measured_final_chars"]
+        == counts["end_to_end_saved_chars"]
+    )
+
+
+def test_responses_payload_is_provider_safe_and_caller_immutable(tmp_path):
+    runtime = Runtime(config(tmp_path))
+    request = {
+        "input": [
+            {"type": "message", "role": "user", "content": "Turn 1"},
+            {"type": "function_call", "call_id": "c1", "name": "search_files"},
+            {
+                "type": "function_call_output",
+                "call_id": "c1",
+                "output": "large response evidence " * 300,
+            },
+            {"type": "message", "role": "user", "content": "Turn 2"},
+            {"type": "message", "role": "user", "content": "Turn 3"},
+        ]
+    }
+    original = copy.deepcopy(request)
+
+    first = runtime.llm_request_middleware(
+        request=request, session_id="responses", api_request_id="r1"
+    )
+    second = runtime.llm_request_middleware(
+        request=request, session_id="responses", api_request_id="r2"
+    )
+
+    assert first is not None or second is not None
+    final = second or first
+    assert final is not None
+    serialized = json.dumps(
+        final["request"], ensure_ascii=False, sort_keys=True, default=str
+    )
+    assert "_tt_vaulted" not in serialized
+    assert "_tt_collapsed" not in serialized
+    assert request == original
+
+
+def test_compactor_failure_is_counted_and_keeps_the_usable_request(
+    tmp_path, monkeypatch
+):
+    runtime = Runtime(config(tmp_path))
+    request = {"messages": [{"role": "user", "content": "unchanged"}]}
+    original = copy.deepcopy(request)
+    assert runtime.context_compactor is not None
+
+    def fail_compaction(_request, *, session_id=""):
+        return CompactionResult(
+            request={"messages": [{"role": "user", "content": "broken"}]},
+            raw_chars=100,
+            compacted_chars=1,
+            saved_chars=99,
+            failed_open=True,
+            error="injected failure",
+        )
+
+    monkeypatch.setattr(runtime.context_compactor, "compact", fail_compaction)
+    result = runtime.llm_request_middleware(
+        request=request, session_id="failure", api_request_id="r1"
+    )
+
+    assert result is None
+    assert request == original
+    assert runtime.store is not None
+    counts = runtime.store.counts()
+    assert counts["requests"] == 1
+    assert counts["compactor_failed_open_requests"] == 1
+    assert counts["end_to_end_requests"] == 1
+
+
+def test_invalid_request_fails_open_without_creating_telemetry(tmp_path):
+    runtime = Runtime(config(tmp_path))
+
+    result = runtime.llm_request_middleware(
+        request="not-a-provider-request", session_id="failure"
+    )
+
+    assert result is None
+    assert runtime.store is not None
+    counts = runtime.store.counts()
+    assert counts["requests"] == 0
+    assert counts["end_to_end_requests"] == 0
 
 
 def test_observer_captures_original_and_recovery_tool_returns_exact_content(tmp_path):

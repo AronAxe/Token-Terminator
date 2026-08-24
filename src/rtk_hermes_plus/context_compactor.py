@@ -151,6 +151,10 @@ class ContextCompactor:
                     saved_chars=0,
                 )
 
+            # These counters are internal bookkeeping only. Extract them before
+            # measuring so metrics describe the exact provider-bound payload.
+            vaulted_results = working.pop("_tt_vaulted", 0)
+            collapsed_turns = working.pop("_tt_collapsed", 0)
             compacted_chars = _serialized_chars(working)
 
             # Strict reduction invariant: never make the request larger.
@@ -167,8 +171,8 @@ class ContextCompactor:
                 raw_chars=raw_chars,
                 compacted_chars=compacted_chars,
                 saved_chars=raw_chars - compacted_chars,
-                vaulted_results=working.get("_tt_vaulted", 0),  # type: ignore[union-attr]
-                collapsed_turns=working.get("_tt_collapsed", 0),  # type: ignore[union-attr]
+                vaulted_results=int(vaulted_results),
+                collapsed_turns=int(collapsed_turns),
             )
         except Exception as exc:
             logger.debug("Context compaction failed open", exc_info=True)
@@ -374,16 +378,15 @@ class ContextCompactor:
         cutoff_idx: int,
         session_id: str,
     ) -> dict[str, Any]:
-        """Replace old turn groups with structural summaries."""
+        """Fold old turn summaries into the first retained user message."""
         messages = request["messages"]
         # Group messages into turns (user message through next user message).
         new_messages: list[dict[str, Any]] = []
+        summaries: list[str] = []
         i = 0
         collapsed = 0
         while i < len(messages):
             if i >= cutoff_idx:
-                # Keep everything from the cutoff onward as-is.
-                new_messages.extend(messages[i:])
                 break
 
             msg = messages[i]
@@ -436,13 +439,35 @@ class ContextCompactor:
                                     tool_calls.append(name)
 
             summary = _turn_summary(user_preview, tool_calls, assistant_preview)
-            summary_msg = {
-                "role": "user",
-                "content": f"[Collapsed turn {collapsed + 1}: {summary}]",
-            }
-            new_messages.append(summary_msg)
+            summaries.append(f"[Collapsed turn {collapsed + 1}: {summary}]")
             collapsed += 1
             i = turn_end
+
+        retained = messages[i:]
+        if summaries:
+            # The cutoff is a user-turn boundary. Prefixing the summaries to that
+            # retained user message avoids provider-incompatible adjacent user
+            # roles while preserving the exact recent-turn payload.
+            if not retained or not isinstance(retained[0], dict):
+                request["_tt_collapsed"] = 0  # type: ignore[typeddict-item]
+                return request
+            retained_user = retained[0]
+            if retained_user.get("role") != "user":
+                request["_tt_collapsed"] = 0  # type: ignore[typeddict-item]
+                return request
+            summary_block = "\n".join(summaries)
+            content = retained_user.get("content")
+            if isinstance(content, str):
+                retained_user["content"] = (
+                    f"{summary_block}\n\n{content}" if content else summary_block
+                )
+            elif isinstance(content, list):
+                content.insert(0, {"type": "text", "text": summary_block})
+            else:
+                request["_tt_collapsed"] = 0  # type: ignore[typeddict-item]
+                return request
+
+        new_messages.extend(retained)
 
         request["messages"] = new_messages
         request["_tt_collapsed"] = collapsed  # type: ignore[typeddict-item]
