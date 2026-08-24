@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import runpy
 from pathlib import Path
 
@@ -51,7 +52,12 @@ def test_release_docs_reference_current_version():
     changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
 
     assert f"Token Terminator {version}" in readme
-    assert f"@v{version}" in readme
+    readme_install_refs = re.findall(r"Token-Terminator\.git@([^'\"\s]+)", readme)
+    assert readme_install_refs
+    assert all(
+        ref == f"v{version}" or re.fullmatch(r"[0-9a-f]{40}", ref)
+        for ref in readme_install_refs
+    )
     assert f"Token Terminator {version}" in migration
     assert f"@v{version}" in migration
     assert f"## {version} -" in changelog
