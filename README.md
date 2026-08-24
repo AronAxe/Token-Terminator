@@ -363,6 +363,10 @@ python scripts/verify_release.py 'dist/*'
 
 Contributions must preserve the central invariant: **strictly smaller complete provider payload, exact recovery, immutable caller requests, and fail-open host behavior.**
 
+<p align="center">
+  <img src="docs/assets/judgement-day.webp" alt="Judgement Day for Token Bloat — a Terminator-style machine skull looming over a ruined city as AI tokens explode" width="100%">
+</p>
+
 ## Acknowledgements
 
 Token Terminator retains and extends the original RTK integration, inspired by Vinicius Gallotti's MIT-licensed [`rtk-hermes`](https://github.com/ogallotti/rtk-hermes) adapter and built around RTK's command-rewrite protocol.
