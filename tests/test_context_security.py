@@ -80,7 +80,7 @@ def test_exposure_and_request_metric_rows_do_not_grow_on_retries(tmp_path):
         "failed_open": False,
     }
     store.record_request_metric(**metric)
-    store.record_request_metric(**{**metric, "saved_chars": 21})
+    store.record_request_metric(**{**metric, "compiled_chars": 79, "saved_chars": 21})
 
     with store.connection() as conn:
         exposures = conn.execute("SELECT COUNT(*) FROM artifact_exposures").fetchone()[

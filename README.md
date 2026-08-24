@@ -97,7 +97,7 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Installation
 
-Token Terminator 0.3.0 replaces `rtk-hermes-plus` 0.2.0. The two distributions must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.3.1 replaces `rtk-hermes-plus` 0.2.0. The two distributions must not coexist because both own the `rtk_hermes_plus` Python import package.
 
 ### 1. Install RTK when using terminal rewriting
 
@@ -119,7 +119,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.3.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.3.1'
 ```
 
 Windows example:
@@ -128,7 +128,7 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.3.0"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.3.1"
 ```
 
 ### 3. Enable one plugin
@@ -212,7 +212,9 @@ Inside Hermes:
 /token-terminator reset-stats
 ```
 
-The process-local metrics contain bounded counters and character totals. The durable experiment ledger stores session/turn identifiers, mode/model labels, token/cost totals, transformation counts, and salted local prompt fingerprints. It does not store command strings, prompts, or tool contents.
+The process-local metrics contain bounded counters and character totals. Durable request metrics separate compiler-stage savings (`raw_chars - compiled_chars`), context-compactor savings (`compiled_chars - final_chars`), and measured end-to-end savings (`raw_chars - final_chars`). Compiler-only rows are reported separately from requests whose final provider payload was observed. These columns are an additive schema-2 extension so a rollback to the original 0.3.0 package can still open and write the database. If that legacy writer updates a measured identity, a database trigger clears the newer fields so status reports the row as unmeasured rather than retaining stale end-to-end telemetry.
+
+The durable experiment ledger stores session/turn identifiers, mode/model labels, token/cost totals, transformation counts, and salted local prompt fingerprints. It does not store command strings, prompts, or tool contents.
 
 A valid comparison requires separate fresh sessions with stable modes, the same model/settings, and representative repeated tasks. Mode/model changes contaminate a session and exclude it rather than manufacturing a persuasive number.
 

@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import copy
+import json
+from itertools import pairwise
+
 import pytest
 
 from rtk_hermes_plus.context_compactor import ContextCompactor
@@ -62,6 +66,7 @@ class TestAggressiveVaulting:
             _make_user("Turn 3"),
         ]
         request = _make_request(messages)
+        original = copy.deepcopy(request)
         result = compactor.compact(request, session_id="s1")
 
         assert result.saved_chars > 0
@@ -70,6 +75,11 @@ class TestAggressiveVaulting:
         vaulted_msg = result.request["messages"][2]
         assert "[Token Terminator artifact " in vaulted_msg["content"]
         assert "x" * 100 not in vaulted_msg["content"]
+        assert request == original
+        assert not any(key.startswith("_tt_") for key in result.request)
+        assert result.compacted_chars == len(
+            json.dumps(result.request, ensure_ascii=False, sort_keys=True, default=str)
+        )
 
     def test_recent_tool_results_stay_inline(self, compactor):
         big_result = "x" * 5000
@@ -191,6 +201,62 @@ class TestTurnCollapsing:
                 or "topic 0" in collapsed[0]["content"]
             )
 
+    def test_collapsed_turns_do_not_create_adjacent_user_roles(self, compactor):
+        messages = []
+        for i in range(8):
+            messages.append(_make_user(f"User message for turn {i}" * 20))
+            messages.append({"role": "assistant", "content": f"Answer {i}" * 20})
+
+        result = compactor.compact(_make_request(messages), session_id="s1")
+
+        assert result.collapsed_turns > 1
+        roles = [message.get("role") for message in result.request["messages"]]
+        assert all(
+            current != "user" or previous != "user"
+            for previous, current in pairwise(roles)
+        )
+        retained_user = next(
+            message
+            for message in result.request["messages"]
+            if message.get("role") == "user"
+        )
+        assert "[Collapsed turn 1:" in retained_user["content"]
+        assert "User message for turn 4" in retained_user["content"]
+
+    def test_collapsed_turns_preserve_multimodal_retained_user(self, compactor):
+        messages = []
+        for i in range(4):
+            messages.append(_make_user(f"Old user message {i}" * 20))
+            messages.append({"role": "assistant", "content": f"Answer {i}" * 20})
+        messages.append(
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Retained prompt"},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": "data:image/png;base64,eA=="},
+                    },
+                ],
+            }
+        )
+        messages.append({"role": "assistant", "content": "Retained answer"})
+        for i in range(5, 8):
+            messages.append(_make_user(f"Recent user message {i}" * 20))
+            messages.append({"role": "assistant", "content": f"Answer {i}" * 20})
+
+        result = compactor.compact(_make_request(messages), session_id="s1")
+
+        assert result.collapsed_turns > 0
+        retained_user = next(
+            message
+            for message in result.request["messages"]
+            if isinstance(message.get("content"), list)
+        )
+        assert retained_user["content"][0]["type"] == "text"
+        assert "[Collapsed turn 1:" in retained_user["content"][0]["text"]
+        assert retained_user["content"][-1]["type"] == "image_url"
+
 
 class TestStrictReduction:
     """The compacted request must always be strictly smaller."""
@@ -235,11 +301,17 @@ class TestResponsesApi:
                 {"type": "message", "role": "user", "content": "Turn 3"},
             ]
         }
+        original = copy.deepcopy(request)
         result = compactor.compact(request, session_id="s1")
 
         assert result.vaulted_results >= 1
         vaulted_item = result.request["input"][2]
         assert "[Token Terminator artifact " in vaulted_item["output"]
+        assert request == original
+        assert not any(key.startswith("_tt_") for key in result.request)
+        assert result.compacted_chars == len(
+            json.dumps(result.request, ensure_ascii=False, sort_keys=True, default=str)
+        )
 
 
 class TestToolNameExtraction:

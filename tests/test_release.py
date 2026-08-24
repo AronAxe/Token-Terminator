@@ -3,6 +3,8 @@ from __future__ import annotations
 import runpy
 from pathlib import Path
 
+from rtk_hermes_plus._version import __version__
+
 
 def test_release_archive_paths_reject_absolute_traversal_and_drive_prefixes():
     verifier = runpy.run_path(
@@ -39,3 +41,17 @@ def test_release_guard_rejects_tracked_operational_artifacts(tmp_path, monkeypat
 
     assert any("operational path" in problem for problem in problems)
     assert any("operational payload" in problem for problem in problems)
+
+
+def test_release_docs_reference_current_version():
+    root = Path(__file__).resolve().parents[1]
+    version = __version__
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    migration = (root / "MIGRATION.md").read_text(encoding="utf-8")
+    changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+
+    assert f"Token Terminator {version}" in readme
+    assert f"@v{version}" in readme
+    assert f"Token Terminator {version}" in migration
+    assert f"@v{version}" in migration
+    assert f"## {version} -" in changelog

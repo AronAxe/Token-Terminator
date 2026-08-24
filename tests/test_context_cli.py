@@ -54,6 +54,15 @@ def test_cli_status_and_compile_json(tmp_path):
     assert payload["request"]["messages"][-1]["content"] == "x" * 9000
     assert payload["artifacts"] == 1
 
+    updated_status = run_cli(tmp_path, "status", "--json")
+    assert updated_status.returncode == 0, updated_status.stderr
+    status_payload = json.loads(updated_status.stdout)
+    assert status_payload["requests"] == 1
+    assert status_payload["compiler_only_requests"] == 1
+    assert status_payload["end_to_end_requests"] == 0
+    assert status_payload["measured_final_chars"] == 0
+    assert status_payload["context_compaction_enabled"] is True
+
 
 def test_cli_graph_apply_dry_run_does_not_mutate(tmp_path):
     operations_path = tmp_path / "ops.json"

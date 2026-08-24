@@ -39,9 +39,17 @@ def main() -> int:
         from hermes_cli.plugins import PluginManager
         from tools.registry import registry
 
+        from rtk_hermes_plus import __version__ as package_version
+
         installed_version = version("token-terminator")
-        if installed_version != "0.3.0":
-            raise AssertionError(f"unexpected installed version: {installed_version}")
+        expected_version = os.environ.get(
+            "TOKEN_TERMINATOR_EXPECTED_VERSION", package_version
+        )
+        if installed_version != expected_version:
+            raise AssertionError(
+                f"unexpected installed version: {installed_version} "
+                f"(expected {expected_version})"
+            )
         manager = PluginManager()
         manager.discover_and_load()
         plugins = manager.list_plugins()

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 - 2026-08-24
+
+- Kept collapsed-turn summaries inside the first retained user message so strict provider role sequencing remains valid.
+- Stripped internal `_tt_*` metadata before provider dispatch while preserving caller request immutability.
+- Added schema-2 telemetry for compiler, compactor, and measured end-to-end savings with exact algebra and one durable row per request identity.
+- Made measured retries monotonic and invalidated newer fields when an original 0.3.0 writer updates a row.
+- Hardened fail-open accounting, release-version checks, and the installed-wheel Hermes smoke test.
+
 ## 0.3.0 - 2026-08-17
 
 - Renamed the public distribution, Hermes plugin, CLI, slash command, environment namespace, and repository to **Token Terminator**.

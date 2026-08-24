@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import Any
 
 from ._version import __version__
-from .compiler import RequestCompiler
+from .compiler import CompileResult, RequestCompiler, _serialized_chars
 from .compress import NativeCompressor
 from .config import MODES, Config, load_config
-from .context_compactor import ContextCompactor
+from .context_compactor import CompactionResult, ContextCompactor
 from .graph import MAX_BATCH_OPERATIONS, WorkingStateGraph
 from .ledger import ExperimentLedger, dump_compare
 from .metrics import Metrics
@@ -27,6 +27,25 @@ from .rewrite import (
 from .storage import TokenTerminatorStore
 
 logger = logging.getLogger(__name__)
+
+INTERNAL_REQUEST_KEY_PREFIX = "_tt_"
+
+
+def _strip_internal_metadata(request: Any) -> Any:
+    """Return a provider-safe request without private top-level metadata."""
+    if not isinstance(request, dict):
+        return request
+    internal = [
+        key
+        for key in request
+        if isinstance(key, str) and key.startswith(INTERNAL_REQUEST_KEY_PREFIX)
+    ]
+    if not internal:
+        return request
+    cleaned = dict(request)
+    for key in internal:
+        cleaned.pop(key, None)
+    return cleaned
 
 
 class Runtime:
@@ -176,61 +195,111 @@ class Runtime:
     # Final provider-request compilation
     # ------------------------------------------------------------------
     def llm_request_middleware(self, *, request: dict, **kwargs):
+        """Compile, compact, and account for one provider-bound request."""
         if not self.config.compiler_enabled or self.compiler is None:
             return None
-        result = self.compiler.compile(
+        session_id = str(kwargs.get("session_id") or "")
+        compiled = self.compiler.compile(
             request,
-            session_id=str(kwargs.get("session_id") or ""),
+            session_id=session_id,
             request_id=str(
                 kwargs.get("api_request_id") or kwargs.get("request_id") or ""
             ),
+            record_metric=False,
         )
+        if compiled.failed_open and compiled.raw_chars <= 0:
+            return None
 
         # Phase 2: Context compaction — vault old tool results and collapse
         # old turns across the full conversation history.
-        compaction_metrics: dict[str, Any] = {}
-        if (
-            self.context_compactor is not None
-            and not result.failed_open
-            and result.saved_chars >= 0
-        ):
-            compacted = self.context_compactor.compact(
-                result.request if result.saved_chars > 0 else request,
-                session_id=str(kwargs.get("session_id") or ""),
+        compaction: CompactionResult | None = None
+        final_request: Any = compiled.request
+        if self.context_compactor is not None and not compiled.failed_open:
+            compaction = self.context_compactor.compact(
+                compiled.request if compiled.saved_chars > 0 else request,
+                session_id=session_id,
             )
-            if not compacted.failed_open and compacted.saved_chars > 0:
-                result = type(result)(
-                    request=compacted.request,
-                    raw_chars=compacted.raw_chars,
-                    compiled_chars=compacted.compacted_chars,
-                    saved_chars=compacted.raw_chars - compacted.compacted_chars,
-                    artifact_ids=result.artifact_ids,
-                    receipts=result.receipts,
-                    duplicates_collapsed=result.duplicates_collapsed,
-                    graph_context_injected=result.graph_context_injected,
-                    failed_open=False,
-                    error="",
-                    request_mode=result.request_mode,
-                    tool_schema_chars=result.tool_schema_chars,
-                )
-                compaction_metrics = compacted.as_dict()
+            if not compaction.failed_open and compaction.saved_chars > 0:
+                final_request = compaction.request
 
-        if result.failed_open or result.saved_chars <= 0:
+        try:
+            final_request = _strip_internal_metadata(final_request)
+            final_chars = (
+                compiled.raw_chars
+                if compiled.failed_open
+                else _serialized_chars(final_request)
+            )
+        except Exception:
+            logger.debug(
+                "Token Terminator final request measurement failed", exc_info=True
+            )
+            return None
+
+        compactor_saved = compiled.compiled_chars - final_chars
+        end_to_end_saved = compiled.raw_chars - final_chars
+        self._record_request_metric(
+            compiled,
+            session_id=session_id,
+            final_chars=final_chars,
+            compaction=compaction,
+        )
+
+        if compiled.failed_open or end_to_end_saved <= 0:
             return None
         return {
-            "request": result.request,
+            "request": final_request,
             "source": "token-terminator",
             "reason": "strictly smaller final provider request",
             "metrics": {
-                "raw_chars": result.raw_chars,
-                "compiled_chars": result.compiled_chars,
-                "saved_chars": result.saved_chars,
-                "artifacts": len(result.artifact_ids),
-                "receipts": result.receipts,
-                "duplicates_collapsed": result.duplicates_collapsed,
-                "context_compaction": compaction_metrics,
+                "raw_chars": compiled.raw_chars,
+                "compiler_chars": compiled.compiled_chars,
+                "final_chars": final_chars,
+                "compiler_saved_chars": compiled.saved_chars,
+                "compactor_saved_chars": compactor_saved,
+                "end_to_end_saved_chars": end_to_end_saved,
+                "saved_chars": end_to_end_saved,
+                "compiled_chars": compiled.compiled_chars,
+                "artifacts": len(compiled.artifact_ids),
+                "receipts": compiled.receipts,
+                "duplicates_collapsed": compiled.duplicates_collapsed,
+                "vaulted_results": compaction.vaulted_results if compaction else 0,
+                "collapsed_turns": compaction.collapsed_turns if compaction else 0,
+                "context_compaction": compaction.as_dict() if compaction else {},
             },
         }
+
+    def _record_request_metric(
+        self,
+        compiled: CompileResult,
+        *,
+        session_id: str,
+        final_chars: int,
+        compaction: CompactionResult | None,
+    ) -> None:
+        """Write one finalized metric row; telemetry failures remain fail-open."""
+        if self.store is None:
+            return
+        try:
+            self.store.record_request_metric(
+                session_id=session_id,
+                request_id=compiled.request_id,
+                request_mode=compiled.request_mode,
+                raw_chars=compiled.raw_chars,
+                compiled_chars=compiled.compiled_chars,
+                saved_chars=compiled.saved_chars,
+                artifact_count=len(compiled.artifact_ids),
+                receipts=compiled.receipts,
+                duplicates_collapsed=compiled.duplicates_collapsed,
+                tool_schema_chars=compiled.tool_schema_chars,
+                failed_open=compiled.failed_open,
+                final_chars=final_chars,
+                vaulted_results=compaction.vaulted_results if compaction else 0,
+                collapsed_turns=compaction.collapsed_turns if compaction else 0,
+                compactor_failed_open=bool(compaction and compaction.failed_open),
+                end_to_end_measured=True,
+            )
+        except Exception:
+            logger.debug("Token Terminator request metric write failed", exc_info=True)
 
     # ------------------------------------------------------------------
     # Lifecycle accounting
@@ -397,16 +466,7 @@ class Runtime:
         counts = (
             self.store.counts()
             if self.store is not None
-            else {
-                "artifacts": 0,
-                "artifact_observations": 0,
-                "graph_events": 0,
-                "active_nodes": 0,
-                "active_edges": 0,
-                "requests": 0,
-                "saved_chars": 0,
-                "failed_open_requests": 0,
-            }
+            else dict.fromkeys(TokenTerminatorStore.COUNT_KEYS, 0)
         )
         return {
             **counts,

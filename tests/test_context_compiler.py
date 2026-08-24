@@ -195,7 +195,7 @@ def test_denied_lease_never_reverts_to_full_evidence_when_graph_would_bloat(
     assert result.graph_context_injected is False
 
 
-def test_malformed_requests_fail_open_and_keep_distinct_metrics(tmp_path):
+def test_malformed_requests_fail_open_without_telemetry(tmp_path):
     compiler, store = make_compiler(tmp_path)
 
     first = compiler.compile(None, session_id="s1")
@@ -203,7 +203,9 @@ def test_malformed_requests_fail_open_and_keep_distinct_metrics(tmp_path):
 
     assert first.request is None and first.failed_open
     assert second.request == ["not", "an", "object"] and second.failed_open
-    assert store.counts()["requests"] == 2
+    assert first.request_id == ""
+    assert second.request_id == ""
+    assert store.counts()["requests"] == 0
 
 
 def test_compiler_fails_open_without_mutating_request(tmp_path, monkeypatch):

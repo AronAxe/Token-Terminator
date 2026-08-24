@@ -1,10 +1,10 @@
-# Migration and rollback: 0.2.0 → 0.3.0
+# Migration and rollback: 0.2.0 → 0.3.1
 
-Token Terminator 0.3.0 replaces RTK Hermes Plus 0.2.0. This is a package replacement, not an in-place dual installation.
+Token Terminator 0.3.1 replaces RTK Hermes Plus 0.2.0. This is a package replacement, not an in-place dual installation.
 
 ## Boundary
 
-| Concern | 0.2.0 | 0.3.0 |
+| Concern | 0.2.0 | 0.3.1 |
 |---|---|---|
 | Distribution | `rtk-hermes-plus` | `token-terminator` |
 | Hermes plugin key | `rtk-plus` | `token-terminator` |
@@ -37,11 +37,11 @@ Perform the package replacement while no Hermes process is importing `rtk_hermes
 hermes plugins disable rtk-plus
 <hermes-python> -m pip uninstall -y rtk-hermes-plus token-terminator
 <hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.3.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.3.1'
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
 
-If installing before a `v0.3.0` tag exists, use the reviewed release commit SHA instead. Never install an unpinned moving branch into a production profile.
+If installing before a `v0.3.1` tag exists, use the reviewed release commit SHA instead. Never install an unpinned moving branch into a production profile.
 
 Commence a new Hermes session after enablement. Do not run both `rtk-plus` and `token-terminator`, and do not enable another terminal rewrite plugin alongside Token Terminator.
 
@@ -53,7 +53,7 @@ Verify all of the following:
 /token-terminator status
 ```
 
-- plugin key is `token-terminator` and version is `0.3.0`;
+- plugin key is `token-terminator` and version is `0.3.1`;
 - `vault_available` is `true`;
 - the selected mode is correct;
 - Hermes' existing context engine is still active;
