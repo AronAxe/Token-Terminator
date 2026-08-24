@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
   <title id="title">Token Terminator architecture</title>
-  <desc id="desc">Token Terminator reduces terminal commands, native tool results, and final provider requests while preserving exact artifacts in one private vault and leaving LCM as Hermes' context engine.</desc>
+  <desc id="desc">Token Terminator is a portable agent-runtime reduction core with a first-party Hermes adapter. It reduces terminal commands, native tool results, and final provider requests while preserving exact artifacts in one private vault.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#07111f"/>
@@ -31,12 +31,12 @@
   <rect width="1200" height="700" rx="24" fill="url(#bg)"/>
   <path d="M0 94 H1200" stroke="#27334d"/>
   <text x="48" y="48" class="heading">Token Terminator</text>
-  <text x="48" y="73" class="subheading">Three reduction paths · one private data boundary · exact recovery · fail open</text>
-  <text x="1150" y="52" text-anchor="end" class="small">LCM remains Hermes' context engine</text>
+  <text x="48" y="73" class="subheading">Agent-agnostic core · first-party Hermes adapter · exact recovery · fail open</text>
+  <text x="1150" y="52" text-anchor="end" class="small">Host context and transcripts stay host-owned</text>
 
   <text x="48" y="130" class="lane">1 · TERMINAL COMMAND PATH</text>
   <rect x="48" y="148" width="210" height="86" rx="14" class="box"/>
-  <text x="68" y="181" class="box-title">Hermes terminal call</text>
+  <text x="68" y="181" class="box-title">Runtime terminal call</text>
   <text x="68" y="204" class="box-sub">caller arguments preserved</text>
   <path d="M258 191 H318" class="flow"/>
   <rect x="320" y="148" width="210" height="86" rx="14" class="key"/>
@@ -44,7 +44,7 @@
   <text x="340" y="204" class="box-sub">backend · cache · timeout · guard</text>
   <path d="M530 191 H590" class="flow"/>
   <rect x="592" y="148" width="210" height="86" rx="14" class="box"/>
-  <text x="612" y="181" class="box-title">Hermes executes</text>
+  <text x="612" y="181" class="box-title">Host executes</text>
   <text x="612" y="204" class="box-sub">safe equivalent or original command</text>
   <path d="M802 191 H862" class="flow"/>
   <rect x="864" y="148" width="288" height="86" rx="14" class="key"/>
@@ -74,9 +74,9 @@
 
   <text x="48" y="454" class="lane">3 · FINAL PROVIDER REQUEST PATH</text>
   <rect x="48" y="472" width="210" height="98" rx="14" class="box"/>
-  <text x="68" y="507" class="box-title">Hermes + LCM request</text>
+  <text x="68" y="507" class="box-title">Host provider request</text>
   <text x="68" y="530" class="box-sub">normal context already assembled</text>
-  <text x="68" y="549" class="box-sub">transcript remains host-owned</text>
+  <text x="68" y="549" class="box-sub">Hermes adapter included</text>
   <path d="M258 521 H318" class="flow"/>
   <rect x="320" y="472" width="210" height="98" rx="14" class="key"/>
   <text x="340" y="507" class="box-title">Request compiler</text>
@@ -86,7 +86,7 @@
   <rect x="592" y="472" width="210" height="98" rx="14" class="box"/>
   <text x="612" y="507" class="box-title">Optional working state</text>
   <text x="612" y="530" class="box-sub">bounded · disabled by default</text>
-  <text x="612" y="549" class="box-sub">never a second context engine</text>
+  <text x="612" y="549" class="box-sub">never replaces host memory</text>
   <path d="M802 521 H862" class="flow"/>
   <rect x="864" y="472" width="288" height="98" rx="14" class="gate"/>
   <text x="884" y="507" class="box-title">Complete-size acceptance gate</text>

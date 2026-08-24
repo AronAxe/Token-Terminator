@@ -1,30 +1,43 @@
 <p align="center">
-  <img src="docs/assets/hero.webp" alt="A wide stream of terminal data compressed through a winged prism into a small beam of useful AI context" width="100%">
+  <img src="docs/assets/hero.svg" alt="A chrome endoskeleton boot crushing redundant token chips while the evidence survives" width="100%">
 </p>
 
 <h1 align="center">Token Terminator</h1>
 
 <p align="center">
   <strong>Keep the evidence. Terminate the redundant tokens.</strong><br>
-  Fail-open token reduction and exact recovery for
-  <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>.
+  Portable token reduction for agent runtimes, with a first-party
+  <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a> adapter.
 </p>
 
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Python 3.10–3.13" src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB?logo=python&logoColor=white">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22c55e.svg"></a>
+  <img alt="Portable core" src="https://img.shields.io/badge/core-agent--agnostic-ef2b25">
   <img alt="Fail open" src="https://img.shields.io/badge/failure%20mode-pass%20through-8b5cf6">
 </p>
 
-Token Terminator is one Hermes plugin with four cooperating reduction paths:
+Token Terminator is an agent-runtime optimization layer. It removes token bloat at the tool-result and provider-request boundaries without discarding the underlying evidence.
+
+The engine has four cooperating reduction paths:
 
 1. transparent terminal-command rewriting through [RTK](https://github.com/rtk-ai/rtk);
-2. deterministic compression of large Hermes-native tool results;
+2. deterministic compression of large tool results;
 3. content-addressed vaulting, duplicate collapse, evidence leases, and compact recovery receipts;
 4. final provider-request compilation, with optional bounded working-state injection only when the complete request is still smaller.
 
-It does **not** replace Hermes' context engine, mutate LCM state, rewrite persisted transcripts, add an MCP server, or install standing prompt text. It registers only the Hermes extension seams it needs. If storage, recovery, middleware, or compilation is unavailable or unsafe, Hermes receives the original request or result unchanged.
+The reduction core is not intrinsically tied to Hermes: it operates on Python dictionaries, strings, stable request/session identifiers, and a local SQLite vault. The repository includes a turnkey Hermes plugin because Hermes exposes the required lifecycle hooks. Other agent runtimes need a small adapter that presents the same boundaries; they do not need a fork of the reduction engine.
+
+It does **not** replace the host's context engine, memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
+
+## What it does
+
+- **Shrinks before the model sees it.** Large tool output is compacted and repeated evidence is replaced with bounded receipts.
+- **Keeps the original evidence.** Exact content is stored in a private, content-addressed SQLite vault and can be recovered by page or search.
+- **Compiles the final request.** Duplicate artifacts, expired inline exposures, and old context are reduced after the host assembles the provider payload.
+- **Refuses bad optimizations.** A transformed payload is used only when it is strictly smaller, recoverable, provider-valid, and leaves caller-owned objects untouched.
+- **Measures the result.** Content-free request/session telemetry separates compiler, compactor, and end-to-end savings.
 
 ## Core invariant
 
@@ -35,6 +48,17 @@ A provider-visible transformation is accepted only when:
 - caller-owned request objects remain unchanged.
 
 This is an optimizer, not a context decorator.
+
+## Portability: core versus adapter
+
+| Layer | Runtime dependency | Status |
+|---|---|---|
+| Vault, receipts, leases, native compression, request compiler, telemetry | Agent-agnostic Python | Included |
+| RTK command rewriting | Optional `rtk` binary plus a terminal-tool adapter | Included |
+| Hermes lifecycle hooks, slash command, and recovery model tool | Hermes Agent | First-party and turnkey |
+| LangGraph, OpenAI Agents SDK, AutoGen, CrewAI, custom loops | Their tool/request hook APIs | Adapter required |
+
+**In practical terms:** Token Terminator is agent-agnostic as an engine, not universally plug-and-play as a package. Hermes works out of the box. Another runtime must connect tool results, final provider requests, stable request/session IDs, and the recovery tool. The core behavior and storage format stay the same.
 
 ## What it reduces
 
@@ -54,10 +78,10 @@ The Python import package remains `rtk_hermes_plus` for source compatibility. Th
 ## Architecture
 
 <p align="center">
-  <img src="docs/assets/architecture.svg" alt="Token Terminator architecture: terminal rewriting, native compression, exact artifact vault, request compilation, and LCM-safe Hermes integration" width="100%">
+  <img src="docs/assets/architecture.svg" alt="Token Terminator architecture: an agent-agnostic reduction core connected to a host runtime through an adapter" width="100%">
 </p>
 
-Hermes and LCM continue to own the conversation, transcript, context-engine lifecycle, and provider dispatch. Token Terminator owns only its private data directory and registered middleware/hooks:
+The host runtime continues to own the conversation, transcript, context-engine lifecycle, and provider dispatch. Token Terminator owns only its private data directory and adapter-visible middleware/hooks. In the included Hermes adapter these are:
 
 - `tool_request` middleware for terminal rewrites;
 - `transform_tool_result` for native compression;
@@ -95,9 +119,11 @@ Small results are intentionally untouched. Ordinary sessions will not resemble t
 
 The optional working-state block defaults to zero characters, even in `balanced` and `aggressive` modes.
 
-## Installation
+## Install: Hermes Agent (turnkey)
 
 Token Terminator 0.3.1 replaces `rtk-hermes-plus` 0.2.0. The two distributions must not coexist because both own the `rtk_hermes_plus` Python import package.
+
+This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `0.3.1` merge commit because this repository does not yet publish release tags.
 
 ### 1. Install RTK when using terminal rewriting
 
@@ -119,7 +145,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.3.1'
+  'git+https://github.com/AronAxe/Token-Terminator.git@e02a035d52cc2b0e6e95748b35deb1f61656a4a3'
 ```
 
 Windows example:
@@ -128,7 +154,7 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.3.1"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@e02a035d52cc2b0e6e95748b35deb1f61656a4a3"
 ```
 
 ### 3. Enable one plugin
@@ -146,6 +172,61 @@ After commencing a new Hermes session:
 ```
 
 Installation and enablement are separate operations. Disabling affects subsequent sessions; it does not delete private vault data. See [MIGRATION.md](MIGRATION.md) for the reviewed 0.2.0 replacement and rollback procedure.
+
+## Install: another agent runtime (adapter API)
+
+Install the same distribution in the environment that owns your agent loop:
+
+```bash
+python -m pip install \
+  'git+https://github.com/AronAxe/Token-Terminator.git@e02a035d52cc2b0e6e95748b35deb1f61656a4a3'
+```
+
+Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.
+
+```python
+from pathlib import Path
+
+from rtk_hermes_plus.config import Config
+from rtk_hermes_plus.plugin import Runtime
+
+terminator = Runtime(
+    Config(
+        mode="balanced",
+        db_path=Path(".token-terminator/artifacts.sqlite3"),
+        ledger_enabled=False,
+    ),
+    profile_name="my-agent",
+)
+
+
+def reduce_tool_result(name, arguments, result, *, session_id, call_id):
+    try:
+        reduced = terminator.transform_tool_result(
+            tool_name=name,
+            args=arguments,
+            result=result,
+            session_id=session_id,
+            tool_call_id=call_id,
+        )
+    except Exception:
+        return result
+    return reduced if reduced is not None else result
+
+
+def reduce_provider_request(request, *, session_id, request_id):
+    try:
+        decision = terminator.llm_request_middleware(
+            request=request,
+            session_id=session_id,
+            request_id=request_id,
+        )
+    except Exception:
+        return request
+    return decision["request"] if decision is not None else request
+```
+
+An adapter must preserve four contracts: stable request/session identity, original-object immutability, pass-through on `None` or error, and model access to `artifact_get`. The `Runtime` surface is usable today; framework-specific one-command adapters beyond Hermes are not yet shipped.
 
 ## Exact recovery
 
@@ -229,6 +310,28 @@ A valid comparison requires separate fresh sessions with stable modes, the same 
 - Unsupported, malformed, unavailable, non-recoverable, or non-smaller transformations pass through unchanged.
 
 See [SECURITY.md](SECURITY.md) for the reporting policy and data boundaries.
+
+## FAQ
+
+### Is Token Terminator only for Hermes?
+
+No. The reduction engine and vault are ordinary Python and SQLite. Hermes is the first runtime with a complete, maintained adapter in this repository. Other runtimes need to connect their equivalent tool-result, provider-request, identity, and recovery seams.
+
+### Is RTK required?
+
+Only for terminal-command rewriting. Native tool-result compression, vaulting, recovery, and request compilation do not require the `rtk` binary. Use `native` mode to disable both RTK and request compilation, or a custom adapter with `balanced`/`aggressive` mode to use the broader engine.
+
+### Does it summarize away evidence?
+
+No. Provider-visible content may be compacted, but accepted transformations retain exact native content in the private vault and emit a recovery receipt. If write-and-read-back verification fails, the original content passes through.
+
+### Does it replace the host's memory or context engine?
+
+No. Token Terminator operates after or alongside normal context assembly. It does not own the transcript, alter persisted conversation history, or require a particular memory engine.
+
+### What happens when it fails?
+
+The optimization is skipped. Unsupported payloads, storage errors, timeouts, malformed data, non-smaller results, and adapter exceptions must all resolve to the original request or result.
 
 ## Rollback to RTK Hermes Plus 0.2.0
 

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Token Terminator mark</title>
+  <desc id="desc">A chrome mechanical heel crushes three glowing token chips inside a red targeting ring.</desc>
+  <defs>
+    <radialGradient id="bg"><stop offset="0" stop-color="#181d21"/><stop offset="1" stop-color="#030405"/></radialGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4f8f9"/><stop offset=".22" stop-color="#515b62"/><stop offset=".48" stop-color="#14191d"/><stop offset=".68" stop-color="#b7c2c7"/><stop offset="1" stop-color="#0a0d0f"/></linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d7fbff"/><stop offset=".3" stop-color="#39dbf5"/><stop offset="1" stop-color="#073244"/></linearGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="202" fill="none" stroke="#ef2b25" stroke-width="12" opacity=".85"/>
+  <circle cx="256" cy="256" r="174" fill="none" stroke="#ef2b25" stroke-width="2" stroke-dasharray="12 18" opacity=".65"/>
+  <path d="M256 38v44M256 430v44M38 256h44M430 256h44" stroke="#ef2b25" stroke-width="9"/>
+  <g transform="translate(86 333)" filter="url(#glow)">
+    <g transform="rotate(-13)"><rect width="108" height="64" rx="10" fill="url(#cyan)" stroke="#9af6ff" stroke-width="3"/><path d="M45 2l20 22-25 14 21 24" fill="none" stroke="#05090b" stroke-width="7"/></g>
+    <g transform="translate(92 8) rotate(9)"><rect width="110" height="64" rx="10" fill="url(#cyan)" stroke="#9af6ff" stroke-width="3"/><path d="M52 2l-18 23 25 12-18 26" fill="none" stroke="#05090b" stroke-width="7"/></g>
+    <g transform="translate(187 4) rotate(-6)"><rect width="108" height="64" rx="10" fill="url(#cyan)" stroke="#9af6ff" stroke-width="3"/><path d="M47 2l20 22-25 14 21 24" fill="none" stroke="#05090b" stroke-width="7"/></g>
+  </g>
+  <g>
+    <path d="M244 78 L359 88 L343 242 L250 253 Z" fill="url(#steel)" stroke="#b9c3c7" stroke-width="4"/>
+    <path d="M274 94 L300 236 M329 101 L316 239" stroke="#080b0d" stroke-width="14" opacity=".68"/>
+    <circle cx="296" cy="252" r="38" fill="#12171a" stroke="#aeb8bc" stroke-width="11"/>
+    <circle cx="296" cy="252" r="12" fill="#f02c27" filter="url(#glow)"/>
+    <path d="M238 268 C280 253 327 269 357 295 L432 353 C451 369 438 405 408 408 L175 408 C142 408 128 377 151 352 L208 291 C216 282 226 274 238 268Z" fill="url(#steel)" stroke="#d7dfe2" stroke-width="4"/>
+    <path d="M201 308 C255 321 333 344 405 389 L166 390 Z" fill="#12171a" stroke="#566168" stroke-width="3"/>
+    <path d="M286 276 L259 376 M338 289 L320 390" stroke="#050708" stroke-width="14" opacity=".7"/>
+    <path d="M157 410H414" stroke="#000" stroke-width="15" stroke-linecap="round"/>
+  </g>
+  <g fill="#ff3b34" filter="url(#glow)"><path d="M160 390l-48-45 26 60z"/><path d="M237 397l-11 68 43-63z"/><path d="M337 397l42 57-12-67z"/></g>
+  <rect x="7" y="7" width="498" height="498" rx="106" fill="none" stroke="#434b50" stroke-width="2"/>
+</svg>
