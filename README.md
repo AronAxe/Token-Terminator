@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hero.svg" alt="A chrome endoskeleton boot crushing redundant token chips while the evidence survives" width="100%">
+  <img src="docs/assets/hero.webp" alt="A chrome endoskeleton foot crushing AI token chips beneath the Token Terminator title" width="100%">
 </p>
 
 <h1 align="center">Token Terminator</h1>
