@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import multiprocessing
+import sqlite3
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from pathlib import Path
 
+from rtk_hermes_plus import storage as storage_module
 from rtk_hermes_plus.storage import TokenTerminatorStore
 
 
@@ -37,6 +39,44 @@ def test_artifact_vault_uses_wal_mode(tmp_path):
     with store.connection() as connection:
         assert connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
         assert connection.execute("PRAGMA synchronous").fetchone()[0] == 1
+
+
+def test_wal_initialization_retries_a_transient_lock(tmp_path, monkeypatch):
+    real_connect = sqlite3.connect
+    connect_attempts = 0
+    locked_attempts = 0
+
+    class LockedOnceConnection:
+        def __init__(self, connection):
+            self._connection = connection
+
+        def execute(self, statement, *args, **kwargs):
+            nonlocal locked_attempts
+            if statement == "PRAGMA journal_mode=WAL" and locked_attempts == 0:
+                locked_attempts += 1
+                raise sqlite3.OperationalError("database is locked")
+            return self._connection.execute(statement, *args, **kwargs)
+
+        def close(self):
+            self._connection.close()
+
+        def __getattr__(self, name):
+            return getattr(self._connection, name)
+
+    def connect(*args, **kwargs):
+        nonlocal connect_attempts
+        connect_attempts += 1
+        connection = real_connect(*args, **kwargs)
+        if connect_attempts == 1:
+            return LockedOnceConnection(connection)
+        return connection
+
+    monkeypatch.setattr(storage_module.sqlite3, "connect", connect)
+
+    store = TokenTerminatorStore(tmp_path / "wal-retry.db")
+
+    assert locked_attempts == 1
+    assert store.journal_mode == "wal"
 
 
 def test_concurrent_agent_threads_preserve_dedup_and_observations(tmp_path):

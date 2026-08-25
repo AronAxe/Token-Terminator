@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2026-08-25
 
 - Added an `AsyncRuntime` façade and reusable thread-safe `CancellationToken` without changing the synchronous runtime API.
 - Added cancellable asyncio RTK command rewriting and aggressive reads that kill and reap subprocesses on task or token cancellation.
 - Enabled WAL-backed concurrent artifact-vault access and added deterministic thread/process contention and lease coverage.
+- Retried transient SQLite lock races during concurrent multi-process WAL initialization.
 
 ## 0.3.1 - 2026-08-24
 
