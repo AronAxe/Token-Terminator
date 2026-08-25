@@ -115,6 +115,9 @@ def inspect_archive(path: Path) -> dict[str, object]:
             "/scripts/smoke_hermes.py",
             "/scripts/verify_release.py",
             "/scripts/benchmark.py",
+            "/scripts/quality_ab.py",
+            "/docs/QUALITY_AB_EXPERIMENT.md",
+            "/benchmarks/quality_ab/suite.json",
         )
         for required_part in required:
             if not any(name.endswith(required_part) for name in names):

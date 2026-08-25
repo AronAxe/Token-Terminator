@@ -1,0 +1,1142 @@
+{
+  "schema": 1,
+  "experiment_id": "token-terminator-quality-ab-v1",
+  "description": "Synthetic adversarial A/B quality-eval fixture suite for Token Terminator",
+  "repetitions": 3,
+  "minimum_decision_pairs": 72,
+  "noninferiority_margin": 0.05,
+  "minimum_control_pass_rate": 0.8,
+  "bootstrap_samples": 20000,
+  "tasks": [
+    {
+      "id": "case_01_confusable_cluster_incident",
+      "category": "needle retrieval with confusable facts",
+      "workspace": "cases/case_01_confusable_cluster_incident",
+      "prompt": "cases/case_01_confusable_cluster_incident/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "tenant_id",
+          "equals": "corp-acme-prod"
+        },
+        {
+          "path": "root_cause_error",
+          "equals": "SchemaMigrationDeadlock"
+        },
+        {
+          "path": "failed_pod",
+          "equals": "db-worker-4"
+        },
+        {
+          "path": "shard_id",
+          "equals": "shard-04-primary"
+        },
+        {
+          "path": "transaction_id",
+          "equals": "tx-89f4b-dead-771a"
+        },
+        {
+          "path": "lead_investigator",
+          "equals": "dr-elena-rostova"
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "tenant_id",
+          "values": [
+            "corp-acme-staging",
+            "corp-acme-dev",
+            "corp-acme-prod-eu"
+          ]
+        },
+        {
+          "path": "root_cause_error",
+          "values": [
+            "OOMKilled",
+            "DiskPressure",
+            "HighCpuThrottle",
+            "HardwareFailure",
+            "ConnectionTimeout"
+          ]
+        },
+        {
+          "path": "failed_pod",
+          "values": [
+            "db-worker-0",
+            "db-worker-2",
+            "db-worker-3",
+            "db-worker-9",
+            "db-worker-99"
+          ]
+        },
+        {
+          "path": "shard_id",
+          "values": [
+            "shard-01",
+            "shard-02",
+            "shard-03",
+            "shard-09-eu",
+            "shard-99"
+          ]
+        },
+        {
+          "path": "transaction_id",
+          "values": [
+            "tx-00000-fake",
+            "tx-89f4b-dead-771b"
+          ]
+        },
+        {
+          "path": "lead_investigator",
+          "values": [
+            "bot-triage",
+            "system-bot",
+            "node-manager"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_02_confusable_auth_token_leak",
+      "category": "needle retrieval with confusable facts",
+      "workspace": "cases/case_02_confusable_auth_token_leak",
+      "prompt": "cases/case_02_confusable_auth_token_leak/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "ticket_id",
+          "equals": "SEC-2026-8842"
+        },
+        {
+          "path": "offending_service",
+          "equals": "crypto-vault"
+        },
+        {
+          "path": "attacker_ip",
+          "equals": "203.0.113.194"
+        },
+        {
+          "path": "compromised_token_hash",
+          "equals": "sha256:7f83b1657ff1fc53b92dc18148a1d65d"
+        },
+        {
+          "path": "target_resource",
+          "equals": "master-kms-keyring-v2"
+        },
+        {
+          "path": "auth_signature",
+          "equals": "sig-sec-9921-prod"
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "ticket_id",
+          "values": [
+            "SEC-2026-8840",
+            "SEC-2026-8841",
+            "SEC-2026-8843",
+            "SEC-2026-0000"
+          ]
+        },
+        {
+          "path": "offending_service",
+          "values": [
+            "auth-gateway",
+            "payment-proxy",
+            "user-session"
+          ]
+        },
+        {
+          "path": "attacker_ip",
+          "values": [
+            "198.51.100.45",
+            "10.0.4.12",
+            "203.0.113.205",
+            "127.0.0.1"
+          ]
+        },
+        {
+          "path": "compromised_token_hash",
+          "values": [
+            "sha256:d3b07384d113edec49eaa6238ad5ff00",
+            "sha256:e3b0c44298fc1c149afbf4c8996fb924",
+            "sha256:4b227777d4dd1fc61c6f884f48641d02"
+          ]
+        },
+        {
+          "path": "target_resource",
+          "values": [
+            "public-login-api",
+            "ledger-db",
+            "session-store",
+            "none"
+          ]
+        },
+        {
+          "path": "auth_signature",
+          "values": [
+            "sig-scanner-qualys-cert",
+            "sig-internal-dev-key",
+            "sig-expired-probe-99",
+            "sig-none"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_03_multi_doc_cloud_migration_matrix",
+      "category": "multi-document constraint synthesis",
+      "workspace": "cases/case_03_multi_doc_cloud_migration_matrix",
+      "prompt": "cases/case_03_multi_doc_cloud_migration_matrix/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "workload_id",
+          "equals": "HLTH-PROD-9"
+        },
+        {
+          "path": "selected_provider",
+          "equals": "GCP"
+        },
+        {
+          "path": "selected_region",
+          "equals": "europe-west4"
+        },
+        {
+          "path": "selected_instance_type",
+          "equals": "n2-custom-64-256-nvme"
+        },
+        {
+          "path": "data_residency",
+          "equals": "EU"
+        },
+        {
+          "path": "compliance_standard",
+          "equals": "ISO27001-2022"
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "workload_id",
+          "values": [
+            "GEN-APP-1",
+            "FIN-PAY-4",
+            "ECOMM-STORE-2"
+          ]
+        },
+        {
+          "path": "selected_provider",
+          "values": [
+            "AWS",
+            "Azure",
+            "OCI",
+            "IBMCloud"
+          ]
+        },
+        {
+          "path": "selected_region",
+          "values": [
+            "us-east-1",
+            "eu-central-1",
+            "westeurope",
+            "europe-west3",
+            "eu-frankfurt-1"
+          ]
+        },
+        {
+          "path": "selected_instance_type",
+          "values": [
+            "m5.metal",
+            "c6i.16xlarge",
+            "e64s-v5",
+            "c2-standard-60",
+            "VM.Standard.E5.Flex"
+          ]
+        },
+        {
+          "path": "data_residency",
+          "values": [
+            "US",
+            "GLOBAL",
+            "APAC"
+          ]
+        },
+        {
+          "path": "compliance_standard",
+          "values": [
+            "ISO27001-2013",
+            "SOC2-Type2",
+            "PCI-DSS-v4.0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_04_multi_doc_hardware_supply_allocation",
+      "category": "multi-document constraint synthesis",
+      "workspace": "cases/case_04_multi_doc_hardware_supply_allocation",
+      "prompt": "cases/case_04_multi_doc_hardware_supply_allocation/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "project_id",
+          "equals": "HYPER-TRAIN-v4"
+        },
+        {
+          "path": "approved_vendor",
+          "equals": "AxiomSilicon"
+        },
+        {
+          "path": "approved_model",
+          "equals": "A800-DualSlot"
+        },
+        {
+          "path": "assigned_rack",
+          "equals": "Rack-H-07"
+        },
+        {
+          "path": "assigned_slot",
+          "equals": "Slot-4"
+        },
+        {
+          "path": "cooling_loop",
+          "equals": "Loop-B-Bravo"
+        },
+        {
+          "path": "max_tdp_watts",
+          "equals": 1650
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "project_id",
+          "values": [
+            "INFER-SCALE-1",
+            "VISION-SEG-2"
+          ]
+        },
+        {
+          "path": "approved_vendor",
+          "values": [
+            "TensorMax",
+            "NeuralCorp",
+            "MatrixSilicon",
+            "BudgetCompute"
+          ]
+        },
+        {
+          "path": "approved_model",
+          "values": [
+            "TensorPro-X100",
+            "NeuralJet-800",
+            "MatrixCore-Ultra",
+            "LiteAcc-300"
+          ]
+        },
+        {
+          "path": "assigned_rack",
+          "values": [
+            "Rack-A-01",
+            "Rack-B-04",
+            "Rack-H-08"
+          ]
+        },
+        {
+          "path": "assigned_slot",
+          "values": [
+            "Slot-1",
+            "Slot-2"
+          ]
+        },
+        {
+          "path": "cooling_loop",
+          "values": [
+            "Loop-A-Alpha"
+          ]
+        },
+        {
+          "path": "max_tdp_watts",
+          "values": [
+            2100,
+            1400,
+            1600,
+            800
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_05_recency_dns_migration_override",
+      "category": "contradiction/recency resolution",
+      "workspace": "cases/case_05_recency_dns_migration_override",
+      "prompt": "cases/case_05_recency_dns_migration_override/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "domain",
+          "equals": "api.payments.globalbank.internal"
+        },
+        {
+          "path": "final_authoritative_ip",
+          "equals": "203.0.113.150"
+        },
+        {
+          "path": "primary_nameserver",
+          "equals": "ns-auth3.globalbank-edge.net"
+        },
+        {
+          "path": "ttl_seconds",
+          "equals": 1800
+        },
+        {
+          "path": "routing_policy",
+          "equals": "latency-weighted-geo"
+        },
+        {
+          "path": "healthcheck_path",
+          "equals": "/api/v3/deep-health"
+        },
+        {
+          "path": "approval_signature",
+          "equals": "SIGN-EXEC-90812-STABLE"
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "domain",
+          "values": [
+            "api.legacy.globalbank.internal"
+          ]
+        },
+        {
+          "path": "final_authoritative_ip",
+          "values": [
+            "192.0.2.10",
+            "198.51.100.77",
+            "198.51.100.88"
+          ]
+        },
+        {
+          "path": "primary_nameserver",
+          "values": [
+            "ns1.legacy-infra.net",
+            "ns1.cloudflare-enterprise.com",
+            "ns2.cloudflare-enterprise.com"
+          ]
+        },
+        {
+          "path": "ttl_seconds",
+          "values": [
+            60,
+            300,
+            3600,
+            86400
+          ]
+        },
+        {
+          "path": "routing_policy",
+          "values": [
+            "round-robin-static",
+            "geo-proximity",
+            "failover-active-passive",
+            "fallback-manual"
+          ]
+        },
+        {
+          "path": "healthcheck_path",
+          "values": [
+            "/healthz",
+            "/v2/health",
+            "/v2/health-fast"
+          ]
+        },
+        {
+          "path": "approval_signature",
+          "values": [
+            "SIGN-LEGACY-00000",
+            "SIGN-HOTFIX-7712"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_06_recency_feature_flag_audit",
+      "category": "contradiction/recency resolution",
+      "workspace": "cases/case_06_recency_feature_flag_audit",
+      "prompt": "cases/case_06_recency_feature_flag_audit/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "flag_name",
+          "equals": "dynamic_fee_calculation_v3"
+        },
+        {
+          "path": "environment",
+          "equals": "production-us-east"
+        },
+        {
+          "path": "effective_status",
+          "equals": "enabled"
+        },
+        {
+          "path": "rollout_percentage",
+          "equals": 50
+        },
+        {
+          "path": "allowed_tiers",
+          "equals": [
+            "vip_diamond",
+            "vip_platinum",
+            "enterprise_tier1"
+          ]
+        },
+        {
+          "path": "max_surcharge_bps",
+          "equals": 45
+        },
+        {
+          "path": "release_tag",
+          "equals": "v3.4.1-patch2"
+        },
+        {
+          "path": "auditor_id",
+          "equals": "compliance-officer-99"
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "flag_name",
+          "values": [
+            "auth_mfa_v2",
+            "cart_checkout_optim",
+            "kyc_automated_flow"
+          ]
+        },
+        {
+          "path": "environment",
+          "values": [
+            "staging",
+            "production-eu-west"
+          ]
+        },
+        {
+          "path": "effective_status",
+          "values": [
+            "disabled",
+            "archived",
+            "killed"
+          ]
+        },
+        {
+          "path": "rollout_percentage",
+          "values": [
+            0,
+            10,
+            25,
+            100
+          ]
+        },
+        {
+          "path": "allowed_tiers",
+          "values": [
+            [],
+            [
+              "vip_diamond"
+            ],
+            [
+              "vip_diamond",
+              "vip_platinum"
+            ]
+          ]
+        },
+        {
+          "path": "max_surcharge_bps",
+          "values": [
+            0,
+            50,
+            75
+          ]
+        },
+        {
+          "path": "release_tag",
+          "values": [
+            "v3.3.0-rc1",
+            "v3.4.0",
+            "v3.4.1-patch1",
+            "v0.0.0"
+          ]
+        },
+        {
+          "path": "auditor_id",
+          "values": [
+            "sec-ops-10",
+            "eng-lead-88",
+            "incident-bot-01",
+            "bot"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_07_numeric_billing_ledger_reconciliation",
+      "category": "exact numeric reconciliation",
+      "workspace": "cases/case_07_numeric_billing_ledger_reconciliation",
+      "prompt": "cases/case_07_numeric_billing_ledger_reconciliation/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "batch_id",
+          "equals": "BATCH-2026-05-8812"
+        },
+        {
+          "path": "cleared_transaction_count",
+          "equals": 32
+        },
+        {
+          "path": "total_gross_usd_cents",
+          "equals": 1206434
+        },
+        {
+          "path": "total_interchange_fee_cents",
+          "equals": 24116
+        },
+        {
+          "path": "total_processor_fee_cents",
+          "equals": 12050
+        },
+        {
+          "path": "net_settlement_usd_cents",
+          "equals": 1170268
+        },
+        {
+          "path": "disputed_count",
+          "equals": 5
+        },
+        {
+          "path": "refunded_amount_cents",
+          "equals": 145000
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "batch_id",
+          "values": [
+            "BATCH-NONE"
+          ]
+        },
+        {
+          "path": "cleared_transaction_count",
+          "values": [
+            45,
+            0,
+            37
+          ]
+        },
+        {
+          "path": "total_gross_usd_cents",
+          "values": [
+            0,
+            9948200
+          ]
+        },
+        {
+          "path": "total_interchange_fee_cents",
+          "values": [
+            0
+          ]
+        },
+        {
+          "path": "total_processor_fee_cents",
+          "values": [
+            0
+          ]
+        },
+        {
+          "path": "net_settlement_usd_cents",
+          "values": [
+            0,
+            9948200,
+            1206434
+          ]
+        },
+        {
+          "path": "disputed_count",
+          "values": [
+            0,
+            32,
+            45
+          ]
+        },
+        {
+          "path": "refunded_amount_cents",
+          "values": [
+            0,
+            50000
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_08_numeric_energy_grid_telemetry",
+      "category": "exact numeric reconciliation",
+      "workspace": "cases/case_08_numeric_energy_grid_telemetry",
+      "prompt": "cases/case_08_numeric_energy_grid_telemetry/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "substation_id",
+          "equals": "SUB-NORTH-44"
+        },
+        {
+          "path": "total_generation_kwh",
+          "equals": 385030
+        },
+        {
+          "path": "total_consumption_kwh",
+          "equals": 344600
+        },
+        {
+          "path": "transmission_loss_kwh",
+          "equals": 12900
+        },
+        {
+          "path": "net_grid_export_kwh",
+          "equals": 27530
+        },
+        {
+          "path": "peak_demand_hour_utc",
+          "equals": "18:00"
+        },
+        {
+          "path": "peak_demand_kw",
+          "equals": 18400
+        },
+        {
+          "path": "fault_hours_count",
+          "equals": 3
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "substation_id",
+          "values": [
+            "SUB-SOUTH-01"
+          ]
+        },
+        {
+          "path": "total_generation_kwh",
+          "values": [
+            0,
+            100000
+          ]
+        },
+        {
+          "path": "total_consumption_kwh",
+          "values": [
+            0
+          ]
+        },
+        {
+          "path": "transmission_loss_kwh",
+          "values": [
+            0
+          ]
+        },
+        {
+          "path": "net_grid_export_kwh",
+          "values": [
+            100000,
+            0,
+            385030
+          ]
+        },
+        {
+          "path": "peak_demand_hour_utc",
+          "values": [
+            "12:00",
+            "00:00",
+            "14:00"
+          ]
+        },
+        {
+          "path": "peak_demand_kw",
+          "values": [
+            0,
+            50000
+          ]
+        },
+        {
+          "path": "fault_hours_count",
+          "values": [
+            0,
+            24,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_09_subtle_config_envoy_cors_misconfig",
+      "category": "subtle code/config diagnosis",
+      "workspace": "cases/case_09_subtle_config_envoy_cors_misconfig",
+      "prompt": "cases/case_09_subtle_config_envoy_cors_misconfig/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "target_virtual_host",
+          "equals": "secure-vault.internal.corp"
+        },
+        {
+          "path": "vulnerable_route_path",
+          "equals": "/api/v2/vault/transfer"
+        },
+        {
+          "path": "flawed_origin_regex",
+          "equals": "https://.*\\.corp\\.internal"
+        },
+        {
+          "path": "vulnerability_type",
+          "equals": "OverlyPermissiveCorsWildcardWithCredentials"
+        },
+        {
+          "path": "filter_chain_name",
+          "equals": "egress_http_filter_vault_v2"
+        },
+        {
+          "path": "remediation_directive",
+          "equals": "exact_match_allowed_origins_only"
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "target_virtual_host",
+          "values": [
+            "vhost_public_1",
+            "vhost_public_2",
+            "none"
+          ]
+        },
+        {
+          "path": "vulnerable_route_path",
+          "values": [
+            "/api/v1/public",
+            "/health",
+            "/healthz"
+          ]
+        },
+        {
+          "path": "flawed_origin_regex",
+          "values": [
+            "https://app.corp.com",
+            ".*"
+          ]
+        },
+        {
+          "path": "vulnerability_type",
+          "values": [
+            "CLEAN",
+            "None",
+            "BufferOverflow",
+            "SqlInjection"
+          ]
+        },
+        {
+          "path": "filter_chain_name",
+          "values": [
+            "filter_chain_public_frontend_1",
+            "filter_chain_public_frontend_2"
+          ]
+        },
+        {
+          "path": "remediation_directive",
+          "values": [
+            "none",
+            "disable_cors",
+            "allow_all_origins"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_10_subtle_code_async_deadlock_diagnosis",
+      "category": "subtle code/config diagnosis",
+      "workspace": "cases/case_10_subtle_code_async_deadlock_diagnosis",
+      "prompt": "cases/case_10_subtle_code_async_deadlock_diagnosis/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "vulnerable_class",
+          "equals": "TaskExecutionEngine"
+        },
+        {
+          "path": "deadlock_trigger_method",
+          "equals": "rebalance_active_channels"
+        },
+        {
+          "path": "primary_contended_lock",
+          "equals": "_channel_lock"
+        },
+        {
+          "path": "secondary_inversion_lock",
+          "equals": "_worker_state_mutex"
+        },
+        {
+          "path": "blocking_call_found",
+          "equals": "queue.get(block=True, timeout=30)"
+        },
+        {
+          "path": "recommended_fix_id",
+          "equals": "REFACTOR-ASYNC-AWAIT-LOCK-V2"
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "vulnerable_class",
+          "values": [
+            "HealthChecker",
+            "MetricsCollector",
+            "RedisClient",
+            "none"
+          ]
+        },
+        {
+          "path": "deadlock_trigger_method",
+          "values": [
+            "register_channel",
+            "ping",
+            "_worker_callback_thread_entry",
+            "check_liveness"
+          ]
+        },
+        {
+          "path": "primary_contended_lock",
+          "values": [
+            "_health_lock",
+            "_metrics_mutex",
+            "none"
+          ]
+        },
+        {
+          "path": "secondary_inversion_lock",
+          "values": [
+            "_health_lock",
+            "_metrics_mutex",
+            "none"
+          ]
+        },
+        {
+          "path": "blocking_call_found",
+          "values": [
+            "time.sleep",
+            "none",
+            "asyncio.sleep"
+          ]
+        },
+        {
+          "path": "recommended_fix_id",
+          "values": [
+            "FIX-REDIS-SCALE",
+            "none",
+            "INCREASE_TIMEOUT"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_11_long_list_cve_package_advisory",
+      "category": "long-list boundary/omission",
+      "workspace": "cases/case_11_long_list_cve_package_advisory",
+      "prompt": "cases/case_11_long_list_cve_package_advisory/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "total_scanned_dependencies",
+          "equals": 120
+        },
+        {
+          "path": "actionable_triage_count",
+          "equals": 6
+        },
+        {
+          "path": "qualifying_packages",
+          "equals": [
+            "auth-token-utils",
+            "crypto-stream-cipher",
+            "grpc-gateway-transcoder",
+            "json-schema-deref-sync",
+            "libxml2-bindings-core",
+            "yaml-config-expander"
+          ]
+        },
+        {
+          "path": "first_qualifying_package",
+          "equals": "auth-token-utils"
+        },
+        {
+          "path": "last_qualifying_package",
+          "equals": "yaml-config-expander"
+        },
+        {
+          "path": "highest_cvss_score",
+          "equals": 9.9
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "total_scanned_dependencies",
+          "values": [
+            0,
+            6,
+            100
+          ]
+        },
+        {
+          "path": "actionable_triage_count",
+          "values": [
+            0,
+            120,
+            10,
+            12
+          ]
+        },
+        {
+          "path": "qualifying_packages",
+          "values": [
+            [],
+            [
+              "pkg-lib-000"
+            ]
+          ]
+        },
+        {
+          "path": "first_qualifying_package",
+          "values": [
+            "crypto-stream-cipher",
+            "None",
+            "pkg-lib-000"
+          ]
+        },
+        {
+          "path": "last_qualifying_package",
+          "values": [
+            "libxml2-bindings-core",
+            "None",
+            "pkg-lib-119"
+          ]
+        },
+        {
+          "path": "highest_cvss_score",
+          "values": [
+            0.0,
+            10.0,
+            9.8
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case_12_long_list_compliance_firewall_rules",
+      "category": "long-list boundary/omission",
+      "workspace": "cases/case_12_long_list_compliance_firewall_rules",
+      "prompt": "cases/case_12_long_list_compliance_firewall_rules/prompt.txt",
+      "min_evidence_chars": 12000,
+      "assertions": [
+        {
+          "path": "audit_standard",
+          "equals": "PCI-DSS v4.0"
+        },
+        {
+          "path": "total_rules_evaluated",
+          "equals": 100
+        },
+        {
+          "path": "violating_rule_count",
+          "equals": 5
+        },
+        {
+          "path": "violating_rule_ids",
+          "equals": [
+            14,
+            38,
+            52,
+            77,
+            91
+          ]
+        },
+        {
+          "path": "lowest_violating_rule_id",
+          "equals": 14
+        },
+        {
+          "path": "highest_violating_rule_id",
+          "equals": 91
+        },
+        {
+          "path": "most_common_violation_protocol",
+          "equals": "TELNET"
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "audit_standard",
+          "values": [
+            "PCI-DSS-v3.2",
+            "ISO27001"
+          ]
+        },
+        {
+          "path": "total_rules_evaluated",
+          "values": [
+            0,
+            5,
+            50
+          ]
+        },
+        {
+          "path": "violating_rule_count",
+          "values": [
+            0,
+            100,
+            10
+          ]
+        },
+        {
+          "path": "violating_rule_ids",
+          "values": [
+            [],
+            [
+              1,
+              2,
+              3
+            ]
+          ]
+        },
+        {
+          "path": "lowest_violating_rule_id",
+          "values": [
+            0,
+            1,
+            38
+          ]
+        },
+        {
+          "path": "highest_violating_rule_id",
+          "values": [
+            100,
+            77,
+            0
+          ]
+        },
+        {
+          "path": "most_common_violation_protocol",
+          "values": [
+            "FTP",
+            "RSH",
+            "HTTPS",
+            "SSH"
+          ]
+        }
+      ]
+    }
+  ]
+}

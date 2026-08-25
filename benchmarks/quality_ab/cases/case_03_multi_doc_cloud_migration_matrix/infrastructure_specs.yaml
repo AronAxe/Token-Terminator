@@ -1,0 +1,75 @@
+# Infrastructure Hardware & Architecture Requirements Specification
+# Architecture Governance Committee - Rev 2026.03
+specification_version: 5.12.0
+governance_board: Enterprise Architecture Guild
+
+default_cluster_profile:
+  hypervisor: KVM-Hardened
+  network_bandwidth_gbps: 25
+  monitoring_agent: Datadog-v8-SecurityAgent
+
+workload_hardware_constraints:
+  GEN-APP-1:
+    min_vcpus: 8
+    min_ram_gb: 32
+    storage_type: Network-SSD
+    vector_extensions: none
+
+  FIN-PAY-4:
+    min_vcpus: 32
+    min_ram_gb: 128
+    storage_type: Network-Provisioned-IOPS
+    vector_extensions: none
+
+  HLTH-PROD-9:
+    workload_description: 'High-throughput genomic sequencing & clinical ML inference engine'
+    min_vcpus: 64
+    min_ram_gb: 256
+    storage_type: NVMe-Direct-Attached
+    nvme_direct_attached_required: true
+    network_ebs_permitted: false
+    vector_extensions: 'AVX-512'
+    numa_nodes_max: 2
+    hardware_isolation: Dedicated-Tenant-Core
+
+  ECOMM-STORE-2:
+    min_vcpus: 16
+    min_ram_gb: 64
+    storage_type: General-Purpose-SSD
+    vector_extensions: none
+
+# Extended engineering notes and architecture decision records (ADRs)
+# ADR-2026-101: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-102: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-103: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-104: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-105: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-106: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-107: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-108: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-109: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-110: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-111: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-112: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-113: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-114: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-115: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-116: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-117: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-118: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-119: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-120: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-121: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-122: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-123: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-124: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-125: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-126: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-127: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-128: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-129: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-130: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-131: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-132: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-133: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.
+# ADR-2026-134: For genomic pipeline HLTH-PROD-9, direct-attached local NVMe is strictly non-negotiable due to IOPS bottlenecks observed on SAN network volumes. Minimum 64 vCPUs and 256GB memory must be guaranteed without oversubscription.

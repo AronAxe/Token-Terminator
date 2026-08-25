@@ -1,0 +1,95 @@
+{
+  "policy_version": "2026.4.1",
+  "description": "Enterprise multi-cloud regulatory and compliance mandate handbook for highly regulated workloads.",
+  "global_rules": {
+    "encryption_at_rest": "AES-256-GCM or Chacha20-Poly1305",
+    "key_management": "Customer-Managed-Keys-HSM-Level-3",
+    "audit_logging_retention_days": 2555
+  },
+  "workloads": {
+    "GEN-APP-1": {
+      "classification": "Internal-Low",
+      "data_residency": "GLOBAL",
+      "compliance_standard": "SOC2-Type2",
+      "min_uptime_sla_pct": 99.9,
+      "allow_subprocessors": true
+    },
+    "FIN-PAY-4": {
+      "classification": "Financial-High",
+      "data_residency": "US",
+      "compliance_standard": "PCI-DSS-v4.0",
+      "min_uptime_sla_pct": 99.99,
+      "allow_subprocessors": false
+    },
+    "HLTH-PROD-9": {
+      "classification": "Healthcare-Restricted",
+      "regulatory_mandates": [
+        "HIPAA-Omnibus",
+        "EU-GDPR-Title-IV",
+        "HITECH-Advanced"
+      ],
+      "data_residency": "EU",
+      "compliance_standard": "ISO27001-2022",
+      "min_uptime_sla_pct": 99.99,
+      "allow_subprocessors": false,
+      "cross_border_egress_forbidden": true,
+      "mandatory_backup_retention_years": 10,
+      "security_contact": "compliance-officer@medicare-global.internal"
+    },
+    "ECOMM-STORE-2": {
+      "classification": "Commercial-Medium",
+      "data_residency": "APAC",
+      "compliance_standard": "ISO27001-2013",
+      "min_uptime_sla_pct": 99.95,
+      "allow_subprocessors": true
+    }
+  },
+  "audit_schedule": [
+    {
+      "quarter": "Q1-2026",
+      "auditor": "KPMG Security",
+      "status": "PASSED"
+    },
+    {
+      "quarter": "Q2-2026",
+      "auditor": "PwC Cyber",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "quarter": "Q3-2026",
+      "auditor": "Deloitte Risk",
+      "status": "SCHEDULED"
+    },
+    {
+      "quarter": "Q4-2026",
+      "auditor": "EY Assurance",
+      "status": "SCHEDULED"
+    }
+  ],
+  "compliance_guidelines_extended": [
+    "Guideline Clause 10.1: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.2: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.3: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.4: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.5: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.6: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.7: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.8: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.9: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.10: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.11: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.12: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.13: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.14: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.15: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.16: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.17: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.18: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.19: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.20: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.21: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.22: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.23: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B.",
+    "Guideline Clause 10.24: All workloads marked with Healthcare-Restricted classification must enforce rigid data boundary checks within EU geographic territorial borders. ISO27001-2013 is formally deprecated as of January 2026; only ISO27001-2022 certified regional enclaves are permitted. Subprocessor cross-border data transfer is prohibited under Penalty Code 409-B."
+  ]
+}

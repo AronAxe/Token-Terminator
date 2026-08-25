@@ -41,3 +41,8 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 addopts = "-q"
+
+[tool.ruff]
+# The quality A/B corpus intentionally contains subtly flawed and noisy source
+# artifacts. Formatting or modernizing them would change the eval itself.
+extend-exclude = ["benchmarks/quality_ab/cases"]
