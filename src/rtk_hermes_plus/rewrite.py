@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import configparser
 import os
 import re
@@ -8,9 +9,11 @@ import subprocess
 import threading
 import time
 from collections import OrderedDict
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
+from .cancellation import CancellationToken
 from .config import Config
 from .metrics import Metrics
 
@@ -75,6 +78,25 @@ class Rewriter:
     def available(self) -> bool:
         return self.rtk_path is not None
 
+    def _result_from_output(
+        self,
+        command: str,
+        *,
+        stdout: str,
+        returncode: int,
+        elapsed_ms: float,
+    ) -> RewriteResult:
+        self.metrics.add("rewrite_total_ms", elapsed_ms)
+        rewritten = stdout.strip()
+        command_out = (
+            rewritten
+            if returncode in {0, 3} and rewritten and rewritten != command
+            else None
+        )
+        result = RewriteResult(command_out, returncode, elapsed_ms)
+        self.cache.put(command, result)
+        return result
+
     def rewrite(self, command: str, *, cwd: Path) -> RewriteResult:
         cached = self.cache.get(command)
         if cached is not None:
@@ -94,16 +116,12 @@ class Rewriter:
                 check=False,
             )
             elapsed = (time.perf_counter() - started) * 1000
-            self.metrics.add("rewrite_total_ms", elapsed)
-            rewritten = completed.stdout.strip()
-            command_out = (
-                rewritten
-                if completed.returncode in {0, 3} and rewritten and rewritten != command
-                else None
+            return self._result_from_output(
+                command,
+                stdout=completed.stdout,
+                returncode=completed.returncode,
+                elapsed_ms=elapsed,
             )
-            result = RewriteResult(command_out, completed.returncode, elapsed)
-            self.cache.put(command, result)
-            return result
         except subprocess.TimeoutExpired:
             elapsed = (time.perf_counter() - started) * 1000
             self.metrics.add("rewrite_total_ms", elapsed)
@@ -114,6 +132,91 @@ class Rewriter:
             self.metrics.add("rewrite_total_ms", elapsed)
             self.metrics.add("rewrite_errors")
             return RewriteResult(None, -1, elapsed)
+
+    async def rewrite_async(
+        self,
+        command: str,
+        *,
+        cwd: Path,
+        cancellation: CancellationToken | None = None,
+    ) -> RewriteResult:
+        """Rewrite through a cancellable asyncio subprocess."""
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
+        cached = self.cache.get(command)
+        if cached is not None:
+            self.metrics.add("rewrite_cache_hits")
+            return cached
+
+        started = time.perf_counter()
+        self.metrics.add("rewrite_attempted")
+        process: asyncio.subprocess.Process | None = None
+        communicate_task: asyncio.Task[tuple[bytes, bytes]] | None = None
+        cancellation_waiter: asyncio.Task[None] | None = None
+        try:
+            process = await asyncio.create_subprocess_exec(
+                self.rtk_path or "rtk",
+                "rewrite",
+                command,
+                cwd=str(cwd),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            communicate_task = asyncio.create_task(process.communicate())
+            waiters: set[asyncio.Task] = {communicate_task}
+            if cancellation is not None:
+                cancellation_waiter = asyncio.create_task(cancellation.wait())
+                waiters.add(cancellation_waiter)
+            done, _pending = await asyncio.wait(
+                waiters,
+                timeout=self.config.timeout_ms / 1000,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            if not done:
+                with suppress(ProcessLookupError):
+                    process.kill()
+                await communicate_task
+                elapsed = (time.perf_counter() - started) * 1000
+                self.metrics.add("rewrite_total_ms", elapsed)
+                self.metrics.add("rewrite_timeouts")
+                return RewriteResult(None, -1, elapsed)
+            if cancellation_waiter is not None and cancellation_waiter in done:
+                raise asyncio.CancelledError
+
+            stdout, _stderr = communicate_task.result()
+            elapsed = (time.perf_counter() - started) * 1000
+            return self._result_from_output(
+                command,
+                stdout=stdout.decode(errors="replace"),
+                returncode=int(process.returncode or 0),
+                elapsed_ms=elapsed,
+            )
+        except asyncio.CancelledError:
+            if cancellation is not None:
+                cancellation.cancel()
+            if process is not None and process.returncode is None:
+                with suppress(ProcessLookupError):
+                    process.kill()
+            if communicate_task is not None:
+                with suppress(asyncio.CancelledError, ProcessLookupError):
+                    await communicate_task
+            elif process is not None:
+                with suppress(asyncio.CancelledError, ProcessLookupError):
+                    await process.wait()
+            elapsed = (time.perf_counter() - started) * 1000
+            self.metrics.add("rewrite_total_ms", elapsed)
+            self.metrics.add("rewrite_cancelled")
+            raise
+        except OSError:
+            elapsed = (time.perf_counter() - started) * 1000
+            self.metrics.add("rewrite_total_ms", elapsed)
+            self.metrics.add("rewrite_errors")
+            return RewriteResult(None, -1, elapsed)
+        finally:
+            if cancellation_waiter is not None:
+                cancellation_waiter.cancel()
+                with suppress(asyncio.CancelledError):
+                    await cancellation_waiter
 
 
 def terminal_backend(args: dict | None = None) -> str:

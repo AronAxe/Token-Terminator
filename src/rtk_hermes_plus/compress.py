@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import re
 import subprocess
+from contextlib import suppress
 
+from .cancellation import CancellationToken
 from .config import Config
 from .metrics import Metrics
 from .rewrite import backend_enabled, command_workdir, terminal_backend
@@ -90,17 +93,7 @@ class NativeCompressor:
     def transform(
         self, *, tool_name: str, args: dict, result: str, **kwargs
     ) -> str | None:
-        if not self.config.native_enabled or not isinstance(result, str):
-            return None
-        allowed = self.BALANCED_TOOLS | (
-            self.AGGRESSIVE_TOOLS if self.config.aggressive else frozenset()
-        )
-        if tool_name not in allowed or len(result) < self.config.native_min_chars:
-            return None
-
-        backend = terminal_backend(args)
-        if not backend_enabled(backend, self.config):
-            self.metrics.add("native_skipped_backend")
+        if not self._eligible(tool_name=tool_name, args=args, result=result):
             return None
 
         self.metrics.add("native_attempted")
@@ -109,6 +102,38 @@ class NativeCompressor:
             compact = self._rtk_read(args)
         if compact is None:
             compact = compact_text(result, self.config.native_max_chars)
+        return self._finalize_transform(
+            tool_name=tool_name,
+            args=args,
+            result=result,
+            compact=compact,
+            **kwargs,
+        )
+
+    def _eligible(self, *, tool_name: str, args: dict, result: str) -> bool:
+        if not self.config.native_enabled or not isinstance(result, str):
+            return False
+        allowed = self.BALANCED_TOOLS | (
+            self.AGGRESSIVE_TOOLS if self.config.aggressive else frozenset()
+        )
+        if tool_name not in allowed or len(result) < self.config.native_min_chars:
+            return False
+
+        backend = terminal_backend(args)
+        if not backend_enabled(backend, self.config):
+            self.metrics.add("native_skipped_backend")
+            return False
+        return True
+
+    def _finalize_transform(
+        self,
+        *,
+        tool_name: str,
+        args: dict,
+        result: str,
+        compact: str | None,
+        **kwargs,
+    ) -> str | None:
         if not compact or len(compact) >= len(result):
             self.metrics.add("native_not_smaller")
             return None
@@ -167,6 +192,77 @@ class NativeCompressor:
             if completed.returncode == 0 and completed.stdout.strip()
             else None
         )
+
+    async def _rtk_read_async(
+        self,
+        args: dict,
+        *,
+        cancellation: CancellationToken | None = None,
+    ) -> str | None:
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
+        if not self.rtk_path:
+            return None
+        path_value = args.get("path") or args.get("file_path") or args.get("filename")
+        if not isinstance(path_value, str) or not path_value.strip():
+            return None
+        process: asyncio.subprocess.Process | None = None
+        communicate_task: asyncio.Task[tuple[bytes, bytes]] | None = None
+        cancellation_waiter: asyncio.Task[None] | None = None
+        try:
+            process = await asyncio.create_subprocess_exec(
+                self.rtk_path,
+                "read",
+                path_value,
+                "-l",
+                "aggressive",
+                cwd=str(command_workdir(args)),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            communicate_task = asyncio.create_task(process.communicate())
+            waiters: set[asyncio.Task] = {communicate_task}
+            if cancellation is not None:
+                cancellation_waiter = asyncio.create_task(cancellation.wait())
+                waiters.add(cancellation_waiter)
+            done, _pending = await asyncio.wait(
+                waiters,
+                timeout=self.config.timeout_ms / 1000,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            if not done:
+                with suppress(ProcessLookupError):
+                    process.kill()
+                await communicate_task
+                self.metrics.add("native_rtk_timeouts")
+                return None
+            if cancellation_waiter is not None and cancellation_waiter in done:
+                raise asyncio.CancelledError
+            stdout, _stderr = communicate_task.result()
+            decoded = stdout.decode(errors="replace")
+            return decoded if process.returncode == 0 and decoded.strip() else None
+        except asyncio.CancelledError:
+            if cancellation is not None:
+                cancellation.cancel()
+            if process is not None and process.returncode is None:
+                with suppress(ProcessLookupError):
+                    process.kill()
+            if communicate_task is not None:
+                with suppress(asyncio.CancelledError, ProcessLookupError):
+                    await communicate_task
+            elif process is not None:
+                with suppress(asyncio.CancelledError, ProcessLookupError):
+                    await process.wait()
+            self.metrics.add("native_rtk_cancelled")
+            raise
+        except OSError:
+            self.metrics.add("native_rtk_errors")
+            return None
+        finally:
+            if cancellation_waiter is not None:
+                cancellation_waiter.cancel()
+                with suppress(asyncio.CancelledError):
+                    await cancellation_waiter
 
 
 def compact_text(text: str, max_chars: int) -> str:
