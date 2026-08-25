@@ -29,6 +29,8 @@ The engine has four cooperating reduction paths:
 
 The reduction core is not intrinsically tied to Hermes: it operates on Python dictionaries, strings, stable request/session identifiers, and a local SQLite vault. The repository includes a turnkey Hermes plugin because Hermes exposes the required lifecycle hooks. Other agent runtimes need a small adapter that presents the same boundaries; they do not need a fork of the reduction engine.
 
+Async agent frameworks can use the included `AsyncRuntime` façade. It keeps provider loops responsive by moving compiler, vault, and telemetry work to an executor, propagates task or token cancellation, and uses native cancellable subprocess paths for RTK command rewriting and aggressive reads. The synchronous `Runtime` API remains unchanged.
+
 It does **not** replace the host's context engine, memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
 
 ## What it does
@@ -228,6 +230,39 @@ def reduce_provider_request(request, *, session_id, request_id):
 
 An adapter must preserve four contracts: stable request/session identity, original-object immutability, pass-through on `None` or error, and model access to `artifact_get`. The `Runtime` surface is usable today; framework-specific one-command adapters beyond Hermes are not yet shipped.
 
+### Async runtimes, cancellation, and concurrency
+
+Wrap the same synchronous runtime when the host owns an asyncio event loop:
+
+```python
+from rtk_hermes_plus import AsyncRuntime, CancellationToken, Runtime
+
+terminator = AsyncRuntime(Runtime(config, profile_name="my-agent"))
+cancellation = CancellationToken()
+
+reduced = await terminator.transform_tool_result(
+    tool_name="search_files",
+    args={"pattern": "ContextEngine"},
+    result=large_result,
+    session_id=session_id,
+    tool_call_id=call_id,
+    cancellation=cancellation,
+)
+
+compiled = await terminator.llm_request_middleware(
+    request=provider_request,
+    session_id=session_id,
+    request_id=request_id,
+    cancellation=cancellation,
+)
+```
+
+`AsyncRuntime` mirrors the adapter-facing tool, result, request, recovery, and session methods. Pass a custom `concurrent.futures.Executor` to `AsyncRuntime(runtime, executor=...)` when the host needs a dedicated worker pool.
+
+Cancelling the awaiting asyncio task, or calling the thread-safe `cancellation.cancel()`, raises `asyncio.CancelledError` at the adapter boundary. Active RTK subprocesses are killed and reaped. Compiler and SQLite operations already running in an executor remain atomic and may finish in that worker after the caller has stopped waiting; their result is discarded. Token Terminator does not intercept or buffer provider response streams, so adapters compile immediately before dispatch and leave streaming responses under host control.
+
+The artifact vault enables SQLite WAL mode and uses `synchronous=NORMAL`, a ten-second busy timeout, short-lived connections, and `BEGIN IMMEDIATE` writes. Independent runtime instances and agent processes may share one local vault while preserving content deduplication, lease limits, and observation provenance. Keep the database on a local filesystem: SQLite WAL is not a network-filesystem coordination protocol.
+
 ## Exact recovery
 
 Compressed results and request receipts contain an artifact identifier. The model can recover an exact page through the registered tool:
@@ -302,7 +337,7 @@ A valid comparison requires separate fresh sessions with stable modes, the same 
 ## Security and privacy
 
 - Exact raw artifacts and their private provenance are stored locally because recovery is part of the product contract.
-- The vault enforces per-artifact and total-capacity limits, SQLite foreign keys, busy timeouts, schema-version checks, and short-lived transactions.
+- The vault enforces per-artifact and total-capacity limits, SQLite WAL, foreign keys, busy timeouts, schema-version checks, short-lived transactions, and serialized writes.
 - POSIX storage uses `0700` parent directories and `0600` databases. Windows storage inherits the user's profile ACLs.
 - RTK subprocesses use argument arrays with `shell=False`.
 - Remote terminal backends are disabled by default.

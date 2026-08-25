@@ -5,7 +5,7 @@ import json
 import os
 import sqlite3
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -96,15 +96,28 @@ class TokenTerminatorStore:
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if os.name == "posix":
             os.chmod(self.path.parent, 0o700)
+        self.journal_mode = self._enable_wal()
         self._initialize()
         if os.name == "posix":
             os.chmod(self.path, 0o600)
+
+    def _enable_wal(self) -> str:
+        with closing(
+            sqlite3.connect(self.path, timeout=10.0, isolation_level=None)
+        ) as conn:
+            conn.execute("PRAGMA busy_timeout=10000")
+            row = conn.execute("PRAGMA journal_mode=WAL").fetchone()
+            mode = str(row[0] if row else "").lower()
+            if mode != "wal":
+                raise RuntimeError(f"artifact vault requires WAL mode, got {mode!r}")
+            return mode
 
     def _new_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path, timeout=10.0, isolation_level=None)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA busy_timeout=10000")
+        conn.execute("PRAGMA synchronous=NORMAL")
         return conn
 
     @contextmanager

@@ -17,6 +17,7 @@ from .ledger import ExperimentLedger, dump_compare
 from .metrics import Metrics
 from .rewrite import (
     Rewriter,
+    RewriteResult,
     backend_enabled,
     command_excluded,
     command_workdir,
@@ -102,8 +103,7 @@ class Runtime:
         rewritten = self._rewrite_args(args)
         if rewritten is None:
             return None
-        self._ensure_ledger_session(kwargs.get("session_id"))
-        self.ledger.record_rewrite(
+        self._record_rewrite(
             session_id=str(kwargs.get("session_id") or ""),
             turn_id=str(kwargs.get("turn_id") or ""),
         )
@@ -122,8 +122,7 @@ class Runtime:
         if rewritten is not None:
             args.clear()
             args.update(rewritten)
-            self._ensure_ledger_session(kwargs.get("session_id"))
-            self.ledger.record_rewrite(
+            self._record_rewrite(
                 session_id=str(kwargs.get("session_id") or ""),
                 turn_id=str(kwargs.get("turn_id") or ""),
             )
@@ -150,8 +149,7 @@ class Runtime:
             tool_name=tool_name, args=args, result=result, **kwargs
         )
         if transformed is not None:
-            self._ensure_ledger_session(kwargs.get("session_id"))
-            self.ledger.record_native(
+            self._record_native(
                 session_id=str(kwargs.get("session_id") or ""),
                 turn_id=str(kwargs.get("turn_id") or ""),
                 raw_chars=len(result),
@@ -356,10 +354,30 @@ class Runtime:
         if session_id:
             self.ledger.ensure_session(str(session_id), self.config.mode)
 
+    def _record_rewrite(self, *, session_id: str = "", turn_id: str = "") -> None:
+        self._ensure_ledger_session(session_id)
+        self.ledger.record_rewrite(session_id=session_id, turn_id=turn_id)
+
+    def _record_native(
+        self,
+        *,
+        session_id: str = "",
+        turn_id: str = "",
+        raw_chars: int,
+        output_chars: int,
+    ) -> None:
+        self._ensure_ledger_session(session_id)
+        self.ledger.record_native(
+            session_id=session_id,
+            turn_id=turn_id,
+            raw_chars=raw_chars,
+            output_chars=output_chars,
+        )
+
     # ------------------------------------------------------------------
     # Terminal rewrite implementation
     # ------------------------------------------------------------------
-    def _rewrite_args(self, args: dict) -> dict | None:
+    def _prepare_rewrite(self, args: dict) -> tuple[str, Path] | None:
         if not self.config.terminal_enabled:
             return None
         command = args.get("command")
@@ -387,7 +405,9 @@ class Runtime:
             self.metrics.add("rewrite_skipped_pytest_quiet_config")
             return None
 
-        result = self.rewriter.rewrite(command, cwd=cwd)
+        return command, cwd
+
+    def _apply_rewrite_result(self, args: dict, result: RewriteResult) -> dict | None:
         if result.command is None:
             self.metrics.add("rewrite_passthrough")
             return None
@@ -405,6 +425,15 @@ class Runtime:
         )
         self.metrics.add("rewritten")
         return output
+
+    def _rewrite_args(self, args: dict) -> dict | None:
+        prepared = self._prepare_rewrite(args)
+        if prepared is None:
+            return None
+        command, cwd = prepared
+
+        result = self.rewriter.rewrite(command, cwd=cwd)
+        return self._apply_rewrite_result(args, result)
 
     # ------------------------------------------------------------------
     # One compact model tool for exact recovery and working-state control
@@ -476,6 +505,7 @@ class Runtime:
             "enabled": self.config.enabled,
             "vault_available": self.store is not None,
             "vault_error": self.store_error,
+            "journal_mode": self.store.journal_mode if self.store else "unavailable",
             "profile": self.profile_name,
         }
 
