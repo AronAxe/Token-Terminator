@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import time
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
@@ -102,15 +103,28 @@ class TokenTerminatorStore:
             os.chmod(self.path, 0o600)
 
     def _enable_wal(self) -> str:
-        with closing(
-            sqlite3.connect(self.path, timeout=10.0, isolation_level=None)
-        ) as conn:
-            conn.execute("PRAGMA busy_timeout=10000")
-            row = conn.execute("PRAGMA journal_mode=WAL").fetchone()
-            mode = str(row[0] if row else "").lower()
-            if mode != "wal":
-                raise RuntimeError(f"artifact vault requires WAL mode, got {mode!r}")
-            return mode
+        deadline = time.monotonic() + 10.0
+        retry_delay = 0.01
+        while True:
+            try:
+                with closing(
+                    sqlite3.connect(self.path, timeout=10.0, isolation_level=None)
+                ) as conn:
+                    conn.execute("PRAGMA busy_timeout=10000")
+                    row = conn.execute("PRAGMA journal_mode=WAL").fetchone()
+                    mode = str(row[0] if row else "").lower()
+                    if mode != "wal":
+                        raise RuntimeError(
+                            f"artifact vault requires WAL mode, got {mode!r}"
+                        )
+                    return mode
+            except sqlite3.OperationalError as exc:
+                if "locked" not in str(exc).lower() or time.monotonic() >= deadline:
+                    raise
+                # SQLite's busy handler is not consistently invoked while
+                # concurrent processes negotiate the journal-mode transition.
+                time.sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, 0.25)
 
     def _new_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path, timeout=10.0, isolation_level=None)

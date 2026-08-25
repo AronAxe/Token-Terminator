@@ -12,6 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.4.0"><img alt="Release v0.4.0" src="https://img.shields.io/badge/release-v0.4.0-ef2b25"></a>
   <img alt="Python 3.10–3.13" src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB?logo=python&logoColor=white">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22c55e.svg"></a>
   <img alt="Portable core" src="https://img.shields.io/badge/core-agent--agnostic-ef2b25">
@@ -123,9 +124,9 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.3.1 replaces `rtk-hermes-plus` 0.2.0. The two distributions must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.4.0 replaces `rtk-hermes-plus` 0.2.0. The two distributions must not coexist because both own the `rtk_hermes_plus` Python import package.
 
-This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `0.3.1` merge commit because this repository does not yet publish release tags.
+This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.4.0` release tag.
 
 ### 1. Install RTK when using terminal rewriting
 
@@ -147,7 +148,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@e02a035d52cc2b0e6e95748b35deb1f61656a4a3'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.4.0'
 ```
 
 Windows example:
@@ -156,7 +157,7 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@e02a035d52cc2b0e6e95748b35deb1f61656a4a3"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.4.0"
 ```
 
 ### 3. Enable one plugin
@@ -181,7 +182,7 @@ Install the same distribution in the environment that owns your agent loop:
 
 ```bash
 python -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@e02a035d52cc2b0e6e95748b35deb1f61656a4a3'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.4.0'
 ```
 
 Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.
@@ -261,7 +262,7 @@ compiled = await terminator.llm_request_middleware(
 
 Cancelling the awaiting asyncio task, or calling the thread-safe `cancellation.cancel()`, raises `asyncio.CancelledError` at the adapter boundary. Active RTK subprocesses are killed and reaped. Compiler and SQLite operations already running in an executor remain atomic and may finish in that worker after the caller has stopped waiting; their result is discarded. Token Terminator does not intercept or buffer provider response streams, so adapters compile immediately before dispatch and leave streaming responses under host control.
 
-The artifact vault enables SQLite WAL mode and uses `synchronous=NORMAL`, a ten-second busy timeout, short-lived connections, and `BEGIN IMMEDIATE` writes. Independent runtime instances and agent processes may share one local vault while preserving content deduplication, lease limits, and observation provenance. Keep the database on a local filesystem: SQLite WAL is not a network-filesystem coordination protocol.
+The artifact vault enables SQLite WAL mode and uses `synchronous=NORMAL`, a ten-second busy timeout, bounded retries for transient multi-process startup locks, short-lived connections, and `BEGIN IMMEDIATE` writes. Independent runtime instances and agent processes may share one local vault while preserving content deduplication, lease limits, and observation provenance. Keep the database on a local filesystem: SQLite WAL is not a network-filesystem coordination protocol.
 
 ## Exact recovery
 
