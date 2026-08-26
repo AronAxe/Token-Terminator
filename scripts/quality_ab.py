@@ -21,7 +21,6 @@ import sqlite3
 import statistics
 import subprocess
 import sys
-import tempfile
 import time
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -437,25 +436,35 @@ def run_trial(
         raise ExperimentError(f"workspace changed after planning: {trial.workspace}")
     work_root = work_root.resolve()
     work_root.mkdir(parents=True, exist_ok=True)
+    pair_slug = re.sub(r"[^A-Za-z0-9_.-]+", "-", trial.pair_id).strip("-")
+    pair_root = work_root / "active" / pair_slug
+    isolated_workspace = pair_root / "workspace"
+    query_file = pair_root / "query.txt"
+    effective_prompt = (
+        prompt_text.rstrip()
+        + "\n\n"
+        + f"Evidence workspace (absolute): '{isolated_workspace}'. "
+        + "Resolve every relative evidence filename in this task against that exact "
+        + "directory; do not search outside it."
+    )
+    effective_prompt_sha256 = _sha256_text(effective_prompt)
     env = os.environ.copy()
     env["TOKEN_TERMINATOR_ENABLED"] = "true"
     env["TOKEN_TERMINATOR_MODE"] = ARM_MODES[trial.arm]
     env["TOKEN_TERMINATOR_EXPERIMENT"] = experiment_id
     started = _utc_now()
     before = time.monotonic()
-    with tempfile.TemporaryDirectory(
-        prefix=f"{trial.task_id}-{trial.arm}-", dir=work_root
-    ) as temporary:
-        isolated_workspace = Path(temporary) / "workspace"
+    if pair_root.exists():
+        shutil.rmtree(pair_root)
+    pair_root.mkdir(parents=True)
+    try:
         shutil.copytree(trial.workspace, isolated_workspace)
-        isolated_prompt = isolated_workspace / trial.prompt_path.relative_to(
-            trial.workspace
-        )
+        query_file.write_text(effective_prompt, encoding="utf-8")
         command = [
             hermes,
             "chat",
             "--query-file",
-            str(isolated_prompt),
+            str(query_file),
             "--in",
             str(isolated_workspace),
             "-m",
@@ -481,6 +490,8 @@ def run_trial(
             env=env,
             timeout=timeout,
         )
+    finally:
+        shutil.rmtree(pair_root, ignore_errors=True)
     duration = round(time.monotonic() - before, 3)
     session_id = _session_id(completed.stderr)
     usage = _read_session_usage(state_db, session_id)
@@ -504,7 +515,8 @@ def run_trial(
         "arm": trial.arm,
         "mode": ARM_MODES[trial.arm],
         "order": trial.order,
-        "prompt_sha256": trial.prompt_sha256,
+        "prompt_sha256": effective_prompt_sha256,
+        "source_prompt_sha256": trial.prompt_sha256,
         "model": model,
         "provider": provider,
         "reasoning": reasoning,

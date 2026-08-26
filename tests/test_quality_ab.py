@@ -160,7 +160,7 @@ def test_committed_suite_is_valid_and_self_consistent():
     assert sorted(categories.values()) == [2, 2, 2, 2, 2, 2]
     by_id = {task["id"]: task for task in suite["tasks"]}
     case_12 = by_id["case_12_long_list_compliance_firewall_rules"]
-    assert case_12["assertions"][0]["equals"] == "PCI-DSS v4.0"
+    assert case_12["assertions"][0]["equals"] == "PCI-DSS v4.0 Requirement 1.3"
     case_12_text = "\n".join(
         path.read_text(encoding="utf-8")
         for path in Path(case_12["_workspace"]).iterdir()
@@ -200,6 +200,7 @@ def test_run_trial_changes_only_arm_environment_not_prompt(tmp_path, monkeypatch
         def __init__(self, command, **kwargs):
             arm = kwargs["env"]["TOKEN_TERMINATOR_MODE"]
             self.session_id = f"fake-{arm}"
+            assert not Path(kwargs["cwd"], "agent-scratch.txt").exists()
             with sqlite3.connect(state_db) as connection, connection:
                 connection.execute(
                     "INSERT INTO sessions VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -261,6 +262,7 @@ def test_run_trial_changes_only_arm_environment_not_prompt(tmp_path, monkeypatch
 
     prompts = [call["prompt"] for call in calls]
     assert prompts[0] == prompts[1]
+    assert "Evidence workspace (absolute):" in prompts[0]
     normalized_commands = []
     for call in calls:
         command = list(call["command"])
@@ -282,7 +284,9 @@ def test_run_trial_changes_only_arm_environment_not_prompt(tmp_path, monkeypatch
     }
     assert all(row["grade"]["passed"] for row in rows)
     assert all(not row["contaminated"] for row in rows)
-    assert calls[0]["cwd"] != calls[1]["cwd"]
+    assert calls[0]["cwd"] == calls[1]["cwd"]
+    assert rows[0]["prompt_sha256"] == rows[1]["prompt_sha256"]
+    assert rows[0]["source_prompt_sha256"] == rows[1]["source_prompt_sha256"]
     assert not (Path(suite["tasks"][0]["_workspace"]) / "agent-scratch.txt").exists()
 
 

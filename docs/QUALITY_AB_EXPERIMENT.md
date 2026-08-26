@@ -22,11 +22,11 @@ The experiment tests model answers, not merely payload size or exact artifact re
 
 The experimental unit is one `(task, repetition)` pair. Both arms use:
 
-- identical prompt bytes, verified by SHA-256;
-- identical evidence files and working directory;
+- identical effective prompt bytes, verified by SHA-256;
+- identical evidence files and a pair-stable absolute workspace path embedded in the prompt, preventing session CWD restoration from redirecting relative evidence reads;
 - identical Hermes executable, model, provider, reasoning level, and user configuration;
 - a fresh session per arm;
-- a fresh disposable copy of the evidence workspace per arm, removed after the complete process group exits;
+- a fresh disposable copy of the evidence workspace per arm, recreated at that pair-stable path and removed after the complete process group exits;
 - adjacent execution in randomized arm order to limit backend drift.
 
 The runner rejects a trial when the usage receipt reports a different model or provider, the process fails, or the response is not gradeable. Rejected trials are contaminated evidence, not quality failures.
