@@ -90,7 +90,7 @@ Contaminated arms are automatically retried on the next run. The append-only his
 
 ## Cost and privacy
 
-The default route is `openai-codex` with the configured OAuth subscription, so expected marginal API cost is $0. The full experiment consumes 144 model runs and therefore uses account quota and wall-clock time. No model judge is required: committed deterministic graders are primary. Human blind review can be added after the fixed run as a calibration layer.
+The default route is `openai-codex` with the configured OAuth subscription, so expected marginal API cost is $0. The full experiment makes 144 model runs and takes substantial wall-clock time. No model judge is required: committed deterministic graders are primary. Human blind review can be added after the fixed run as a calibration layer.
 
 Prompts, corpora, and expected answers are synthetic. Run outputs are written beneath `.quality-ab/`, excluded from Git, and should not be mixed with normal user sessions (`--source tool` is used where the Hermes CLI surface supports it).
 
