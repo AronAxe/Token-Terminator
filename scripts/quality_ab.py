@@ -159,9 +159,13 @@ def validate_suite(path: Path) -> dict[str, Any]:
                 raise ExperimentError(
                     f"task {task_id}: every assertion needs a field path"
                 )
-            if "equals" not in assertion:
+            has_equals = "equals" in assertion
+            one_of = assertion.get("one_of")
+            has_one_of = isinstance(one_of, list) and bool(one_of)
+            if has_equals == has_one_of:
                 raise ExperimentError(
-                    f"task {task_id}: assertion {assertion['path']} needs equals"
+                    f"task {task_id}: assertion {assertion['path']} needs exactly one "
+                    "of equals or non-empty one_of"
                 )
         forbidden = task.get("forbidden", [])
         if not isinstance(forbidden, list):
@@ -270,10 +274,17 @@ def grade_response(text: str, task: dict[str, Any]) -> dict[str, Any]:
         except KeyError:
             failures.append(f"missing {path}")
             continue
-        expected = assertion["equals"]
-        if actual == expected:
+        expected_values = (
+            list(assertion["one_of"])
+            if "one_of" in assertion
+            else [assertion["equals"]]
+        )
+        if actual in expected_values:
             passed += 1
         else:
+            expected = (
+                expected_values[0] if len(expected_values) == 1 else expected_values
+            )
             failures.append(f"{path}: expected {expected!r}, got {actual!r}")
 
     forbidden_hits: list[str] = []
@@ -474,7 +485,7 @@ def run_trial(
             "--reasoning",
             reasoning,
             "--toolsets",
-            "file",
+            "file,token_terminator",
             "-Q",
             "--ignore-rules",
             "--source",
@@ -595,7 +606,19 @@ def paired_bootstrap_ci(
 def analyze_results(
     suite: dict[str, Any], rows: list[dict[str, Any]], *, seed: int
 ) -> dict[str, Any]:
-    pairs, duplicates = _paired_rows(rows)
+    tasks = {str(task["id"]): task for task in suite["tasks"]}
+    analysis_rows = []
+    regraded_rows = 0
+    for original in rows:
+        row = dict(original)
+        task = tasks.get(str(row.get("task_id") or ""))
+        if task is not None and isinstance(row.get("response"), str):
+            current_grade = grade_response(row["response"], task)
+            if current_grade != row.get("grade"):
+                regraded_rows += 1
+            row["grade"] = current_grade
+        analysis_rows.append(row)
+    pairs, duplicates = _paired_rows(analysis_rows)
     eligible = [
         (control, treatment)
         for control, treatment in pairs
@@ -682,6 +705,7 @@ def analyze_results(
         "eligible_pairs": len(eligible),
         "contaminated_pairs": len(pairs) - len(eligible),
         "duplicate_rows": duplicates,
+        "regraded_rows": regraded_rows,
         "primary": {
             "control_pass_rate": round(control_pass, 6),
             "treatment_pass_rate": round(treatment_pass, 6),

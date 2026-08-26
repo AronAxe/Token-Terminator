@@ -115,6 +115,42 @@ def test_grade_response_requires_all_exact_fields_and_rejects_decoy(tmp_path):
     assert malformed["malformed"] is True
 
 
+def test_grade_response_accepts_declared_semantic_equivalents(tmp_path):
+    quality = load_quality_ab()
+    suite_path = make_suite(tmp_path)
+    raw = json.loads(suite_path.read_text(encoding="utf-8"))
+    raw["tasks"][0]["assertions"] = [
+        {"path": "answer.code", "one_of": ["K-204", "K-204-equivalent"]}
+    ]
+    suite_path.write_text(json.dumps(raw), encoding="utf-8")
+    task = quality.validate_suite(suite_path)["tasks"][0]
+
+    grade = quality.grade_response('{"answer":{"code":"K-204-equivalent"}}', task)
+
+    assert grade["passed"] is True
+
+
+def test_analysis_regrades_immutable_responses_against_current_suite(tmp_path):
+    quality = load_quality_ab()
+    suite = quality.validate_suite(make_suite(tmp_path, repetitions=1))
+    rows = []
+    for arm in ("control", "treatment"):
+        row = result("case-1:r1", arm, passed=False, score=0.0)
+        row.update(
+            {
+                "task_id": "case-1",
+                "response": '{"answer":{"code":"K-204"}}',
+            }
+        )
+        rows.append(row)
+
+    report = quality.analyze_results(suite, rows, seed=9)
+
+    assert report["regraded_rows"] == 2
+    assert report["primary"]["control_pass_rate"] == 1.0
+    assert report["primary"]["treatment_pass_rate"] == 1.0
+
+
 def test_json_extractor_accepts_fences_but_rejects_conversational_wrappers(tmp_path):
     quality = load_quality_ab()
     suite = quality.validate_suite(make_suite(tmp_path))
@@ -144,12 +180,19 @@ def test_committed_suite_is_valid_and_self_consistent():
             parts = assertion["path"].split(".")
             for part in parts[:-1]:
                 current = current.setdefault(part, {})
-            current[parts[-1]] = assertion["equals"]
+            current[parts[-1]] = (
+                assertion["equals"] if "equals" in assertion else assertion["one_of"][0]
+            )
         for forbidden in task.get("forbidden", []):
             matching = [
-                assertion["equals"]
+                value
                 for assertion in task["assertions"]
                 if assertion["path"] == forbidden["path"]
+                for value in (
+                    [assertion["equals"]]
+                    if "equals" in assertion
+                    else assertion["one_of"]
+                )
             ]
             assert not any(value in forbidden["values"] for value in matching)
         assert quality.grade_response(json.dumps(payload), task)["passed"] is True
@@ -273,7 +316,8 @@ def test_run_trial_changes_only_arm_environment_not_prompt(tmp_path, monkeypatch
     assert "chat" in normalized_commands[0]
     assert "--reasoning" in normalized_commands[0]
     assert (
-        normalized_commands[0][normalized_commands[0].index("--toolsets") + 1] == "file"
+        normalized_commands[0][normalized_commands[0].index("--toolsets") + 1]
+        == "file,token_terminator"
     )
     assert "--ignore-rules" in normalized_commands[0]
     budget_index = normalized_commands[0].index("--run-budget") + 1

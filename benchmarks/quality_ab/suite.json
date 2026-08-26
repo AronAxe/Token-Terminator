@@ -882,7 +882,11 @@
         },
         {
           "path": "blocking_call_found",
-          "equals": "self._sync_ingress_queue.get(block=True, timeout=30)"
+          "one_of": [
+            "queue.get(block=True, timeout=30)",
+            "_sync_ingress_queue.get(block=True, timeout=30)",
+            "self._sync_ingress_queue.get(block=True, timeout=30)"
+          ]
         },
         {
           "path": "recommended_fix_id",
