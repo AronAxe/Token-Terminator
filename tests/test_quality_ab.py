@@ -225,6 +225,8 @@ def test_run_trial_changes_only_arm_environment_not_prompt(tmp_path, monkeypatch
             )
             query_file = Path(command[command.index("--query-file") + 1])
             assert query_file.is_absolute()
+            workspace = Path(command[command.index("--in") + 1])
+            assert workspace.is_absolute()
             calls.append(
                 {
                     "command": list(command),
@@ -263,10 +265,14 @@ def test_run_trial_changes_only_arm_environment_not_prompt(tmp_path, monkeypatch
     for call in calls:
         command = list(call["command"])
         command[command.index("--query-file") + 1] = "<query-file>"
+        command[command.index("--in") + 1] = "<workspace>"
         normalized_commands.append(command)
     assert normalized_commands[0] == normalized_commands[1]
     assert "chat" in normalized_commands[0]
     assert "--reasoning" in normalized_commands[0]
+    assert (
+        normalized_commands[0][normalized_commands[0].index("--toolsets") + 1] == "file"
+    )
     assert "--ignore-rules" in normalized_commands[0]
     budget_index = normalized_commands[0].index("--run-budget") + 1
     assert normalized_commands[0][budget_index] == "48"
