@@ -4,7 +4,9 @@ include LICENSE
 include MIGRATION.md
 include README.md
 include SECURITY.md
-recursive-include docs *.svg *.webp
+recursive-include docs *.md *.svg *.webp
+recursive-include benchmarks/quality_ab *
 include scripts/smoke_hermes.py
 include scripts/verify_release.py
 include scripts/benchmark.py
+include scripts/quality_ab.py

@@ -1,0 +1,54 @@
+CHASSIS MECHANICAL AND ELECTRICAL COMPATIBILITY SPECIFICATION
+Model: TitanBlade-4U-Modular
+Target Enclosure: Rack-H-07 Slot-4
+============================================================
+
+PHYSICAL FORM FACTOR LIMITS:
+- Maximum card slot width: 2 PCIe slots (Dual-Slot form factor only). 3-slot or triple-width cards are mechanically blocked by adjacent NVLink bridge shroud.
+- Maximum card length: 310 mm.
+- Maximum card height: Standard full-height 111.15 mm.
+
+ELECTRICAL CONNECTOR SPECIFICATIONS:
+- Required power delivery: Dual 12V-2x6 PCIe Gen5 16-pin connectors (supporting up to 600W per cable + 75W PCIe slot).
+- Total slot maximum safe power delivery: 1800W sustained.
+
+MODEL COMPATIBILITY EVALUATION RESULTS:
+Model 'TensorPro-X100': Dual-slot (COMPATIBLE), length 305mm (COMPATIBLE). Note: Requires 2100W thermal dissipation.
+Model 'NeuralJet-800': Dual-slot (COMPATIBLE), length 290mm (COMPATIBLE).
+Model 'MatrixCore-Ultra': Triple-slot (INCOMPATIBLE - physically blocked by TitanBlade 4U shroud).
+Model 'A800-DualSlot': Dual-slot (COMPATIBLE), length 300mm (COMPATIBLE), dual 12V-2x6 connectors (COMPATIBLE), TDP 1650W.
+Model 'LiteAcc-300': Single-slot (COMPATIBLE).
+Engineering Verification Test EVT-201: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +13dB. Jitter RMS: 0.47ps.
+Engineering Verification Test EVT-202: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +14dB. Jitter RMS: 0.49ps.
+Engineering Verification Test EVT-203: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +15dB. Jitter RMS: 0.51ps.
+Engineering Verification Test EVT-204: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +16dB. Jitter RMS: 0.53ps.
+Engineering Verification Test EVT-205: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +17dB. Jitter RMS: 0.45ps.
+Engineering Verification Test EVT-206: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +12dB. Jitter RMS: 0.47ps.
+Engineering Verification Test EVT-207: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +13dB. Jitter RMS: 0.49ps.
+Engineering Verification Test EVT-208: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +14dB. Jitter RMS: 0.51ps.
+Engineering Verification Test EVT-209: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +15dB. Jitter RMS: 0.53ps.
+Engineering Verification Test EVT-210: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +16dB. Jitter RMS: 0.45ps.
+Engineering Verification Test EVT-211: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +17dB. Jitter RMS: 0.47ps.
+Engineering Verification Test EVT-212: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +12dB. Jitter RMS: 0.49ps.
+Engineering Verification Test EVT-213: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +13dB. Jitter RMS: 0.51ps.
+Engineering Verification Test EVT-214: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +14dB. Jitter RMS: 0.53ps.
+Engineering Verification Test EVT-215: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +15dB. Jitter RMS: 0.45ps.
+Engineering Verification Test EVT-216: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +16dB. Jitter RMS: 0.47ps.
+Engineering Verification Test EVT-217: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +17dB. Jitter RMS: 0.49ps.
+Engineering Verification Test EVT-218: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +12dB. Jitter RMS: 0.51ps.
+Engineering Verification Test EVT-219: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +13dB. Jitter RMS: 0.53ps.
+Engineering Verification Test EVT-220: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +14dB. Jitter RMS: 0.45ps.
+Engineering Verification Test EVT-221: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +15dB. Jitter RMS: 0.47ps.
+Engineering Verification Test EVT-222: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +16dB. Jitter RMS: 0.49ps.
+Engineering Verification Test EVT-223: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +17dB. Jitter RMS: 0.51ps.
+Engineering Verification Test EVT-224: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +12dB. Jitter RMS: 0.53ps.
+Engineering Verification Test EVT-225: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +13dB. Jitter RMS: 0.45ps.
+Engineering Verification Test EVT-226: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +14dB. Jitter RMS: 0.47ps.
+Engineering Verification Test EVT-227: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +15dB. Jitter RMS: 0.49ps.
+Engineering Verification Test EVT-228: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +16dB. Jitter RMS: 0.51ps.
+Engineering Verification Test EVT-229: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +17dB. Jitter RMS: 0.53ps.
+Engineering Verification Test EVT-230: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +12dB. Jitter RMS: 0.45ps.
+Engineering Verification Test EVT-231: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +13dB. Jitter RMS: 0.47ps.
+Engineering Verification Test EVT-232: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +14dB. Jitter RMS: 0.49ps.
+Engineering Verification Test EVT-233: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +15dB. Jitter RMS: 0.51ps.
+Engineering Verification Test EVT-234: TitanBlade PCIe bus timing validated on Slot-4. Signal integrity margin: +16dB. Jitter RMS: 0.53ps.

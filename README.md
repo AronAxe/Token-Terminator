@@ -335,6 +335,8 @@ The durable experiment ledger stores session/turn identifiers, mode/model labels
 
 A valid comparison requires separate fresh sessions with stable modes, the same model/settings, and representative repeated tasks. Mode/model changes contaminate a session and exclude it rather than manufacturing a persuasive number.
 
+For answer quality—not just token accounting—use the paired non-inferiority harness in [`docs/QUALITY_AB_EXPERIMENT.md`](docs/QUALITY_AB_EXPERIMENT.md). It sends identical synthetic prompts and evidence to the same model in fresh `off` and `balanced` sessions, randomizes arm order, rejects provider/model drift, and grades easily degraded answers deterministically. The first 36 matched pairs are an answer-quality checkpoint; a final non-inferiority decision remains withheld until the precommitted 72-pair extension is complete. Token savings are secondary and cannot compensate for lower answer quality.
+
 ## Security and privacy
 
 - Exact raw artifacts and their private provenance are stored locally because recovery is part of the product contract.

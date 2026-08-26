@@ -1,0 +1,97 @@
+{
+  "procurement_cycle": "2026-FY2",
+  "authorized_by": "Strategic Hardware Sourcing Committee",
+  "project_budgets": {
+    "INFER-SCALE-1": {
+      "max_unit_cost_usd": 8000,
+      "max_lead_time_weeks": 4,
+      "min_fp8_tflops": 1000
+    },
+    "VISION-SEG-2": {
+      "max_unit_cost_usd": 10000,
+      "max_lead_time_weeks": 3,
+      "min_fp8_tflops": 1200
+    },
+    "HYPER-TRAIN-v4": {
+      "max_unit_cost_usd": 14000,
+      "max_lead_time_weeks": 3,
+      "min_fp8_tflops": 1800,
+      "authorized_signatory": "VP of Infrastructure AI",
+      "payment_terms": "Net-30-Enterprise",
+      "warranty_sla_years": 5
+    }
+  },
+  "vendor_catalog": [
+    {
+      "vendor": "TensorMax",
+      "model": "TensorPro-X100",
+      "unit_cost_usd": 12500,
+      "lead_time_weeks": 2,
+      "fp8_tflops": 2200,
+      "tdp_watts": 2100
+    },
+    {
+      "vendor": "NeuralCorp",
+      "model": "NeuralJet-800",
+      "unit_cost_usd": 13000,
+      "lead_time_weeks": 6,
+      "fp8_tflops": 1900,
+      "tdp_watts": 1400
+    },
+    {
+      "vendor": "MatrixSilicon",
+      "model": "MatrixCore-Ultra",
+      "unit_cost_usd": 13800,
+      "lead_time_weeks": 2,
+      "fp8_tflops": 1950,
+      "tdp_watts": 1600
+    },
+    {
+      "vendor": "AxiomSilicon",
+      "model": "A800-DualSlot",
+      "unit_cost_usd": 13500,
+      "lead_time_weeks": 2,
+      "fp8_tflops": 1850,
+      "tdp_watts": 1650
+    },
+    {
+      "vendor": "BudgetCompute",
+      "model": "LiteAcc-300",
+      "unit_cost_usd": 6500,
+      "lead_time_weeks": 1,
+      "fp8_tflops": 900,
+      "tdp_watts": 800
+    }
+  ],
+  "extended_contract_clauses": [
+    "Clause 40.1: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.2: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.3: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.4: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.5: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.6: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.7: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.8: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.9: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.10: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.11: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.12: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.13: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.14: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.15: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.16: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.17: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.18: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.19: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.20: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.21: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.22: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.23: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.24: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.25: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.26: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.27: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.28: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours.",
+    "Clause 40.29: Delivery penalties apply if vendor fails the mandated maximum lead time threshold of 3 weeks for tier-1 projects. Hardware SLA requires 24/7 onsite replacement within 4 hours."
+  ]
+}
