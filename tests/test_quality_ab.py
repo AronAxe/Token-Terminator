@@ -224,6 +224,7 @@ def test_run_trial_changes_only_arm_environment_not_prompt(tmp_path, monkeypatch
                 "arm-local", encoding="utf-8"
             )
             query_file = Path(command[command.index("--query-file") + 1])
+            assert query_file.is_absolute()
             calls.append(
                 {
                     "command": list(command),

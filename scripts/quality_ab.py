@@ -435,6 +435,7 @@ def run_trial(
         raise ExperimentError(f"prompt changed after planning: {trial.prompt_path}")
     if _workspace_sha256(trial.workspace) != trial.workspace_sha256:
         raise ExperimentError(f"workspace changed after planning: {trial.workspace}")
+    work_root = work_root.resolve()
     work_root.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
     env["TOKEN_TERMINATOR_ENABLED"] = "true"
