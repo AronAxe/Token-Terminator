@@ -405,6 +405,9 @@ Contributions must preserve the central invariant: **strictly smaller complete p
   <img src="docs/assets/judgement-day.webp" alt="Judgement Day for Token Bloat — a Terminator-style machine skull looming over a ruined city as AI tokens explode" width="100%">
 </p>
 
+## [![Repography logo](https://images.repography.com/logo.svg)](https://repography.com) / Structure
+[![Structure](https://images.repography.com/159618761/AronAxe/Token-Terminator/structure/A7QJwtSXEOGss8ODJwQPKIn55FhNAsEbvIP7cEEvbkw/9ST6BC_-XGIjAFSA5TC3Qm7lZ1arJSZUerDm3LBx2eA_table.svg)](https://github.com/AronAxe/Token-Terminator)
+
 ## Acknowledgements
 
 Token Terminator retains and extends the original RTK integration, inspired by Vinicius Gallotti's MIT-licensed [`rtk-hermes`](https://github.com/ogallotti/rtk-hermes) adapter and built around RTK's command-rewrite protocol.
