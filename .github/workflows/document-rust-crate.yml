@@ -25,52 +25,53 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          path = Path('README.md')
-          text = path.read_text(encoding='utf-8')
+          path = Path("README.md")
+          text = path.read_text(encoding="utf-8")
 
-          if 'https://crates.io/crates/token-terminator' not in text:
+          crates_badges = "\n".join([
+              '  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/crates/v/token-terminator?logo=rust"></a>',
+              '  <a href="https://docs.rs/token-terminator"><img alt="docs.rs" src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>',
+              "",
+          ])
+          if 'href="https://crates.io/crates/token-terminator"' not in text:
               marker = '  <img alt="Python 3.10–3.13"'
-              insertion = (
-                  '  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" '
-                  'src="https://img.shields.io/crates/v/token-terminator?logo=rust"></a>\n'
-                  '  <a href="https://docs.rs/token-terminator"><img alt="docs.rs" '
-                  'src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>\n'
-              )
               index = text.index(marker)
-              text = text[:index] + insertion + text[index:]
+              text = text[:index] + crates_badges + text[index:]
 
           rust_row = '| Rust artifact interoperability | `token-terminator` Rust crate | Published on crates.io |\n'
           if rust_row not in text:
               marker = '| Exact tokenizer alignment | Optional `tiktoken` or Hugging Face `tokenizers` | Included, optional |\n'
               text = text.replace(marker, marker + rust_row, 1)
 
-          section = '''## Rust interoperability crate
-
-Rust agent hosts can use the supported `token-terminator` companion crate for the stable cross-language pieces of the Token Terminator contract:
-
-```bash
-cargo add token-terminator
-```
-
-```rust
-use token_terminator::{artifact_identity, strictly_smaller_chars, verify_sha256};
-
-let evidence = "exact tool evidence";
-let identity = artifact_identity(evidence);
-assert!(verify_sha256(evidence, &identity.sha256));
-assert!(strictly_smaller_chars("long provider-visible evidence", "short receipt"));
-```
-
-The crate mirrors vault-compatible SHA-256 artifact identities, short/full artifact-ID verification, and the portable strictly-smaller-in-characters baseline. It is deliberately **not** a second Token Terminator runtime and does not introduce PyO3 into the Python install. Rust/PyO3 hot-path acceleration remains profiling-driven and deferred until it earns its complexity.
-
-See [the Rust crate integration guide](docs/RUST_CRATE.md), [crates.io](https://crates.io/crates/token-terminator), and [docs.rs](https://docs.rs/token-terminator).
-
-'''
-          marker = '## Install: another agent runtime (adapter API)\n'
-          if '## Rust interoperability crate\n' not in text:
+          section = "\n".join([
+              "## Rust interoperability crate",
+              "",
+              "Rust agent hosts can use the supported `token-terminator` companion crate for the stable cross-language pieces of the Token Terminator contract:",
+              "",
+              "```bash",
+              "cargo add token-terminator",
+              "```",
+              "",
+              "```rust",
+              "use token_terminator::{artifact_identity, strictly_smaller_chars, verify_sha256};",
+              "",
+              'let evidence = "exact tool evidence";',
+              "let identity = artifact_identity(evidence);",
+              "assert!(verify_sha256(evidence, &identity.sha256));",
+              'assert!(strictly_smaller_chars("long provider-visible evidence", "short receipt"));',
+              "```",
+              "",
+              "The crate mirrors vault-compatible SHA-256 artifact identities, short/full artifact-ID verification, and the portable strictly-smaller-in-characters baseline. It is deliberately **not** a second Token Terminator runtime and does not introduce PyO3 into the Python install. Rust/PyO3 hot-path acceleration remains profiling-driven and deferred until it earns its complexity.",
+              "",
+              "See [the Rust crate integration guide](docs/RUST_CRATE.md), [crates.io](https://crates.io/crates/token-terminator), and [docs.rs](https://docs.rs/token-terminator).",
+              "",
+              "",
+          ])
+          if "## Rust interoperability crate\n" not in text:
+              marker = "## Install: another agent runtime (adapter API)\n"
               text = text.replace(marker, section + marker, 1)
 
-          path.write_text(text, encoding='utf-8')
+          path.write_text(text, encoding="utf-8")
           PY
 
       - name: Commit README change
@@ -93,17 +94,30 @@ See [the Rust crate integration guide](docs/RUST_CRATE.md), [crates.io](https://
         shell: bash
         run: |
           set -euo pipefail
-          gh release view v0.5.0 --json body --jq .body > /tmp/release-notes.md
-          if ! grep -q 'crates.io Rust interoperability crate' /tmp/release-notes.md; then
-            cat >> /tmp/release-notes.md <<'EOF'
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
 
-          ## Rust interoperability crate
-
-          Token Terminator 0.5.0 now also publishes the `token-terminator` Rust interoperability crate on crates.io. It exposes vault-compatible artifact identities, SHA-256 verification, and the portable strict-reduction baseline for Rust agent adapters. It does not replace the Python runtime or make PyO3 a dependency.
-
-          - crates.io: https://crates.io/crates/token-terminator
-          - docs.rs: https://docs.rs/token-terminator
-          - integration guide: https://github.com/AronAxe/Token-Terminator/blob/main/docs/RUST_CRATE.md
-          EOF
-            gh release edit v0.5.0 --notes-file /tmp/release-notes.md
-          fi
+          raw = subprocess.check_output(
+              ["gh", "release", "view", "v0.5.0", "--json", "body"],
+              text=True,
+          )
+          body = json.loads(raw)["body"]
+          marker = "## Rust interoperability crate"
+          if marker not in body:
+              extra = "\n".join([
+                  "",
+                  "## Rust interoperability crate",
+                  "",
+                  "Token Terminator 0.5.0 now also publishes the `token-terminator` Rust interoperability crate on crates.io. It exposes vault-compatible artifact identities, SHA-256 verification, and the portable strict-reduction baseline for Rust agent adapters. It does not replace the Python runtime or make PyO3 a dependency.",
+                  "",
+                  "- crates.io: https://crates.io/crates/token-terminator",
+                  "- docs.rs: https://docs.rs/token-terminator",
+                  "- integration guide: https://github.com/AronAxe/Token-Terminator/blob/main/docs/RUST_CRATE.md",
+                  "",
+              ])
+              body = body.rstrip() + "\n" + extra
+          Path("/tmp/release-notes.md").write_text(body, encoding="utf-8")
+          PY
+          gh release edit v0.5.0 --notes-file /tmp/release-notes.md
