@@ -16,7 +16,7 @@ register = _plugin.register
 
 # Import the async facade only after the v0.5 runtime has been installed so its
 # Runtime annotation and downstream users see the enhanced implementation.
-from .async_runtime import AsyncRuntime  # noqa: E402
+from .async_runtime import AsyncRuntime
 
 __all__ = [
     "AsyncRuntime",
