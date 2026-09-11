@@ -39,6 +39,21 @@ jobs:
       - run: python -m twine check dist/*
       - run: python scripts/verify_release.py 'dist/*'
 
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@1.78.0
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
+      - run: |
+          rm -f Cargo.lock
+          cargo publish --dry-run
+
   windows:
     runs-on: windows-latest
     steps:
