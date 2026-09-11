@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 from typing import Any
 
 from .compiler import CompileResult, RequestCompiler
@@ -9,6 +10,8 @@ from .plugin import Runtime as BaseRuntime
 from .recovery_views import artifact_find, artifact_peek
 from .temporal import TemporalDeltaReducer
 from .token_budget import TokenBudgetAdapter
+
+logger = logging.getLogger(__name__)
 
 
 class TokenAwareRequestCompiler(RequestCompiler):
@@ -25,9 +28,8 @@ class TokenAwareRequestCompiler(RequestCompiler):
                     "DELETE FROM artifact_exposures WHERE session_id=? AND request_id=?",
                     (str(session_id or ""), str(request_id or "")),
                 )
-        except Exception:
-            # A token-only rejection must never turn into a provider failure.
-            pass
+        except Exception:  # noqa: BLE001 - optimizer rollback must fail open
+            logger.debug("Token Terminator lease rollback failed", exc_info=True)
 
     def compile(self, request: Any, **kwargs: Any) -> CompileResult:
         result = super().compile(request, **kwargs)
@@ -38,7 +40,11 @@ class TokenAwareRequestCompiler(RequestCompiler):
         compiled = self.token_budget.measure_request(result.request)
         if not raw.available or not compiled.available:
             return result
-        if compiled.tokens is not None and raw.tokens is not None and compiled.tokens < raw.tokens:
+        if (
+            compiled.tokens is not None
+            and raw.tokens is not None
+            and compiled.tokens < raw.tokens
+        ):
             return result
 
         session_id = str(kwargs.get("session_id") or "")
