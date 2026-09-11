@@ -6,7 +6,10 @@ from typing import Any
 
 from .storage import TokenTerminatorStore
 
-_SIGNAL = re.compile(r"\b(error|warning|failed|failure|exception|traceback|fatal)\b", re.I)
+_SIGNAL = re.compile(
+    r"\b(error|warning|failed|failure|exception|traceback|fatal)\b",
+    re.IGNORECASE,
+)
 
 
 def _clip(value: str, limit: int) -> str:
