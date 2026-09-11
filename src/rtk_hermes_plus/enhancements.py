@@ -28,7 +28,7 @@ class TokenAwareRequestCompiler(RequestCompiler):
                     "DELETE FROM artifact_exposures WHERE session_id=? AND request_id=?",
                     (str(session_id or ""), str(request_id or "")),
                 )
-        except Exception:  # noqa: BLE001 - optimizer rollback must fail open
+        except Exception:
             logger.debug("Token Terminator lease rollback failed", exc_info=True)
 
     def compile(self, request: Any, **kwargs: Any) -> CompileResult:
