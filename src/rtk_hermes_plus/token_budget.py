@@ -73,12 +73,8 @@ class TokenBudgetAdapter:
         self.tokenizer_json = (
             Path(tokenizer_json).expanduser() if tokenizer_json else None
         )
-        self.encoding_name = os.getenv(
-            "TOKEN_TERMINATOR_TIKTOKEN_ENCODING", ""
-        ).strip()
-        self.context_limit_tokens = _env_int(
-            "TOKEN_TERMINATOR_CONTEXT_LIMIT_TOKENS", 0
-        )
+        self.encoding_name = os.getenv("TOKEN_TERMINATOR_TIKTOKEN_ENCODING", "").strip()
+        self.context_limit_tokens = _env_int("TOKEN_TERMINATOR_CONTEXT_LIMIT_TOKENS", 0)
         self.output_reserve_tokens = _env_int(
             "TOKEN_TERMINATOR_OUTPUT_RESERVE_TOKENS", 4096
         )
