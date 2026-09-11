@@ -1,0 +1,21 @@
+[package]
+name = "token-terminator"
+version = "0.5.0"
+edition = "2021"
+rust-version = "1.78"
+description = "Rust interoperability helpers for Token Terminator artifact identities and reduction invariants"
+license = "MIT"
+repository = "https://github.com/AronAxe/Token-Terminator"
+homepage = "https://github.com/AronAxe/Token-Terminator"
+documentation = "https://docs.rs/token-terminator"
+readme = "rust/README.md"
+keywords = ["ai", "agents", "tokens", "context", "llm"]
+categories = ["development-tools", "data-structures"]
+include = ["Cargo.toml", "LICENSE", "rust/**", "docs/RUST_CRATE.md"]
+
+[lib]
+name = "token_terminator"
+path = "rust/lib.rs"
+
+[dependencies]
+sha2 = "0.10"
