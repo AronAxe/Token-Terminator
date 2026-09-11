@@ -13,6 +13,8 @@
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.5.0"><img alt="Release v0.5.0" src="https://img.shields.io/badge/release-v0.5.0-ef2b25"></a>
+  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/crates/v/token-terminator?logo=rust"></a>
+  <a href="https://docs.rs/token-terminator"><img alt="docs.rs" src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>
   <img alt="Python 3.10–3.13" src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB?logo=python&logoColor=white">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22c55e.svg"></a>
   <img alt="Portable core" src="https://img.shields.io/badge/core-agent--agnostic-ef2b25">
@@ -63,6 +65,7 @@ This is an optimizer, not a context decorator.
 |---|---|---|
 | Vault, receipts, leases, temporal deltas, native compression, request compiler, telemetry | Agent-agnostic Python | Included |
 | Exact tokenizer alignment | Optional `tiktoken` or Hugging Face `tokenizers` | Included, optional |
+| Rust artifact interoperability | `token-terminator` Rust crate | Published on crates.io |
 | RTK command rewriting | Optional `rtk` binary plus a terminal-tool adapter | Included |
 | Hermes lifecycle hooks, slash command, and recovery model tool | Hermes Agent | First-party and turnkey |
 | LangGraph, OpenAI Agents SDK, AutoGen, CrewAI, custom loops | Their tool/request hook APIs | Adapter required |
@@ -191,6 +194,27 @@ After commencing a new Hermes session:
 ```
 
 Installation and enablement are separate operations. Disabling affects subsequent sessions; it does not delete private vault data. See [MIGRATION.md](MIGRATION.md) for the reviewed 0.2.0 replacement and rollback procedure.
+
+## Rust interoperability crate
+
+Rust agent hosts can use the supported `token-terminator` companion crate for the stable cross-language pieces of the Token Terminator contract:
+
+```bash
+cargo add token-terminator
+```
+
+```rust
+use token_terminator::{artifact_identity, strictly_smaller_chars, verify_sha256};
+
+let evidence = "exact tool evidence";
+let identity = artifact_identity(evidence);
+assert!(verify_sha256(evidence, &identity.sha256));
+assert!(strictly_smaller_chars("long provider-visible evidence", "short receipt"));
+```
+
+The crate mirrors vault-compatible SHA-256 artifact identities, short/full artifact-ID verification, and the portable strictly-smaller-in-characters baseline. It is deliberately **not** a second Token Terminator runtime and does not introduce PyO3 into the Python install. Rust/PyO3 hot-path acceleration remains profiling-driven and deferred until it earns its complexity.
+
+See [the Rust crate integration guide](docs/RUST_CRATE.md), [crates.io](https://crates.io/crates/token-terminator), and [docs.rs](https://docs.rs/token-terminator).
 
 ## Install: another agent runtime (adapter API)
 
