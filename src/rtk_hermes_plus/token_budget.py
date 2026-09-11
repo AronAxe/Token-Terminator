@@ -70,7 +70,9 @@ class TokenBudgetAdapter:
     def __init__(self) -> None:
         self.enabled = _env_bool("TOKEN_TERMINATOR_TOKEN_BUDGET", True)
         tokenizer_json = os.getenv("TOKEN_TERMINATOR_TOKENIZER_JSON", "").strip()
-        self.tokenizer_json = Path(tokenizer_json).expanduser() if tokenizer_json else None
+        self.tokenizer_json = (
+            Path(tokenizer_json).expanduser() if tokenizer_json else None
+        )
         self.encoding_name = os.getenv(
             "TOKEN_TERMINATOR_TIKTOKEN_ENCODING", ""
         ).strip()
@@ -180,7 +182,7 @@ class TokenBudgetAdapter:
                     model,
                 )
             except Exception:  # noqa: BLE001 - optional optimizer must fail open
-                pass
+                self._hf_tokenizer = None
 
         encoding, label = self._tiktoken_encoding(model)
         if encoding is not None:
@@ -191,7 +193,7 @@ class TokenBudgetAdapter:
                     model,
                 )
             except Exception:  # noqa: BLE001 - optional optimizer must fail open
-                pass
+                encoding = None
 
         return TokenMeasurement(None, "character-fallback", model)
 
