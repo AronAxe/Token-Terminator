@@ -70,7 +70,9 @@ def test_temporal_terminal_delta_preserves_exact_current_output(tmp_path, monkey
 
     match = re.search(r"current=(a_[0-9a-f]+)", delta)
     assert match is not None
-    exact = json.loads(runtime.tool("artifact_get", artifact_id=match.group(1), limit=20_000))
+    exact = json.loads(
+        runtime.tool("artifact_get", artifact_id=match.group(1), limit=20_000)
+    )
     assert exact["content"] == changed
 
 
@@ -149,10 +151,15 @@ def test_token_gate_rolls_back_lease_claim_when_receipt_expands_tokens(tmp_path)
                     {
                         "id": "call-1",
                         "function": {"name": "process", "arguments": "{}"},
-                    }
+                    },
+                    {
+                        "id": "call-2",
+                        "function": {"name": "process", "arguments": "{}"},
+                    },
                 ],
             },
             {"role": "tool", "tool_call_id": "call-1", "content": evidence},
+            {"role": "tool", "tool_call_id": "call-2", "content": evidence},
         ]
     }
 
