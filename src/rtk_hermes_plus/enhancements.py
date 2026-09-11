@@ -122,12 +122,14 @@ class RuntimeV05(BaseRuntime):
     def transform_tool_result(
         self, *, tool_name: str, args: dict, result: str, **kwargs: Any
     ):
-        temporal = self.temporal.transform(
-            tool_name=tool_name,
-            args=args,
-            result=result,
-            **kwargs,
-        )
+        temporal = None
+        if self.config.mode in {"balanced", "aggressive"}:
+            temporal = self.temporal.transform(
+                tool_name=tool_name,
+                args=args,
+                result=result,
+                **kwargs,
+            )
         if temporal is not None:
             return temporal
         return super().transform_tool_result(
@@ -221,7 +223,9 @@ class RuntimeV05(BaseRuntime):
 
     def status(self) -> dict[str, Any]:
         status = super().status()
-        status["temporal_delta"] = self.temporal.status()
+        temporal_status = self.temporal.status()
+        temporal_status["active_in_mode"] = self.config.mode in {"balanced", "aggressive"}
+        status["temporal_delta"] = temporal_status
         status["token_budget"] = self.token_budget.status()
         return status
 
