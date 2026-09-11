@@ -54,8 +54,12 @@ class TemporalDeltaReducer:
         self.store = store
         self.metrics = metrics
         self.enabled = _env_bool("TOKEN_TERMINATOR_TEMPORAL_DELTA", True)
-        self.min_chars = _env_int("TOKEN_TERMINATOR_TEMPORAL_MIN_CHARS", 2_000, minimum=1)
-        self.scope = os.getenv("TOKEN_TERMINATOR_TEMPORAL_SCOPE", "session").strip().lower()
+        self.min_chars = _env_int(
+            "TOKEN_TERMINATOR_TEMPORAL_MIN_CHARS", 2_000, minimum=1
+        )
+        self.scope = (
+            os.getenv("TOKEN_TERMINATOR_TEMPORAL_SCOPE", "session").strip().lower()
+        )
         if self.scope not in {"session", "workspace"}:
             self.scope = "session"
         self.available = bool(self.enabled and self.store is not None)
