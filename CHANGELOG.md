@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 - 2026-09-11
+
+- Added stateful temporal delta compression for repeated terminal observations. Commands always execute; the current exact output is vaulted and verified before a smaller diff may replace it.
+- Added session-scoped terminal baselines keyed by command, working directory, and backend, with exact current and previous artifact references in every accepted delta.
+- Added model-aware token budgeting with optional Hugging Face `tokenizer.json` and tiktoken adapters, character fallback, configurable output reservation, and configurable context safety margin.
+- Added a tokenizer acceptance gate on request compilation and conversation compaction so a character-saving candidate is rejected when it expands under the active tokenizer.
+- Rolled back lease exposure claims when a compiler candidate fails the tokenizer gate, preventing a rejected optimization from consuming an inline-evidence lease.
+- Added deterministic multiresolution artifact recovery through `artifact_peek` and `artifact_find`; `artifact_get` remains the immutable exact-recovery path.
+- Kept tokenizers optional through the `token-budget` extra and retained the dependency-light Python core when exact token alignment is not configured.
+- Added focused v0.5 invariant tests for terminal deltas, exact recovery, layered views, tokenizer headroom, and lease rollback.
+- Deferred a Rust/PyO3 accelerator until profiling identifies a material hot path, preserving the current portable install and fail-open fallback behavior.
+
 ## 0.4.0 - 2026-08-25
 
 - Added an `AsyncRuntime` façade and reusable thread-safe `CancellationToken` without changing the synchronous runtime API.
