@@ -10,6 +10,8 @@
 - Added deterministic multiresolution artifact recovery through `artifact_peek` and `artifact_find`; `artifact_get` remains the immutable exact-recovery path.
 - Kept tokenizers optional through the `token-budget` extra and retained the dependency-light Python core when exact token alignment is not configured.
 - Added focused v0.5 invariant tests for terminal deltas, exact recovery, layered views, tokenizer headroom, and lease rollback.
+- Added the `token-terminator` Rust interoperability crate for vault-compatible artifact identities, digest verification, and the baseline strict-reduction invariant, without making Rust a Python runtime dependency.
+- Added dedicated Rust integration documentation plus CI coverage for rustfmt, Clippy, unit tests, rustdoc, and `cargo publish --dry-run`.
 - Deferred a Rust/PyO3 accelerator until profiling identifies a material hot path, preserving the current portable install and fail-open fallback behavior.
 
 ## 0.4.0 - 2026-08-25

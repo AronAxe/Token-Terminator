@@ -9,3 +9,5 @@ dist/
 .coverage
 .quality-ab/
 $HOME/
+target/
+Cargo.lock
