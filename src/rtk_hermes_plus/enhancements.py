@@ -106,7 +106,11 @@ class RuntimeV05(BaseRuntime):
         self.token_budget = TokenBudgetAdapter()
         self.temporal = TemporalDeltaReducer(self.store, self.metrics)
 
-        if self.store is not None and self.graph is not None and self.compiler is not None:
+        if (
+            self.store is not None
+            and self.graph is not None
+            and self.compiler is not None
+        ):
             self.compiler = TokenAwareRequestCompiler(
                 self.store,
                 self.graph,
@@ -224,7 +228,10 @@ class RuntimeV05(BaseRuntime):
     def status(self) -> dict[str, Any]:
         status = super().status()
         temporal_status = self.temporal.status()
-        temporal_status["active_in_mode"] = self.config.mode in {"balanced", "aggressive"}
+        temporal_status["active_in_mode"] = self.config.mode in {
+            "balanced",
+            "aggressive",
+        }
         status["temporal_delta"] = temporal_status
         status["token_budget"] = self.token_budget.status()
         return status
