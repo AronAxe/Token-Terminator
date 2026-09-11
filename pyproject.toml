@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "token-terminator"
-version = "0.4.0"
+version = "0.5.0"
 description = "Fail-open token reduction, exact recovery, and request compilation for Hermes Agent"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,7 +22,8 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "tiktoken>=0.12", "twine>=5"]
+token-budget = ["tiktoken>=0.12", "tokenizers>=0.21"]
+dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "tiktoken>=0.12", "tokenizers>=0.21", "twine>=5"]
 
 [project.scripts]
 token-terminator = "rtk_hermes_plus.cli:main"

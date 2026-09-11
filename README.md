@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.4.0"><img alt="Release v0.4.0" src="https://img.shields.io/badge/release-v0.4.0-ef2b25"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.5.0"><img alt="Release v0.5.0" src="https://img.shields.io/badge/release-v0.5.0-ef2b25"></a>
   <img alt="Python 3.10–3.13" src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB?logo=python&logoColor=white">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22c55e.svg"></a>
   <img alt="Portable core" src="https://img.shields.io/badge/core-agent--agnostic-ef2b25">
@@ -21,24 +21,26 @@
 
 Token Terminator is an agent-runtime optimization layer. It removes token bloat at the tool-result and provider-request boundaries without discarding the underlying evidence.
 
-The engine has four cooperating reduction paths:
+The engine has five cooperating reduction paths:
 
 1. transparent terminal-command rewriting through [RTK](https://github.com/rtk-ai/rtk);
-2. deterministic compression of large tool results;
-3. content-addressed vaulting, duplicate collapse, evidence leases, and compact recovery receipts;
-4. final provider-request compilation, with optional bounded working-state injection only when the complete request is still smaller.
+2. temporal delta compression for repeated terminal observations, after the command has actually executed;
+3. deterministic compression of large tool results;
+4. content-addressed vaulting, duplicate collapse, evidence leases, compact recovery receipts, and deterministic layered recovery views;
+5. final provider-request compilation, with model-aware token acceptance when an exact tokenizer is available and optional bounded working-state injection only when the complete request is still smaller.
 
 The reduction core is not intrinsically tied to Hermes: it operates on Python dictionaries, strings, stable request/session identifiers, and a local SQLite vault. The repository includes a turnkey Hermes plugin because Hermes exposes the required lifecycle hooks. Other agent runtimes need a small adapter that presents the same boundaries; they do not need a fork of the reduction engine.
 
 Async agent frameworks can use the included `AsyncRuntime` façade. It keeps provider loops responsive by moving compiler, vault, and telemetry work to an executor, propagates task or token cancellation, and uses native cancellable subprocess paths for RTK command rewriting and aggressive reads. The synchronous `Runtime` API remains unchanged.
 
-It does **not** replace the host's context engine, memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
+It does **not** replace the host's context engine, memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, token measurement, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
 
 ## What it does
 
-- **Shrinks before the model sees it.** Large tool output is compacted and repeated evidence is replaced with bounded receipts.
-- **Keeps the original evidence.** Exact content is stored in a private, content-addressed SQLite vault and can be recovered by page or search.
+- **Shrinks before the model sees it.** Large tool output is compacted, repeated terminal observations can become exact-recoverable deltas, and repeated evidence is replaced with bounded receipts.
+- **Keeps the original evidence.** Exact content is stored in a private, content-addressed SQLite vault and can be recovered exactly, previewed deterministically, or searched without returning the whole artifact.
 - **Compiles the final request.** Duplicate artifacts, expired inline exposures, and old context are reduced after the host assembles the provider payload.
+- **Aligns with the active tokenizer when possible.** A configured Hugging Face `tokenizer.json` or tiktoken backend adds a second acceptance gate; unavailable tokenizers fall back to the established character invariant.
 - **Refuses bad optimizations.** A transformed payload is used only when it is strictly smaller, recoverable, provider-valid, and leaves caller-owned objects untouched.
 - **Measures the result.** Content-free request/session telemetry separates compiler, compactor, and end-to-end savings.
 
@@ -47,8 +49,11 @@ It does **not** replace the host's context engine, memory system, transcript sto
 A provider-visible transformation is accepted only when:
 
 - the complete transformed payload—including receipts and optional working state—is **strictly smaller**;
+- when an exact tokenizer is available, the transformed request also uses fewer measured tokens;
 - the exact native content has been written to the private vault and read back successfully; and
 - caller-owned request objects remain unchanged.
+
+Temporal terminal deltas obey the same rule: the command always executes, the new exact output is vaulted first, and a diff is shown only when it is smaller than the current raw output.
 
 This is an optimizer, not a context decorator.
 
@@ -56,7 +61,8 @@ This is an optimizer, not a context decorator.
 
 | Layer | Runtime dependency | Status |
 |---|---|---|
-| Vault, receipts, leases, native compression, request compiler, telemetry | Agent-agnostic Python | Included |
+| Vault, receipts, leases, temporal deltas, native compression, request compiler, telemetry | Agent-agnostic Python | Included |
+| Exact tokenizer alignment | Optional `tiktoken` or Hugging Face `tokenizers` | Included, optional |
 | RTK command rewriting | Optional `rtk` binary plus a terminal-tool adapter | Included |
 | Hermes lifecycle hooks, slash command, and recovery model tool | Hermes Agent | First-party and turnkey |
 | LangGraph, OpenAI Agents SDK, AutoGen, CrewAI, custom loops | Their tool/request hook APIs | Adapter required |
@@ -68,11 +74,13 @@ This is an optimizer, not a context decorator.
 | Mechanism | Scope | Exact recovery |
 |---|---|:---:|
 | RTK terminal rewriting | Supported `terminal` commands | RTK behavior |
+| Temporal terminal delta | Repeated large terminal observations in `balanced`/`aggressive` | ✓ |
 | Native result compression | Large `search_files` and `process` results | ✓ |
 | Aggressive structured reads | Large `read_file` results | ✓ |
 | Same-request duplicate collapse | Repeated large tool artifacts | ✓ |
 | Cross-request evidence leases | Previously exposed large artifacts | ✓ |
 | Request compiler | Final provider request, after normal Hermes context assembly | ✓ |
+| Token-aware acceptance gate | Complete request when an exact tokenizer is available | n/a |
 | Bounded working state | Optional request-selection aid; disabled by default | n/a |
 | Experiment ledger | Request/session savings and mode comparison | content-free |
 
@@ -87,10 +95,10 @@ The Python import package remains `rtk_hermes_plus` for source compatibility. Th
 The host runtime continues to own the conversation, transcript, context-engine lifecycle, and provider dispatch. Token Terminator owns only its private data directory and adapter-visible middleware/hooks. In the included Hermes adapter these are:
 
 - `tool_request` middleware for terminal rewrites;
-- `transform_tool_result` for native compression;
+- `transform_tool_result` for native compression and temporal terminal deltas;
 - observational lifecycle and `post_tool_call` hooks;
-- `llm_request` middleware for final request reduction;
-- one compact `token_terminator` tool for exact artifact recovery and optional working-state operations.
+- `llm_request` middleware for final request reduction and optional tokenizer-aware acceptance;
+- one compact `token_terminator` tool for exact artifact recovery, deterministic layered views, private search, and optional working-state operations.
 
 ## Structural benchmark
 
@@ -107,26 +115,26 @@ The host runtime continues to own the conversation, transcript, context-engine l
 | Small request pass-through | 17 | 17 | **0%** |
 | **Aggregate** | **651,421** | **79,766** | **87.76%** |
 
-Small results are intentionally untouched. Ordinary sessions will not resemble these deliberately pathological fixtures; use the experiment ledger for representative session comparisons.
+Small results are intentionally untouched. Ordinary sessions will not resemble these deliberately pathological fixtures; use the experiment ledger for representative session comparisons. Temporal-delta and tokenizer-aware paths are covered by invariant tests rather than folded into this older structural fixture, so the table remains directly comparable with the previous release.
 
 ## Modes
 
-| Mode | Terminal rewrite | Native search/process | Native `read_file` | Request compiler |
-|---|:---:|:---:|:---:|:---:|
-| `balanced` **default** | ✓ | ✓ | — | ✓ |
-| `aggressive` | ✓ | ✓ | ✓ | ✓ |
-| `native` | — | ✓ | — | — |
-| `terminal` | ✓ | — | — | — |
-| `suggest` | Measure only | — | — | — |
-| `off` | — | — | — | — |
+| Mode | Terminal rewrite | Temporal delta | Native search/process | Native `read_file` | Request compiler |
+|---|:---:|:---:|:---:|:---:|:---:|
+| `balanced` **default** | ✓ | ✓ | ✓ | — | ✓ |
+| `aggressive` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `native` | — | — | ✓ | — | — |
+| `terminal` | ✓ | — | — | — | — |
+| `suggest` | Measure only | — | — | — | — |
+| `off` | — | — | — | — | — |
 
 The optional working-state block defaults to zero characters, even in `balanced` and `aggressive` modes.
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.4.0 replaces `rtk-hermes-plus` 0.2.0. The two distributions must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.5.0 supersedes 0.4.0 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
-This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.4.0` release tag.
+This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.5.0` release tag.
 
 ### 1. Install RTK when using terminal rewriting
 
@@ -148,7 +156,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.4.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.0'
 ```
 
 Windows example:
@@ -157,8 +165,16 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.4.0"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.5.0"
 ```
+
+Exact tokenizer alignment is optional. Install `tiktoken` for supported cloud-model tokenizers and/or Hugging Face `tokenizers` when pointing Token Terminator at a local `tokenizer.json`:
+
+```bash
+"$HERMES_PY" -m pip install tiktoken tokenizers
+```
+
+Without either package, Token Terminator retains the character-based strict-reduction invariant.
 
 ### 3. Enable one plugin
 
@@ -182,7 +198,7 @@ Install the same distribution in the environment that owns your agent loop:
 
 ```bash
 python -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.4.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.0'
 ```
 
 Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.
@@ -264,9 +280,9 @@ Cancelling the awaiting asyncio task, or calling the thread-safe `cancellation.c
 
 The artifact vault enables SQLite WAL mode and uses `synchronous=NORMAL`, a ten-second busy timeout, bounded retries for transient multi-process startup locks, short-lived connections, and `BEGIN IMMEDIATE` writes. Independent runtime instances and agent processes may share one local vault while preserving content deduplication, lease limits, and observation provenance. Keep the database on a local filesystem: SQLite WAL is not a network-filesystem coordination protocol.
 
-## Exact recovery
+## Exact and layered recovery
 
-Compressed results and request receipts contain an artifact identifier. The model can recover an exact page through the registered tool:
+Compressed results, temporal deltas, and request receipts contain an artifact identifier. The model can recover an exact page through the registered tool:
 
 ```json
 {
@@ -279,10 +295,14 @@ Compressed results and request receipts contain an artifact identifier. The mode
 
 Supported actions are:
 
-- `artifact_get` — page exact content;
+- `artifact_get` — page exact immutable content;
+- `artifact_peek` — deterministic lossy synopsis with metadata, head/tail, signal lines, and shallow JSON structure when available;
+- `artifact_find` — search for matching lines inside one known artifact without returning the whole artifact;
 - `artifact_search` — locate private artifacts by content or tool name;
-- `status` — inspect bounded plugin state;
+- `status` — inspect bounded plugin state, including temporal-delta and tokenizer status;
 - `working_state_apply` and `working_state_get` — control the optional bounded working-state selector.
+
+`artifact_peek` and `artifact_find` never replace the authoritative artifact. They are progressive-disclosure views; `artifact_get` remains the exact-recovery contract.
 
 Artifact text and tool arguments stay in the plugin-owned SQLite vault. Receipts expose only a bounded tool label, character count, artifact ID, and abbreviated digest.
 
@@ -298,9 +318,12 @@ All plugin-owned files default under `<HERMES_HOME>/token-terminator/`.
 | `TOKEN_TERMINATOR_BACKENDS` | `local` | Allowed terminal backends, comma-separated, or `all` |
 | `TOKEN_TERMINATOR_CACHE_TTL` | `600` | Rewrite-cache lifetime in seconds |
 | `TOKEN_TERMINATOR_CACHE_SIZE` | `512` | Maximum exact-command decisions retained |
+| `TOKEN_TERMINATOR_TEMPORAL_DELTA` | `true` | Enable repeated-terminal delta reduction where the active mode permits it |
+| `TOKEN_TERMINATOR_TEMPORAL_MIN_CHARS` | `2000` | Minimum terminal result size considered for temporal deltas |
+| `TOKEN_TERMINATOR_TEMPORAL_SCOPE` | `session` | Baseline scope: `session` or `workspace` |
 | `TOKEN_TERMINATOR_NATIVE_MIN_CHARS` | `12000` | Leave smaller native results unchanged |
 | `TOKEN_TERMINATOR_NATIVE_MAX_CHARS` | `8000` | Native compact-text target |
-| `TOKEN_TERMINATOR_DB_PATH` | `token-terminator/artifacts.sqlite3` | Vault, leases, working state, and request metrics |
+| `TOKEN_TERMINATOR_DB_PATH` | `token-terminator/artifacts.sqlite3` | Vault, leases, working state, temporal baselines, and request metrics |
 | `TOKEN_TERMINATOR_MIN_ARTIFACT_CHARS` | `8000` | Minimum request artifact size |
 | `TOKEN_TERMINATOR_MAX_ARTIFACT_CHARS` | `2000000` | Per-artifact character ceiling |
 | `TOKEN_TERMINATOR_VAULT_MAX_BYTES` | `536870912` | Total exact-content capacity |
@@ -308,6 +331,12 @@ All plugin-owned files default under `<HERMES_HOME>/token-terminator/`.
 | `TOKEN_TERMINATOR_MAX_PAGE_CHARS` | `20000` | Hard artifact-read page ceiling |
 | `TOKEN_TERMINATOR_MAX_SEARCH_RESULTS` | `50` | Hard artifact-search result ceiling |
 | `TOKEN_TERMINATOR_WORKING_GRAPH_CHARS` | `0` | Optional bounded working-state block; `0` disables it |
+| `TOKEN_TERMINATOR_TOKEN_BUDGET` | `true` | Use exact token acceptance when a supported tokenizer backend is available |
+| `TOKEN_TERMINATOR_TOKENIZER_JSON` | empty | Exact Hugging Face `tokenizer.json` path for local models |
+| `TOKEN_TERMINATOR_TIKTOKEN_ENCODING` | empty | Explicit tiktoken encoding override |
+| `TOKEN_TERMINATOR_CONTEXT_LIMIT_TOKENS` | `0` | Optional model context limit; `0` disables budget reporting |
+| `TOKEN_TERMINATOR_OUTPUT_RESERVE_TOKENS` | `4096` | Tokens reserved for model output when a context limit is configured |
+| `TOKEN_TERMINATOR_TOKEN_SAFETY_MARGIN` | `512` | Additional context headroom; Token Terminator does not fill the window to the edge |
 | `TOKEN_TERMINATOR_LEDGER` | `true` | Persist content-free experiment accounting |
 | `TOKEN_TERMINATOR_LEDGER_PATH` | `token-terminator/experiments.sqlite3` | Experiment ledger |
 | `TOKEN_TERMINATOR_STATE_DB` | Hermes `state.db` | Canonical Hermes accounting source |
@@ -331,6 +360,8 @@ Inside Hermes:
 
 The process-local metrics contain bounded counters and character totals. Durable request metrics separate compiler-stage savings (`raw_chars - compiled_chars`), context-compactor savings (`compiled_chars - final_chars`), and measured end-to-end savings (`raw_chars - final_chars`). Compiler-only rows are reported separately from requests whose final provider payload was observed. These columns are an additive schema-2 extension so a rollback to the original 0.3.0 package can still open and write the database. If that legacy writer updates a measured identity, a database trigger clears the newer fields so status reports the row as unmeasured rather than retaining stale end-to-end telemetry.
 
+When exact token measurement is available, provider-request decisions also report the tokenizer backend and raw/final/saved token counts. A configured context limit reports the usable budget after the output reservation and safety margin; it does not authorize Token Terminator to silently truncate a request.
+
 The durable experiment ledger stores session/turn identifiers, mode/model labels, token/cost totals, transformation counts, and salted local prompt fingerprints. It does not store command strings, prompts, or tool contents.
 
 A valid comparison requires separate fresh sessions with stable modes, the same model/settings, and representative repeated tasks. Mode/model changes contaminate a session and exclude it rather than manufacturing a persuasive number.
@@ -340,12 +371,14 @@ For answer quality—not just token accounting—use the paired non-inferiority 
 ## Security and privacy
 
 - Exact raw artifacts and their private provenance are stored locally because recovery is part of the product contract.
+- Temporal deltas never skip command execution and never replace the exact current artifact in the vault.
+- Layered recovery views are deterministic and explicitly lossy; the immutable artifact remains authoritative.
 - The vault enforces per-artifact and total-capacity limits, SQLite WAL, foreign keys, busy timeouts, schema-version checks, short-lived transactions, and serialized writes.
 - POSIX storage uses `0700` parent directories and `0600` databases. Windows storage inherits the user's profile ACLs.
 - RTK subprocesses use argument arrays with `shell=False`.
 - Remote terminal backends are disabled by default.
 - Tool arguments and artifact contents never enter receipts, metrics, or the experiment ledger.
-- Unsupported, malformed, unavailable, non-recoverable, or non-smaller transformations pass through unchanged.
+- Unsupported, malformed, unavailable, non-recoverable, non-smaller, or token-expanding transformations pass through unchanged.
 
 See [SECURITY.md](SECURITY.md) for the reporting policy and data boundaries.
 
@@ -357,11 +390,11 @@ No. The reduction engine and vault are ordinary Python and SQLite. Hermes is the
 
 ### Is RTK required?
 
-Only for terminal-command rewriting. Native tool-result compression, vaulting, recovery, and request compilation do not require the `rtk` binary. Use `native` mode to disable both RTK and request compilation, or a custom adapter with `balanced`/`aggressive` mode to use the broader engine.
+Only for terminal-command rewriting. Native tool-result compression, vaulting, recovery, request compilation, and tokenizer-aware acceptance do not require the `rtk` binary. Use `native` mode to disable both RTK and request compilation, or a custom adapter with `balanced`/`aggressive` mode to use the broader engine.
 
 ### Does it summarize away evidence?
 
-No. Provider-visible content may be compacted, but accepted transformations retain exact native content in the private vault and emit a recovery receipt. If write-and-read-back verification fails, the original content passes through.
+No. Provider-visible content may be compacted, and `artifact_peek` is deliberately lossy, but accepted transformations retain exact native content in the private vault and emit a recovery receipt. `artifact_get` remains authoritative. If write-and-read-back verification fails, the original content passes through.
 
 ### Does it replace the host's memory or context engine?
 
@@ -369,7 +402,7 @@ No. Token Terminator operates after or alongside normal context assembly. It doe
 
 ### What happens when it fails?
 
-The optimization is skipped. Unsupported payloads, storage errors, timeouts, malformed data, non-smaller results, and adapter exceptions must all resolve to the original request or result.
+The optimization is skipped. Unsupported payloads, storage errors, timeouts, malformed data, tokenizer errors, non-smaller results, and adapter exceptions must all resolve to the original request or result.
 
 ## Rollback to RTK Hermes Plus 0.2.0
 
@@ -399,7 +432,7 @@ python scripts/verify_release.py 'dist/*'
 
 `scripts/smoke_hermes.py` must be run from an isolated environment containing the built wheel and a compatible Hermes Agent installation. It creates a disposable `HERMES_HOME`, uses the real `PluginManager`, makes no network calls, and does not touch a live profile.
 
-Contributions must preserve the central invariant: **strictly smaller complete provider payload, exact recovery, immutable caller requests, and fail-open host behavior.**
+Contributions must preserve the central invariant: **strictly smaller complete provider payload, fewer measured tokens when an exact tokenizer is available, exact recovery, immutable caller requests, and fail-open host behavior.**
 
 <p align="center">
   <img src="docs/assets/judgement-day.webp" alt="Judgement Day for Token Bloat — a Terminator-style machine skull looming over a ruined city as AI tokens explode" width="100%">
