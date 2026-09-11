@@ -71,10 +71,7 @@ pub fn artifact_identity(content: &str) -> ArtifactIdentity {
 /// Build Token Terminator's normal short artifact ID from a full SHA-256 digest.
 pub fn artifact_id_from_sha256(sha256: &str) -> Result<String, InvalidSha256> {
     let normalized = normalize_sha256(sha256)?;
-    Ok(format!(
-        "a_{}",
-        &normalized[..SHORT_ARTIFACT_HEX_LEN]
-    ))
+    Ok(format!("a_{}", &normalized[..SHORT_ARTIFACT_HEX_LEN]))
 }
 
 /// Build Token Terminator's full collision-fallback artifact ID from a digest.
@@ -114,8 +111,7 @@ pub fn strictly_smaller_chars(raw: &str, candidate: &str) -> bool {
 mod tests {
     use super::*;
 
-    const HELLO_SHA256: &str =
-        "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
+    const HELLO_SHA256: &str = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
 
     #[test]
     fn identity_matches_python_layout() {
@@ -150,7 +146,10 @@ mod tests {
             "a_2cf24dba5fb0a30e26e83b2ac5b9e29e"
         ));
         assert!(artifact_id_matches("hello", &format!("a_{HELLO_SHA256}")));
-        assert!(!artifact_id_matches("goodbye", &format!("a_{HELLO_SHA256}")));
+        assert!(!artifact_id_matches(
+            "goodbye",
+            &format!("a_{HELLO_SHA256}")
+        ));
     }
 
     #[test]
