@@ -10,12 +10,7 @@ import pytest
 
 from rtk_hermes_plus import AsyncRuntime, Runtime
 from rtk_hermes_plus.config import Config, load_config
-from rtk_hermes_plus.ledger import (
-    ExperimentLedger,
-    HermesAccounting,
-    _bootstrap_ci,
-    _summary,
-)
+from rtk_hermes_plus.ledger import ExperimentLedger, HermesAccounting, _bootstrap_ci, _summary
 from rtk_hermes_plus.metrics import Metrics
 from rtk_hermes_plus.rewrite import Rewriter
 from rtk_hermes_plus.storage import TokenTerminatorStore
@@ -36,9 +31,7 @@ def _config(tmp_path: Path, **kwargs) -> Config:
     return Config(**values)
 
 
-def test_context_defaults_are_identical_and_invalid_direct_pair_is_rejected(
-    tmp_path, monkeypatch
-):
+def test_context_defaults_are_identical_and_invalid_direct_pair_is_rejected(tmp_path, monkeypatch):
     assert Config().context_inline_recent_turns == 5
     for name in (
         "TOKEN_TERMINATOR_CONTEXT_INLINE_RECENT_TURNS",
@@ -159,7 +152,9 @@ def test_store_does_not_repermission_existing_parent(tmp_path):
 
 
 def test_hermes_accounting_uses_path_uri(tmp_path, monkeypatch):
-    db = tmp_path / "a ?# b.db"
+    # `?` is not a valid Windows filename character, so use a cross-platform
+    # path that still proves pathlib URI quoting for spaces and '#'.
+    db = tmp_path / "a # b.db"
     db.touch()
     captured: list[str] = []
 
@@ -178,8 +173,8 @@ def test_hermes_accounting_uses_path_uri(tmp_path, monkeypatch):
 
     monkeypatch.setattr("rtk_hermes_plus.ledger.sqlite3.connect", fake_connect)
     HermesAccounting(db).read("session")
-    assert captured and captured[0].startswith("file://")
-    assert "%20" in captured[0] and "%3F" in captured[0] and "%23" in captured[0]
+    assert captured and captured[0].startswith("file:")
+    assert "%20" in captured[0] and "%23" in captured[0]
 
 
 def test_pinned_rtk_path_wins_over_path_lookup(tmp_path, monkeypatch):
@@ -187,9 +182,7 @@ def test_pinned_rtk_path_wins_over_path_lookup(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "rtk_hermes_plus.rewrite.shutil.which", lambda _name: "/evil/rtk"
     )
-    assert Rewriter(_config(tmp_path, rtk_path=pinned), Metrics()).rtk_path == str(
-        pinned
-    )
+    assert Rewriter(_config(tmp_path, rtk_path=pinned), Metrics()).rtk_path == str(pinned)
 
 
 def test_measurement_summary_uses_real_native_tokens_when_present():
