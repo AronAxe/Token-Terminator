@@ -1,0 +1,286 @@
+name: Finalize v0.5.1 hardening
+
+on:
+  push:
+    branches: [v0.5.1-hardening]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-v051-hardening
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v0.5.1-hardening
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - uses: dtolnay/rust-toolchain@1.78.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Apply final recovery-safety and documentation fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def edit(path, old, new):
+              file = Path(path)
+              text = file.read_text(encoding="utf-8")
+              if new in text:
+                  return
+              if text.count(old) != 1:
+                  raise RuntimeError(f"{path}: expected one target, found {text.count(old)}")
+              file.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          # GC may reclaim abandoned captures, but never exact evidence already
+          # promised through a provider-visible recovery reference.
+          edit(
+              "src/rtk_hermes_plus/storage.py",
+              """            WHERE NOT EXISTS (
+                SELECT 1 FROM terminal_snapshots t
+                WHERE t.artifact_id=a.artifact_id
+            )
+            GROUP BY a.artifact_id
+""",
+              """            WHERE NOT EXISTS (
+                SELECT 1 FROM terminal_snapshots t
+                WHERE t.artifact_id=a.artifact_id
+            )
+              AND NOT EXISTS (
+                SELECT 1 FROM artifact_exposures e
+                WHERE e.artifact_id=a.artifact_id
+            )
+            GROUP BY a.artifact_id
+""",
+          )
+
+          # Native tool-result compression is accepted before a later provider
+          # request is assembled, so protect its receipt immediately.
+          edit(
+              "src/rtk_hermes_plus/compress.py",
+              """        if len(transformed) >= len(result):
+            self.metrics.add("native_not_smaller")
+            return None
+        self.metrics.add("native_compressed")
+""",
+              """        if len(transformed) >= len(result):
+            self.metrics.add("native_not_smaller")
+            return None
+        try:
+            if self.recovery.store is None:
+                raise RuntimeError("recovery store unavailable")
+            self.recovery.store.record_exposure(
+                session_id=str(kwargs.get("session_id") or ""),
+                artifact_id=artifact_id,
+                request_id=f"tool:{kwargs.get('tool_call_id') or artifact_id}",
+                inline=False,
+            )
+        except Exception:
+            self.metrics.add("native_recovery_unavailable")
+            return None
+        self.metrics.add("native_compressed")
+""",
+          )
+
+          # A temporal delta can name both the current and previous exact
+          # artifacts. Protect both IDs before exposing the delta.
+          edit(
+              "src/rtk_hermes_plus/temporal.py",
+              """            if not candidate or len(candidate) >= len(result):
+                self.metrics.add("temporal_not_smaller")
+                return None
+
+            self.metrics.add("temporal_reduced")
+""",
+              """            if not candidate or len(candidate) >= len(result):
+                self.metrics.add("temporal_not_smaller")
+                return None
+
+            exposure_id = f"temporal:{state_key}:{current.artifact_id}"
+            self.store.record_exposure(
+                session_id=str(session_id or ""),
+                artifact_id=previous_id,
+                request_id=exposure_id,
+                inline=False,
+            )
+            self.store.record_exposure(
+                session_id=str(session_id or ""),
+                artifact_id=current.artifact_id,
+                request_id=exposure_id,
+                inline=False,
+            )
+            self.metrics.add("temporal_reduced")
+""",
+          )
+
+          # Protect every exact artifact identifier carried by an accepted
+          # provider-bound request. This catches compiler/context receipts and
+          # old receipts retained in history without pinning rejected candidates.
+          edit(
+              "src/rtk_hermes_plus/plugin.py",
+              "import json\nimport logging\n",
+              "import json\nimport logging\nimport re\n",
+          )
+          edit(
+              "src/rtk_hermes_plus/plugin.py",
+              """INTERNAL_REQUEST_KEY_PREFIX = "_tt_"
+
+
+def _strip_internal_metadata(request: Any) -> Any:
+""",
+              """INTERNAL_REQUEST_KEY_PREFIX = "_tt_"
+_ARTIFACT_ID_PATTERN = re.compile(r"\ba_[0-9a-f]{32}(?:[0-9a-f]{32})?\b")
+
+
+def _artifact_ids_in_value(value: Any) -> tuple[str, ...]:
+    try:
+        serialized = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+    except Exception:
+        return ()
+    return tuple(sorted(set(_ARTIFACT_ID_PATTERN.findall(serialized))))
+
+
+def _strip_internal_metadata(request: Any) -> Any:
+""",
+          )
+          edit(
+              "src/rtk_hermes_plus/plugin.py",
+              """        if compiled.failed_open or end_to_end_saved <= 0:
+            return None
+        return {
+""",
+              """        if compiled.failed_open or end_to_end_saved <= 0:
+            return None
+        if self.store is not None:
+            for artifact_id in _artifact_ids_in_value(final_request):
+                try:
+                    self.store.record_exposure(
+                        session_id=session_id,
+                        artifact_id=artifact_id,
+                        request_id=compiled.request_id or "provider-request",
+                        inline=False,
+                    )
+                except Exception:
+                    logger.debug(
+                        "Token Terminator recovery-reference protection failed",
+                        exc_info=True,
+                    )
+        return {
+""",
+          )
+
+          # Regression coverage: exposed evidence survives high-water GC.
+          tests = Path("tests/test_context_security.py")
+          text = tests.read_text(encoding="utf-8")
+          if "test_vault_retention_preserves_provider_recovery_reference" not in text:
+              text += """
+
+
+def test_vault_retention_preserves_provider_recovery_reference(tmp_path):
+    store = TokenTerminatorStore(
+        tmp_path / "protected.db",
+        max_artifact_chars=100,
+        max_vault_bytes=30,
+        high_water_pct=90,
+        low_water_pct=50,
+    )
+    protected = store.put_artifact("a" * 12, session_id="s", tool_call_id="c1")
+    store.record_exposure(
+        session_id="s",
+        artifact_id=protected.artifact_id,
+        request_id="provider-r1",
+        inline=False,
+    )
+    unprotected = store.put_artifact("b" * 12, session_id="s", tool_call_id="c2")
+    newest = store.put_artifact("c" * 12, session_id="s", tool_call_id="c3")
+    assert store.get_artifact(protected.artifact_id).content == "a" * 12
+    assert store.get_artifact(newest.artifact_id).content == "c" * 12
+    with pytest.raises(KeyError):
+        store.get_artifact(unprotected.artifact_id)
+"""
+              tests.write_text(text, encoding="utf-8")
+
+          # Release/migration documentation must describe the version actually
+          # produced by this branch.
+          migration = Path("MIGRATION.md")
+          text = migration.read_text(encoding="utf-8")
+          text = text.replace(
+              "| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.5.0 |",
+              "| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.5.1 |",
+          )
+          text = text.replace(
+              "plugin key is `token-terminator` and version is `0.5.0`;",
+              "plugin key is `token-terminator` and version is `0.5.1`;",
+          )
+          text = text.replace(
+              "Disable 0.5.0 first and reinstall the immutable 0.4.0 tag:",
+              "Disable 0.5.1 first and reinstall the immutable 0.4.0 tag:",
+          )
+          migration.write_text(text, encoding="utf-8")
+
+          readme = Path("README.md")
+          text = readme.read_text(encoding="utf-8")
+          text = text.replace("releases/tag/v0.5.0", "releases/tag/v0.5.1")
+          text = text.replace("Release v0.5.0", "Release v0.5.1")
+          text = text.replace("release-v0.5.0", "release-v0.5.1")
+          text = text.replace(
+              "Independent runtime instances and agent processes may share one local vault while preserving content deduplication, lease limits, and observation provenance.",
+              "Independent runtime instances and agent processes may share one local vault while preserving content deduplication, lease limits, and observation provenance. High-water retention prunes only abandoned, non-recovery-referenced artifacts; evidence named by accepted recovery receipts remains protected.",
+          )
+          readme.write_text(text, encoding="utf-8")
+
+          rust_doc = Path("docs/RUST_CRATE.md")
+          text = rust_doc.read_text(encoding="utf-8")
+          text = text.replace('token-terminator = "0.5.0"', 'token-terminator = "0.5.1"')
+          rust_doc.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Install Python verification dependencies
+        run: python -m pip install -e '.[dev]'
+
+      - name: Normalize and verify Python
+        run: |
+          python -m ruff check . --fix
+          python -m ruff format .
+          python -m ruff check .
+          python -m ruff format --check .
+          python -m pytest
+
+      - name: Verify Python distributions
+        run: |
+          python scripts/benchmark.py --skip-rtk
+          rm -rf dist build
+          python -m build
+          python -m twine check dist/*
+          python scripts/verify_release.py 'dist/*'
+
+      - name: Verify Rust companion crate
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+          RUSTDOCFLAGS='-D warnings' cargo doc --no-deps
+          rm -f Cargo.lock
+          cargo publish --dry-run
+
+      - name: Commit finalized tree and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/finalize-v051.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Finalize Token Terminator v0.5.1 hardening'
+          git push origin HEAD:v0.5.1-hardening
