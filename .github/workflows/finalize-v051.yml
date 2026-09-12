@@ -57,7 +57,7 @@ jobs:
           cargo test
           RUSTDOCFLAGS='-D warnings' cargo doc --no-deps
           rm -f Cargo.lock
-          cargo publish --dry-run
+          cargo publish --dry-run --allow-dirty
 
       - name: Commit finalized tree
         shell: bash
