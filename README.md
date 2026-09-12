@@ -135,9 +135,9 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.5.0 supersedes 0.4.0 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.5.1 supersedes 0.5.0 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
-This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.5.0` release tag.
+This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.5.1` release tag.
 
 ### 1. Install RTK when using terminal rewriting
 
@@ -159,7 +159,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1'
 ```
 
 Windows example:
@@ -168,7 +168,7 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.5.0"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1"
 ```
 
 Exact tokenizer alignment is optional. Install `tiktoken` for supported cloud-model tokenizers and/or Hugging Face `tokenizers` when pointing Token Terminator at a local `tokenizer.json`:
@@ -222,7 +222,7 @@ Install the same distribution in the environment that owns your agent loop:
 
 ```bash
 python -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1'
 ```
 
 Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.
@@ -340,6 +340,7 @@ All plugin-owned files default under `<HERMES_HOME>/token-terminator/`.
 | `TOKEN_TERMINATOR_MODE` | `balanced` | Select one mode from the table above |
 | `TOKEN_TERMINATOR_TIMEOUT_MS` | `500` | RTK helper deadline |
 | `TOKEN_TERMINATOR_BACKENDS` | `local` | Allowed terminal backends, comma-separated, or `all` |
+| `TOKEN_TERMINATOR_RTK_PATH` | empty | Optional explicit RTK executable path; avoids PATH-based discovery |
 | `TOKEN_TERMINATOR_CACHE_TTL` | `600` | Rewrite-cache lifetime in seconds |
 | `TOKEN_TERMINATOR_CACHE_SIZE` | `512` | Maximum exact-command decisions retained |
 | `TOKEN_TERMINATOR_TEMPORAL_DELTA` | `true` | Enable repeated-terminal delta reduction where the active mode permits it |
@@ -351,6 +352,8 @@ All plugin-owned files default under `<HERMES_HOME>/token-terminator/`.
 | `TOKEN_TERMINATOR_MIN_ARTIFACT_CHARS` | `8000` | Minimum request artifact size |
 | `TOKEN_TERMINATOR_MAX_ARTIFACT_CHARS` | `2000000` | Per-artifact character ceiling |
 | `TOKEN_TERMINATOR_VAULT_MAX_BYTES` | `536870912` | Total exact-content capacity |
+| `TOKEN_TERMINATOR_VAULT_HIGH_WATER_PCT` | `90` | Start retention pruning before the hard capacity wall |
+| `TOKEN_TERMINATOR_VAULT_LOW_WATER_PCT` | `80` | Prune toward this target when the high-water mark is crossed |
 | `TOKEN_TERMINATOR_INLINE_LEASES` | `1` | Full provider exposures per session/artifact |
 | `TOKEN_TERMINATOR_MAX_PAGE_CHARS` | `20000` | Hard artifact-read page ceiling |
 | `TOKEN_TERMINATOR_MAX_SEARCH_RESULTS` | `50` | Hard artifact-search result ceiling |
@@ -358,6 +361,11 @@ All plugin-owned files default under `<HERMES_HOME>/token-terminator/`.
 | `TOKEN_TERMINATOR_TOKEN_BUDGET` | `true` | Use exact token acceptance when a supported tokenizer backend is available |
 | `TOKEN_TERMINATOR_TOKENIZER_JSON` | empty | Exact Hugging Face `tokenizer.json` path for local models |
 | `TOKEN_TERMINATOR_TIKTOKEN_ENCODING` | empty | Explicit tiktoken encoding override |
+| `TOKEN_TERMINATOR_CONTEXT_COMPACTION` | `true` | Enable deterministic old-turn/tool-result compaction |
+| `TOKEN_TERMINATOR_CONTEXT_MIN_VAULT_CHARS` | `4000` | Minimum old tool-result size eligible for context vaulting |
+| `TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS` | `6` | Collapse completed turns older than this window; `0` disables turn collapse |
+| `TOKEN_TERMINATOR_CONTEXT_INLINE_RECENT_TURNS` | `5` | Recent turns that must remain fully inline |
+| `TOKEN_TERMINATOR_PREVIEW_MARKER` | `false` | Prefix rewritten terminal commands with the RTK preview marker |
 | `TOKEN_TERMINATOR_CONTEXT_LIMIT_TOKENS` | `0` | Optional model context limit; `0` disables budget reporting |
 | `TOKEN_TERMINATOR_OUTPUT_RESERVE_TOKENS` | `4096` | Tokens reserved for model output when a context limit is configured |
 | `TOKEN_TERMINATOR_TOKEN_SAFETY_MARGIN` | `512` | Additional context headroom; Token Terminator does not fill the window to the edge |

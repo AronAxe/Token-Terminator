@@ -63,31 +63,6 @@ class TemporalDeltaReducer:
         if self.scope not in {"session", "workspace"}:
             self.scope = "session"
         self.available = bool(self.enabled and self.store is not None)
-        if self.available:
-            self._initialize()
-
-    def _initialize(self) -> None:
-        if self.store is None:
-            self.available = False
-            return
-        try:
-            with self.store.connection(write=True) as conn:
-                conn.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS terminal_snapshots (
-                        state_key TEXT PRIMARY KEY,
-                        artifact_id TEXT NOT NULL,
-                        command TEXT NOT NULL,
-                        cwd TEXT NOT NULL,
-                        backend TEXT NOT NULL,
-                        session_scope TEXT NOT NULL DEFAULT '',
-                        updated_at TEXT NOT NULL
-                    )
-                    """
-                )
-        except Exception:  # noqa: BLE001 - optimization must fail open
-            self.available = False
-            self.metrics.add("temporal_errors")
 
     def _identity(
         self, args: dict[str, Any], *, session_id: str

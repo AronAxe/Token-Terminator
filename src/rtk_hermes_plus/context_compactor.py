@@ -120,8 +120,13 @@ class ContextCompactor:
     ) -> None:
         self.store = store
         self.min_vault_chars = max(_MIN_VAULT_CHARS, int(min_vault_chars))
-        self.collapse_after_turns = max(0, int(collapse_after_turns))
         self.inline_recent_turns = max(0, int(inline_recent_turns))
+        collapse_after_turns = max(0, int(collapse_after_turns))
+        self.collapse_after_turns = (
+            max(collapse_after_turns, self.inline_recent_turns)
+            if collapse_after_turns > 0
+            else 0
+        )
 
     def compact(
         self,

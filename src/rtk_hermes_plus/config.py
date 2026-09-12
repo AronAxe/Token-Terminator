@@ -97,6 +97,7 @@ class Config:
     mode: str = "balanced"
     timeout_ms: int = 500
     enabled_backends: tuple[str, ...] = ("local",)
+    rtk_path: Path | None = None
     cache_ttl_seconds: int = 600
     cache_size: int = 512
     preview_marker: bool = False
@@ -122,6 +123,8 @@ class Config:
     min_artifact_chars: int = 8_000
     max_artifact_chars: int = 2_000_000
     vault_max_bytes: int = 536_870_912
+    vault_high_water_pct: int = 90
+    vault_low_water_pct: int = 80
     inline_lease_exposures: int = 1
     # Context compaction: aggressive vaulting of old tool results and turn collapsing.
     context_compaction_enabled: bool = True
@@ -140,7 +143,14 @@ class Config:
             raise ValueError(f"mode must be one of: {', '.join(sorted(MODES))}")
         for name in ("ledger_path", "state_db_path", "db_path"):
             object.__setattr__(self, name, Path(getattr(self, name)).expanduser())
-        for name in ("inline_lease_exposures", "graph_context_chars"):
+        if self.rtk_path is not None:
+            object.__setattr__(self, "rtk_path", Path(self.rtk_path).expanduser())
+        for name in (
+            "inline_lease_exposures",
+            "graph_context_chars",
+            "context_collapse_after_turns",
+            "context_inline_recent_turns",
+        ):
             if getattr(self, name) < 0:
                 raise ValueError(f"{name} must be non-negative")
         for name in (
@@ -154,6 +164,16 @@ class Config:
                 raise ValueError(f"{name} must be positive")
         if self.min_artifact_chars > self.max_artifact_chars:
             raise ValueError("min_artifact_chars must not exceed max_artifact_chars")
+        if not 0 <= self.vault_low_water_pct < self.vault_high_water_pct <= 100:
+            raise ValueError("vault watermarks must satisfy 0 <= low < high <= 100")
+        if (
+            self.context_collapse_after_turns > 0
+            and self.context_collapse_after_turns < self.context_inline_recent_turns
+        ):
+            raise ValueError(
+                "context_collapse_after_turns must be 0 or at least "
+                "context_inline_recent_turns"
+            )
 
     @property
     def terminal_enabled(self) -> bool:
@@ -223,6 +243,27 @@ def load_config() -> Config:
     # supplied by environment variables to the safest usable boundary.
     min_artifact_chars = min(min_artifact_chars, max_artifact_chars)
 
+    rtk_raw = _env("TOKEN_TERMINATOR_RTK_PATH")
+    context_inline_recent_turns = _integer(
+        "TOKEN_TERMINATOR_CONTEXT_INLINE_RECENT_TURNS", 5, minimum=0
+    )
+    context_collapse_after_turns = _integer(
+        "TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS", 6, minimum=0
+    )
+    if (
+        context_collapse_after_turns > 0
+        and context_collapse_after_turns < context_inline_recent_turns
+    ):
+        context_collapse_after_turns = context_inline_recent_turns
+    vault_high_water_pct = _integer(
+        "TOKEN_TERMINATOR_VAULT_HIGH_WATER_PCT", 90, minimum=1, maximum=100
+    )
+    vault_low_water_pct = _integer(
+        "TOKEN_TERMINATOR_VAULT_LOW_WATER_PCT", 80, minimum=0, maximum=99
+    )
+    if vault_low_water_pct >= vault_high_water_pct:
+        vault_low_water_pct = max(0, vault_high_water_pct - 10)
+
     config = Config(
         mode=mode,
         enabled=_boolean("TOKEN_TERMINATOR_ENABLED", True),
@@ -233,6 +274,7 @@ def load_config() -> Config:
             legacy="RTK_HERMES_PLUS_TIMEOUT_MS",
         ),
         enabled_backends=backends,
+        rtk_path=Path(rtk_raw).expanduser() if rtk_raw else None,
         cache_ttl_seconds=_integer(
             "TOKEN_TERMINATOR_CACHE_TTL",
             600,
@@ -310,6 +352,8 @@ def load_config() -> Config:
             minimum=1,
             maximum=100_000_000_000,
         ),
+        vault_high_water_pct=vault_high_water_pct,
+        vault_low_water_pct=vault_low_water_pct,
         inline_lease_exposures=_integer(
             "TOKEN_TERMINATOR_INLINE_LEASES",
             1,
@@ -341,15 +385,7 @@ def load_config() -> Config:
             4_000,
             minimum=100,
         ),
-        context_collapse_after_turns=_integer(
-            "TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS",
-            6,
-            minimum=0,
-        ),
-        context_inline_recent_turns=_integer(
-            "TOKEN_TERMINATOR_CONTEXT_INLINE_RECENT_TURNS",
-            3,
-            minimum=0,
-        ),
+        context_collapse_after_turns=context_collapse_after_turns,
+        context_inline_recent_turns=context_inline_recent_turns,
     )
     return config

@@ -33,3 +33,7 @@ On POSIX, Token Terminator enforces `0700` on private parent directories and `06
 Do not install two distributions that own the `rtk_hermes_plus` Python package. When migrating from `rtk-hermes-plus` 0.2.0, uninstall it before installing `token-terminator` 0.3.0. Enable only one Token Terminator/RTK rewrite plugin at a time.
 
 Back up or remove `<HERMES_HOME>/token-terminator/` separately from package uninstall. Disabling or uninstalling code intentionally does not erase private artifacts.
+
+## RTK executable trust boundary
+
+When `TOKEN_TERMINATOR_RTK_PATH` is unset, Token Terminator discovers `rtk` through the host process `PATH`. A malicious or accidentally shadowed executable named `rtk` can therefore influence command rewriting. Security-sensitive deployments should pin the expected executable with `TOKEN_TERMINATOR_RTK_PATH` and protect that file and its parent directory from untrusted writes. Token Terminator still invokes RTK with an argument array and `shell=False`; executable discovery is the separate trust boundary.

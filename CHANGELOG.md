@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.1 - 2026-09-12
+
+- Added capacity-managed vault retention with O(1) byte accounting, configurable high/low watermarks, protected temporal baselines, pruning telemetry, and status reporting instead of a permanent hard-wall failure.
+- Enforced the context-collapse/inline-window invariant in direct config, environment loading, and the compactor itself; unified the inline-recent default at five turns.
+- Added Unicode-correct case-insensitive artifact search using Python `casefold()` through a deterministic SQLite function.
+- Keyed RTK rewrite caching by canonical working directory plus command and added `TOKEN_TERMINATOR_RTK_PATH` for explicit executable pinning.
+- Restored temporal-delta parity in `AsyncRuntime` through the same v0.5 semantic temporal entry point used synchronously.
+- Moved `terminal_snapshots` into vault schema management and protected referenced artifacts from retention pruning.
+- Made provider-exposure lease accounting reflect the request actually delivered when character or tokenizer gates reject a candidate.
+- Added exact native/temporal token-savings accounting when the configured tokenizer is available; retained and explicitly labelled the chars/4 fallback otherwise.
+- Reworked experiment comparison to reject identical modes, aggregate by prompt-fingerprint/model group, report unpaired observations, and include deterministic 95% bootstrap intervals.
+- Hardened Windows read-only SQLite URIs, stopped chmodding pre-existing parent directories, corrected recovery-note savings, removed dead/duplicated adapter code, and documented every context-compaction/retention/security control.
+
 ## 0.5.0 - 2026-09-11
 
 - Added stateful temporal delta compression for repeated terminal observations. Commands always execute; the current exact output is vaulted and verified before a smaller diff may replace it.
