@@ -329,3 +329,26 @@ def test_graph_rejects_recursive_and_non_string_text_values(tmp_path):
 def test_config_rejects_nonpositive_capacity_limits(tmp_path, field):
     with pytest.raises(ValueError, match="must be positive"):
         Config(db_path=tmp_path / "invalid.db", **{field: 0})
+
+
+def test_vault_retention_preserves_provider_recovery_reference(tmp_path):
+    store = TokenTerminatorStore(
+        tmp_path / "protected.db",
+        max_artifact_chars=100,
+        max_vault_bytes=30,
+        high_water_pct=90,
+        low_water_pct=50,
+    )
+    protected = store.put_artifact("a" * 12, session_id="s", tool_call_id="c1")
+    store.record_exposure(
+        session_id="s",
+        artifact_id=protected.artifact_id,
+        request_id="provider-r1",
+        inline=False,
+    )
+    unprotected = store.put_artifact("b" * 12, session_id="s", tool_call_id="c2")
+    newest = store.put_artifact("c" * 12, session_id="s", tool_call_id="c3")
+    assert store.get_artifact(protected.artifact_id).content == "a" * 12
+    assert store.get_artifact(newest.artifact_id).content == "c" * 12
+    with pytest.raises(KeyError):
+        store.get_artifact(unprotected.artifact_id)

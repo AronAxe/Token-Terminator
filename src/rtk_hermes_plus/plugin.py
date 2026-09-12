@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
@@ -30,6 +31,15 @@ from .storage import TokenTerminatorStore
 logger = logging.getLogger(__name__)
 
 INTERNAL_REQUEST_KEY_PREFIX = "_tt_"
+_ARTIFACT_ID_PATTERN = re.compile(r"\ba_[0-9a-f]{32}(?:[0-9a-f]{32})?\b")
+
+
+def _artifact_ids_in_value(value: Any) -> tuple[str, ...]:
+    try:
+        serialized = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+    except (TypeError, ValueError):
+        return ()
+    return tuple(sorted(set(_ARTIFACT_ID_PATTERN.findall(serialized))))
 
 
 def _strip_internal_metadata(request: Any) -> Any:
@@ -246,6 +256,20 @@ class Runtime:
 
         if compiled.failed_open or end_to_end_saved <= 0:
             return None
+        if self.store is not None:
+            for artifact_id in _artifact_ids_in_value(final_request):
+                try:
+                    self.store.record_exposure(
+                        session_id=session_id,
+                        artifact_id=artifact_id,
+                        request_id=compiled.request_id or "provider-request",
+                        inline=False,
+                    )
+                except Exception:
+                    logger.debug(
+                        "Token Terminator recovery-reference protection failed",
+                        exc_info=True,
+                    )
         return {
             "request": final_request,
             "source": "token-terminator",
