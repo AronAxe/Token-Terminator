@@ -37,6 +37,11 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -e '.[dev]'
 
+      - name: Normalize generated Python
+        run: |
+          python -m ruff check . --fix
+          python -m ruff format .
+
       - name: Python lint and format
         run: |
           python -m ruff check .
