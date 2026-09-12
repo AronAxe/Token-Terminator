@@ -36,7 +36,9 @@ def _config(tmp_path: Path, **kwargs) -> Config:
     return Config(**values)
 
 
-def test_context_defaults_are_identical_and_invalid_direct_pair_is_rejected(tmp_path, monkeypatch):
+def test_context_defaults_are_identical_and_invalid_direct_pair_is_rejected(
+    tmp_path, monkeypatch
+):
     assert Config().context_inline_recent_turns == 5
     for name in (
         "TOKEN_TERMINATOR_CONTEXT_INLINE_RECENT_TURNS",
@@ -187,7 +189,9 @@ def test_pinned_rtk_path_wins_over_path_lookup(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "rtk_hermes_plus.rewrite.shutil.which", lambda _name: "/evil/rtk"
     )
-    assert Rewriter(_config(tmp_path, rtk_path=pinned), Metrics()).rtk_path == str(pinned)
+    assert Rewriter(_config(tmp_path, rtk_path=pinned), Metrics()).rtk_path == str(
+        pinned
+    )
 
 
 def test_measurement_summary_uses_real_native_tokens_when_present():
