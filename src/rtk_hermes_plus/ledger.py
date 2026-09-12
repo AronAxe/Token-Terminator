@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
 import secrets
 import sqlite3
 import statistics
@@ -74,7 +75,7 @@ class HermesAccounting:
     def read(self, session_id: str) -> dict[str, Any]:
         if not session_id or not self.state_db_path.is_file():
             return _snapshot({"accounting_available": False})
-        uri = f"file:{self.state_db_path.as_posix()}?mode=ro"
+        uri = self.state_db_path.expanduser().resolve().as_uri() + "?mode=ro"
         try:
             with closing(sqlite3.connect(uri, uri=True, timeout=2)) as connection:
                 connection.row_factory = sqlite3.Row
@@ -147,6 +148,9 @@ CREATE TABLE IF NOT EXISTS sessions (
     interrupted_turns INTEGER NOT NULL DEFAULT 0,
     native_raw_chars INTEGER NOT NULL DEFAULT 0,
     native_output_chars INTEGER NOT NULL DEFAULT 0,
+    native_raw_tokens INTEGER NOT NULL DEFAULT 0,
+    native_output_tokens INTEGER NOT NULL DEFAULT 0,
+    native_token_measurements INTEGER NOT NULL DEFAULT 0,
     native_compressions INTEGER NOT NULL DEFAULT 0,
     rewrite_count INTEGER NOT NULL DEFAULT 0,
     recovery_reads INTEGER NOT NULL DEFAULT 0
@@ -188,6 +192,9 @@ CREATE TABLE IF NOT EXISTS turns (
     turn_exit_reason TEXT NOT NULL DEFAULT '',
     native_raw_chars INTEGER NOT NULL DEFAULT 0,
     native_output_chars INTEGER NOT NULL DEFAULT 0,
+    native_raw_tokens INTEGER NOT NULL DEFAULT 0,
+    native_output_tokens INTEGER NOT NULL DEFAULT 0,
+    native_token_measurements INTEGER NOT NULL DEFAULT 0,
     native_compressions INTEGER NOT NULL DEFAULT 0,
     rewrite_count INTEGER NOT NULL DEFAULT 0,
     recovery_reads INTEGER NOT NULL DEFAULT 0,
@@ -240,13 +247,29 @@ class ExperimentLedger:
 
     def _initialize(self) -> None:
         try:
+            parent_existed = self.path.parent.exists()
             self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-            try:
-                self.path.parent.chmod(0o700)
-            except OSError:
-                pass
+            if not parent_existed:
+                try:
+                    self.path.parent.chmod(0o700)
+                except OSError:
+                    pass
             with closing(self._connect()) as connection, connection:
                 connection.executescript(SCHEMA)
+                for table in ("sessions", "turns"):
+                    columns = {
+                        row[1]
+                        for row in connection.execute(f"PRAGMA table_info({table})")
+                    }
+                    for column in (
+                        "native_raw_tokens",
+                        "native_output_tokens",
+                        "native_token_measurements",
+                    ):
+                        if column not in columns:
+                            connection.execute(
+                                f"ALTER TABLE {table} ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0"
+                            )
                 row = connection.execute(
                     "SELECT value FROM meta WHERE key = 'fingerprint_salt'"
                 ).fetchone()
@@ -504,12 +527,18 @@ class ExperimentLedger:
         turn_id: str,
         raw_chars: int,
         output_chars: int,
+        raw_tokens: int = 0,
+        output_tokens: int = 0,
+        token_measurements: int = 0,
     ) -> None:
         self._record_effect(
             session_id,
             turn_id,
             native_raw_chars=max(0, raw_chars),
             native_output_chars=max(0, output_chars),
+            native_raw_tokens=max(0, raw_tokens),
+            native_output_tokens=max(0, output_tokens),
+            native_token_measurements=max(0, token_measurements),
             native_compressions=1,
         )
 
@@ -525,6 +554,9 @@ class ExperimentLedger:
         allowed = {
             "native_raw_chars",
             "native_output_chars",
+            "native_raw_tokens",
+            "native_output_tokens",
+            "native_token_measurements",
             "native_compressions",
             "rewrite_count",
             "recovery_reads",
@@ -632,6 +664,9 @@ class ExperimentLedger:
             "matched_turns": {"pairs": 0},
             "excluded_contaminated_sessions": 0,
         }
+        if first == second:
+            result["error"] = "comparison modes must differ"
+            return result
         if not self.available:
             result["error"] = self.error or "experiment ledger disabled"
             return result
@@ -690,38 +725,61 @@ class ExperimentLedger:
             buckets.setdefault(key, {first: [], second: []})[str(raw["mode"])].append(
                 row
             )
-        pairs = []
+        eligible_first = sum(len(group[first]) for group in buckets.values())
+        eligible_second = sum(len(group[second]) for group in buckets.values())
+        matched_groups = []
+        paired_first = 0
+        paired_second = 0
         for group in buckets.values():
-            pairs.extend(zip(group[first], group[second]))
-        token_deltas = [b["total_tokens"] - a["total_tokens"] for a, b in pairs]
+            if not group[first] or not group[second]:
+                continue
+            paired_first += len(group[first])
+            paired_second += len(group[second])
+            matched_groups.append(
+                (_aggregate_rows(group[first]), _aggregate_rows(group[second]))
+            )
+        token_deltas = [
+            b["total_tokens"] - a["total_tokens"] for a, b in matched_groups
+        ]
         estimated_deltas = [
             b["estimated_cost_usd"] - a["estimated_cost_usd"]
-            for a, b in pairs
+            for a, b in matched_groups
             if a["estimated_cost_usd"] is not None
             and b["estimated_cost_usd"] is not None
         ]
         actual_deltas = [
             b["actual_cost_usd"] - a["actual_cost_usd"]
-            for a, b in pairs
+            for a, b in matched_groups
             if a["actual_cost_usd"] is not None and b["actual_cost_usd"] is not None
         ]
         equivalent_deltas = [
             b["api_equivalent_cost_usd"] - a["api_equivalent_cost_usd"]
-            for a, b in pairs
+            for a, b in matched_groups
             if a["api_equivalent_cost_usd"] is not None
             and b["api_equivalent_cost_usd"] is not None
         ]
         return {
-            "pairs": len(pairs),
+            "pairs": len(matched_groups),
+            "matched_groups": len(matched_groups),
+            "eligible_first": eligible_first,
+            "eligible_second": eligible_second,
+            "paired_observations_first": paired_first,
+            "paired_observations_second": paired_second,
+            "unpaired_first": eligible_first - paired_first,
+            "unpaired_second": eligible_second - paired_second,
             "direction": f"{second} minus {first}",
             "mean_total_tokens_delta": _mean(token_deltas),
             "median_total_tokens_delta": _median(token_deltas),
+            "total_tokens_delta_ci95": _bootstrap_ci(token_deltas),
             "mean_estimated_cost_usd_delta": _mean(estimated_deltas),
             "median_estimated_cost_usd_delta": _median(estimated_deltas),
+            "estimated_cost_usd_delta_ci95": _bootstrap_ci(estimated_deltas),
             "mean_actual_cost_usd_delta": _mean(actual_deltas),
             "median_actual_cost_usd_delta": _median(actual_deltas),
+            "actual_cost_usd_delta_ci95": _bootstrap_ci(actual_deltas),
             "mean_api_equivalent_cost_usd_delta": _mean(equivalent_deltas),
             "median_api_equivalent_cost_usd_delta": _median(equivalent_deltas),
+            "api_equivalent_cost_usd_delta_ci95": _bootstrap_ci(equivalent_deltas),
         }
 
 
@@ -767,10 +825,44 @@ def _comparison_row(row: dict[str, Any]) -> dict[str, Any]:
     )
     output["native_raw_chars"] = _integer(row.get("native_raw_chars"))
     output["native_output_chars"] = _integer(row.get("native_output_chars"))
+    output["native_raw_tokens"] = _integer(row.get("native_raw_tokens"))
+    output["native_output_tokens"] = _integer(row.get("native_output_tokens"))
+    output["native_token_measurements"] = _integer(row.get("native_token_measurements"))
     output["native_compressions"] = _integer(row.get("native_compressions"))
     output["rewrite_count"] = _integer(row.get("rewrite_count"))
     output["recovery_reads"] = _integer(row.get("recovery_reads"))
     return output
+
+
+def _aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    def mean_optional(field: str) -> float | None:
+        values = [row[field] for row in rows if row.get(field) is not None]
+        return statistics.fmean(values) if values else None
+
+    return {
+        "total_tokens": statistics.fmean(row["total_tokens"] for row in rows),
+        "estimated_cost_usd": mean_optional("estimated_cost_usd"),
+        "actual_cost_usd": mean_optional("actual_cost_usd"),
+        "api_equivalent_cost_usd": mean_optional("api_equivalent_cost_usd"),
+    }
+
+
+def _bootstrap_ci(
+    values: list[int | float], samples: int = 2000
+) -> dict[str, float] | None:
+    if not values:
+        return None
+    if len(values) == 1:
+        value = float(values[0])
+        return {"low": value, "high": value}
+    rng = random.Random(0x747)
+    n = len(values)
+    estimates = sorted(
+        statistics.fmean(rng.choice(values) for _ in range(n)) for _ in range(samples)
+    )
+    low = estimates[max(0, int(samples * 0.025) - 1)]
+    high = estimates[min(samples - 1, int(samples * 0.975))]
+    return {"low": round(low, 8), "high": round(high, 8)}
 
 
 def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -791,9 +883,14 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     raw_chars = sum(row["native_raw_chars"] for row in rows)
     output_chars = sum(row["native_output_chars"] for row in rows)
     saved_chars = max(0, raw_chars - output_chars)
+    native_raw_tokens = sum(row["native_raw_tokens"] for row in rows)
+    native_output_tokens = sum(row["native_output_tokens"] for row in rows)
+    native_token_measurements = sum(row["native_token_measurements"] for row in rows)
+    measured_native_saved = max(0, native_raw_tokens - native_output_tokens)
+    fallback_native_saved = round(saved_chars / 4)
     return {
         "sessions": len(rows),
-        "token_coverage": len(rows),
+        "token_coverage": sum(1 for row in rows if row["total_tokens"] > 0),
         "mean_total_tokens": _mean(token_values),
         "median_total_tokens": _median(token_values),
         "mean_estimated_cost_usd": _mean(estimated),
@@ -812,7 +909,18 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "native_raw_chars": raw_chars,
         "native_output_chars": output_chars,
         "native_saved_chars": saved_chars,
-        "native_estimated_tokens_saved": round(saved_chars / 4),
+        "native_raw_tokens": native_raw_tokens,
+        "native_output_tokens": native_output_tokens,
+        "native_token_measurement_coverage": native_token_measurements,
+        "native_measured_tokens_saved": measured_native_saved,
+        "native_estimated_tokens_saved": (
+            measured_native_saved
+            if native_token_measurements
+            else fallback_native_saved
+        ),
+        "native_token_savings_source": (
+            "exact-tokenizer" if native_token_measurements else "chars/4-fallback"
+        ),
         "native_savings_pct": (
             round(saved_chars / raw_chars * 100, 1) if raw_chars else 0.0
         ),

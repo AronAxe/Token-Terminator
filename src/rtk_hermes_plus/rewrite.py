@@ -72,16 +72,23 @@ class Rewriter:
         self.config = config
         self.metrics = metrics
         self.cache = RewriteCache(config.cache_size, config.cache_ttl_seconds)
-        self.rtk_path = shutil.which("rtk")
+        self.rtk_path = (
+            str(config.rtk_path) if config.rtk_path is not None else shutil.which("rtk")
+        )
 
     @property
     def available(self) -> bool:
         return self.rtk_path is not None
 
+    @staticmethod
+    def _cache_key(command: str, cwd: Path) -> str:
+        return f"{cwd.expanduser().resolve()}\0{command}"
+
     def _result_from_output(
         self,
         command: str,
         *,
+        cache_key: str,
         stdout: str,
         returncode: int,
         elapsed_ms: float,
@@ -94,11 +101,12 @@ class Rewriter:
             else None
         )
         result = RewriteResult(command_out, returncode, elapsed_ms)
-        self.cache.put(command, result)
+        self.cache.put(cache_key, result)
         return result
 
     def rewrite(self, command: str, *, cwd: Path) -> RewriteResult:
-        cached = self.cache.get(command)
+        cache_key = self._cache_key(command, cwd)
+        cached = self.cache.get(cache_key)
         if cached is not None:
             self.metrics.add("rewrite_cache_hits")
             return cached
@@ -118,6 +126,7 @@ class Rewriter:
             elapsed = (time.perf_counter() - started) * 1000
             return self._result_from_output(
                 command,
+                cache_key=cache_key,
                 stdout=completed.stdout,
                 returncode=completed.returncode,
                 elapsed_ms=elapsed,
@@ -143,7 +152,8 @@ class Rewriter:
         """Rewrite through a cancellable asyncio subprocess."""
         if cancellation is not None:
             cancellation.raise_if_cancelled()
-        cached = self.cache.get(command)
+        cache_key = self._cache_key(command, cwd)
+        cached = self.cache.get(cache_key)
         if cached is not None:
             self.metrics.add("rewrite_cache_hits")
             return cached
@@ -187,6 +197,7 @@ class Rewriter:
             elapsed = (time.perf_counter() - started) * 1000
             return self._result_from_output(
                 command,
+                cache_key=cache_key,
                 stdout=stdout.decode(errors="replace"),
                 returncode=int(process.returncode or 0),
                 elapsed_ms=elapsed,

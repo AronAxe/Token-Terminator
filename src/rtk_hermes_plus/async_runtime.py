@@ -133,6 +133,29 @@ class AsyncRuntime:
         **kwargs: Any,
     ) -> Any:
         self._raise_if_cancelled(cancellation)
+        temporal_transform = getattr(self.runtime, "_temporal_transform", None)
+        if callable(temporal_transform):
+            temporal = await self._run_sync(
+                temporal_transform,
+                tool_name=tool_name,
+                args=args,
+                result=result,
+                session_id=str(kwargs.get("session_id") or ""),
+                tool_call_id=str(kwargs.get("tool_call_id") or ""),
+                cancellation=cancellation,
+            )
+            if temporal is not None:
+                await self._run_sync(
+                    self.runtime._record_native,
+                    session_id=str(kwargs.get("session_id") or ""),
+                    turn_id=str(kwargs.get("turn_id") or ""),
+                    raw_chars=len(result),
+                    output_chars=len(temporal),
+                    raw_text=result,
+                    output_text=temporal,
+                    cancellation=cancellation,
+                )
+                return temporal
         compressor = self.runtime.compressor
         if not compressor._eligible(tool_name=tool_name, args=args, result=result):
             return None
@@ -173,6 +196,8 @@ class AsyncRuntime:
                 turn_id=str(kwargs.get("turn_id") or ""),
                 raw_chars=len(result),
                 output_chars=len(transformed),
+                raw_text=result,
+                output_text=transformed,
                 cancellation=cancellation,
             )
         return transformed

@@ -154,6 +154,8 @@ class Runtime:
                 turn_id=str(kwargs.get("turn_id") or ""),
                 raw_chars=len(result),
                 output_chars=len(transformed),
+                raw_text=result,
+                output_text=transformed,
             )
         return transformed
 
@@ -365,13 +367,29 @@ class Runtime:
         turn_id: str = "",
         raw_chars: int,
         output_chars: int,
+        raw_text: str = "",
+        output_text: str = "",
     ) -> None:
         self._ensure_ledger_session(session_id)
+        raw_tokens = 0
+        output_tokens = 0
+        token_measurements = 0
+        budget = getattr(self, "token_budget", None)
+        if budget is not None and raw_text and output_text:
+            raw_measurement = budget.measure_text(raw_text)
+            output_measurement = budget.measure_text(output_text)
+            if raw_measurement.available and output_measurement.available:
+                raw_tokens = int(raw_measurement.tokens or 0)
+                output_tokens = int(output_measurement.tokens or 0)
+                token_measurements = 1
         self.ledger.record_native(
             session_id=session_id,
             turn_id=turn_id,
             raw_chars=raw_chars,
             output_chars=output_chars,
+            raw_tokens=raw_tokens,
+            output_tokens=output_tokens,
+            token_measurements=token_measurements,
         )
 
     # ------------------------------------------------------------------
@@ -550,9 +568,6 @@ class Runtime:
         )
 
 
-_runtime: Runtime | None = None
-
-
 def _schema() -> dict[str, Any]:
     return {
         "name": "token_terminator",
@@ -622,9 +637,8 @@ def _register_tool(ctx, *, handler: Callable) -> None:
 
 
 def register(ctx) -> None:
-    global _runtime
     runtime = Runtime(profile_name=getattr(ctx, "profile_name", "default"))
-    _runtime = runtime
+    register_middleware = getattr(ctx, "register_middleware", None)
 
     if runtime.config.mode == "off" or not runtime.config.enabled:
         logger.info("Token Terminator transformations disabled; ledger remains active")
@@ -654,7 +668,6 @@ def register(ctx) -> None:
     legacy_terminal_hook = False
     if runtime.config.terminal_enabled:
         if runtime.rewriter.available:
-            register_middleware = getattr(ctx, "register_middleware", None)
             if callable(register_middleware):
                 register_middleware("tool_request", runtime.tool_request_middleware)
             else:
@@ -663,7 +676,6 @@ def register(ctx) -> None:
         else:
             logger.warning("rtk binary not found; terminal rewriting disabled")
 
-    register_middleware = getattr(ctx, "register_middleware", None)
     if (
         runtime.config.compiler_enabled
         and runtime.compiler is not None

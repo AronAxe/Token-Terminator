@@ -89,13 +89,18 @@ class TokenTerminatorStore:
         max_artifact_chars: int = 2_000_000,
         max_vault_bytes: int = 536_870_912,
         max_page_chars: int = 20_000,
+        high_water_pct: int = 90,
+        low_water_pct: int = 80,
     ):
         self.path = Path(path).expanduser()
         self.max_artifact_chars = max(1, int(max_artifact_chars))
         self.max_vault_bytes = max(1, int(max_vault_bytes))
         self.max_page_chars = max(1, int(max_page_chars))
+        self.high_water_pct = min(100, max(1, int(high_water_pct)))
+        self.low_water_pct = min(self.high_water_pct - 1, max(0, int(low_water_pct)))
+        parent_existed = self.path.parent.exists()
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        if os.name == "posix":
+        if os.name == "posix" and not parent_existed:
             os.chmod(self.path.parent, 0o700)
         self.journal_mode = self._enable_wal()
         self._initialize()
@@ -132,6 +137,12 @@ class TokenTerminatorStore:
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA busy_timeout=10000")
         conn.execute("PRAGMA synchronous=NORMAL")
+        conn.create_function(
+            "tt_casefold",
+            1,
+            lambda value: str(value or "").casefold(),
+            deterministic=True,
+        )
         return conn
 
     @contextmanager
@@ -191,6 +202,21 @@ class TokenTerminatorStore:
                     inline INTEGER NOT NULL CHECK(inline IN (0, 1)),
                     exposed_at TEXT NOT NULL,
                     PRIMARY KEY(session_id, artifact_id, request_id)
+                );
+
+                CREATE TABLE IF NOT EXISTS terminal_snapshots (
+                    state_key TEXT PRIMARY KEY,
+                    artifact_id TEXT NOT NULL REFERENCES artifacts(artifact_id),
+                    command TEXT NOT NULL,
+                    cwd TEXT NOT NULL,
+                    backend TEXT NOT NULL,
+                    session_scope TEXT NOT NULL DEFAULT '',
+                    updated_at TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS vault_meta (
+                    key TEXT PRIMARY KEY,
+                    value INTEGER NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS graph_events (
@@ -321,6 +347,23 @@ class TokenTerminatorStore:
             # fields rather than retaining telemetry that no longer describes
             # the legacy values. The current writer restores a fresh final
             # measurement later in the same transaction.
+            total_bytes = int(
+                conn.execute(
+                    "SELECT COALESCE(SUM(byte_count), 0) FROM artifacts"
+                ).fetchone()[0]
+            )
+            conn.execute(
+                "INSERT INTO vault_meta(key, value) VALUES('total_artifact_bytes', ?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (total_bytes,),
+            )
+            conn.execute(
+                "INSERT OR IGNORE INTO vault_meta(key, value) VALUES('pruned_artifacts', 0)"
+            )
+            conn.execute(
+                "INSERT OR IGNORE INTO vault_meta(key, value) VALUES('pruned_bytes', 0)"
+            )
+
             conn.execute(
                 """
                 CREATE TRIGGER IF NOT EXISTS invalidate_request_metric_end_to_end
@@ -347,6 +390,116 @@ class TokenTerminatorStore:
     @staticmethod
     def _artifact_id(sha256: str) -> str:
         return f"a_{sha256[:32]}"
+
+    @staticmethod
+    def _meta_int(conn: sqlite3.Connection, key: str) -> int:
+        row = conn.execute(
+            "SELECT value FROM vault_meta WHERE key=?", (key,)
+        ).fetchone()
+        return int(row[0]) if row is not None else 0
+
+    @staticmethod
+    def _set_meta_int(conn: sqlite3.Connection, key: str, value: int) -> None:
+        conn.execute(
+            "INSERT INTO vault_meta(key, value) VALUES(?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, max(0, int(value))),
+        )
+
+    def _prune_for_insert(
+        self, conn: sqlite3.Connection, *, current_bytes: int, incoming_bytes: int
+    ) -> int:
+        high_bytes = max(1, self.max_vault_bytes * self.high_water_pct // 100)
+        if current_bytes + incoming_bytes <= high_bytes:
+            return current_bytes
+        low_bytes = self.max_vault_bytes * self.low_water_pct // 100
+        target_before_insert = max(0, low_bytes - incoming_bytes)
+        rows = conn.execute(
+            """
+            SELECT a.artifact_id, a.byte_count,
+                   COALESCE(MAX(o.observed_at), a.created_at) AS last_observed
+            FROM artifacts a
+            LEFT JOIN artifact_observations o ON o.artifact_id=a.artifact_id
+            WHERE NOT EXISTS (
+                SELECT 1 FROM terminal_snapshots t
+                WHERE t.artifact_id=a.artifact_id
+            )
+            GROUP BY a.artifact_id
+            ORDER BY last_observed ASC, a.created_at ASC, a.artifact_id ASC
+            """
+        ).fetchall()
+        removed_artifacts = 0
+        removed_bytes = 0
+        for row in rows:
+            if current_bytes <= target_before_insert:
+                break
+            artifact_id = str(row["artifact_id"])
+            byte_count = int(row["byte_count"])
+            conn.execute(
+                "DELETE FROM artifact_exposures WHERE artifact_id=?", (artifact_id,)
+            )
+            conn.execute(
+                "DELETE FROM artifact_observations WHERE artifact_id=?", (artifact_id,)
+            )
+            conn.execute("DELETE FROM artifacts WHERE artifact_id=?", (artifact_id,))
+            current_bytes = max(0, current_bytes - byte_count)
+            removed_artifacts += 1
+            removed_bytes += byte_count
+        if removed_artifacts:
+            self._set_meta_int(conn, "total_artifact_bytes", current_bytes)
+            self._set_meta_int(
+                conn,
+                "pruned_artifacts",
+                self._meta_int(conn, "pruned_artifacts") + removed_artifacts,
+            )
+            self._set_meta_int(
+                conn,
+                "pruned_bytes",
+                self._meta_int(conn, "pruned_bytes") + removed_bytes,
+            )
+        return current_bytes
+
+    def vault_usage(self) -> dict[str, int]:
+        with self.connection() as conn:
+            current = self._meta_int(conn, "total_artifact_bytes")
+            pruned_artifacts = self._meta_int(conn, "pruned_artifacts")
+            pruned_bytes = self._meta_int(conn, "pruned_bytes")
+        return {
+            "vault_bytes": current,
+            "vault_capacity_bytes": self.max_vault_bytes,
+            "vault_high_water_bytes": self.max_vault_bytes * self.high_water_pct // 100,
+            "vault_low_water_bytes": self.max_vault_bytes * self.low_water_pct // 100,
+            "vault_usage_pct_x1000": round(current / self.max_vault_bytes * 100_000),
+            "vault_pruned_artifacts": pruned_artifacts,
+            "vault_pruned_bytes": pruned_bytes,
+        }
+
+    def record_exposure(
+        self,
+        *,
+        session_id: str,
+        artifact_id: str,
+        request_id: str,
+        inline: bool = True,
+    ) -> None:
+        with self.connection(write=True) as conn:
+            conn.execute(
+                """
+                INSERT INTO artifact_exposures(
+                    session_id, artifact_id, request_id, inline, exposed_at
+                ) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(session_id, artifact_id, request_id) DO UPDATE SET
+                    inline=MAX(artifact_exposures.inline, excluded.inline),
+                    exposed_at=excluded.exposed_at
+                """,
+                (
+                    str(session_id or ""),
+                    str(artifact_id),
+                    str(request_id or ""),
+                    int(bool(inline)),
+                    _utc_now(),
+                ),
+            )
 
     def put_artifact(
         self,
@@ -378,10 +531,9 @@ class TokenTerminatorStore:
             ).fetchone()
             created = existing is None
             if existing is None:
-                current_bytes = int(
-                    conn.execute(
-                        "SELECT COALESCE(SUM(byte_count), 0) FROM artifacts"
-                    ).fetchone()[0]
+                current_bytes = self._meta_int(conn, "total_artifact_bytes")
+                current_bytes = self._prune_for_insert(
+                    conn, current_bytes=current_bytes, incoming_bytes=len(encoded)
                 )
                 if current_bytes + len(encoded) > self.max_vault_bytes:
                     raise VaultCapacityError(
@@ -404,6 +556,9 @@ class TokenTerminatorStore:
                         _json(args or {}),
                         now,
                     ),
+                )
+                self._set_meta_int(
+                    conn, "total_artifact_bytes", current_bytes + len(encoded)
                 )
             else:
                 artifact_id = existing["artifact_id"]
@@ -470,7 +625,7 @@ class TokenTerminatorStore:
 
     def search_artifacts(self, query: str, *, limit: int = 10) -> list[ArtifactSummary]:
         limit = max(1, min(int(limit), 500))
-        needle = str(query or "").strip().lower()
+        needle = str(query or "").strip().casefold()
         if not needle:
             return []
         with self.connection() as conn:
@@ -481,12 +636,12 @@ class TokenTerminatorStore:
                        COUNT(o.observation_id) AS observation_count
                 FROM artifacts a
                 LEFT JOIN artifact_observations o ON o.artifact_id=a.artifact_id
-                WHERE instr(lower(a.content), ?) > 0
-                   OR instr(lower(a.tool_name), ?) > 0
+                WHERE instr(tt_casefold(a.content), ?) > 0
+                   OR instr(tt_casefold(a.tool_name), ?) > 0
                    OR EXISTS (
                        SELECT 1 FROM artifact_observations matched
                        WHERE matched.artifact_id=a.artifact_id
-                         AND instr(lower(matched.tool_name), ?) > 0
+                         AND instr(tt_casefold(matched.tool_name), ?) > 0
                    )
                 GROUP BY a.artifact_id
                 ORDER BY a.created_at DESC, a.artifact_id
@@ -695,6 +850,13 @@ class TokenTerminatorStore:
         "collapsed_turns",
         "compactor_failed_open_requests",
         "any_failed_open_requests",
+        "vault_bytes",
+        "vault_capacity_bytes",
+        "vault_high_water_bytes",
+        "vault_low_water_bytes",
+        "vault_usage_pct_x1000",
+        "vault_pruned_artifacts",
+        "vault_pruned_bytes",
     )
 
     def counts(self) -> dict[str, int]:
@@ -722,7 +884,9 @@ class TokenTerminatorStore:
             "any_failed_open_requests": "SELECT COUNT(*) FROM request_metrics WHERE failed_open=1 OR compactor_failed_open=1",
         }
         with self.connection() as conn:
-            return {
+            result = {
                 name: int(conn.execute(sql).fetchone()[0])
                 for name, sql in queries.items()
             }
+        result.update(self.vault_usage())
+        return result

@@ -1,6 +1,11 @@
-# Migration and rollback: 0.2.0 / 0.4.0 → 0.5.0
+# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.0 → 0.5.1
 
-Token Terminator 0.5.0 supersedes Token Terminator 0.4.0 and replaces the older RTK Hermes Plus 0.2.0 distribution. Upgrading from 0.4.0 is an ordinary package replacement. Migrating from 0.2.0 is a distribution/plugin rename as well as a package replacement; the two distributions must not coexist.
+Token Terminator 0.5.1 supersedes Token Terminator 0.5.0 and replaces the older RTK Hermes Plus 0.2.0 distribution. Upgrading from 0.4.0 is an ordinary package replacement. Migrating from 0.2.0 is a distribution/plugin rename as well as a package replacement; the two distributions must not coexist.
+
+
+## 0.5.0 → 0.5.1 hardening
+
+0.5.1 is an in-place hardening upgrade. It keeps the content-addressed artifact identity and schema-2 compatibility, adds schema-managed temporal snapshots and additive vault metadata, introduces bounded retention before the configured vault capacity is exhausted, and makes Unicode search, async temporal reduction, rewrite caching, measurement, and security behavior consistent. Existing exact artifacts remain valid; retention may prune old unprotected artifacts only after the configured high-water mark is crossed.
 
 ## Boundary
 
@@ -48,7 +53,7 @@ hermes plugins disable rtk-plus
 hermes plugins disable token-terminator
 <hermes-python> -m pip uninstall -y rtk-hermes-plus token-terminator
 <hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1'
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
 

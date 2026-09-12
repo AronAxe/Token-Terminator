@@ -316,39 +316,38 @@ class RequestCompiler:
             receipts = 0
             duplicates = 0
             pending_claims: list[tuple[_EvidenceSlot, str]] = []
-            if self.config.compiler_enabled:
-                grouped: dict[str, list[_EvidenceSlot]] = {}
-                for slot in slots:
-                    receipt = self._receipt(slot)
-                    # A lease can only be enforced when its recovery receipt is
-                    # itself a strict structural reduction for this slot.
-                    if _serialized_chars(receipt) < _serialized_chars(slot.content):
-                        grouped.setdefault(slot.artifact_id, []).append(slot)
-                for artifact_id, group in grouped.items():
-                    group.sort(key=lambda slot: slot.ordinal)
-                    for duplicate in group[:-1]:
-                        duplicate.container[duplicate.field] = self._receipt(duplicate)
-                        receipts += 1
-                        duplicates += 1
-                    newest = group[-1]
-                    try:
-                        inline = self.store.exposure_available(
-                            session_id=session_id,
-                            artifact_id=artifact_id,
-                            request_id=request_id,
-                            inline_limit=self.config.inline_lease_exposures,
-                        )
-                    except Exception:
-                        # A read failure cannot suppress native evidence.
-                        logger.debug(
-                            "Token Terminator exposure preflight failed", exc_info=True
-                        )
-                        inline = True
-                    if not inline:
-                        newest.container[newest.field] = self._receipt(newest)
-                        receipts += 1
-                    else:
-                        pending_claims.append((newest, artifact_id))
+            grouped: dict[str, list[_EvidenceSlot]] = {}
+            for slot in slots:
+                receipt = self._receipt(slot)
+                # A lease can only be enforced when its recovery receipt is
+                # itself a strict structural reduction for this slot.
+                if _serialized_chars(receipt) < _serialized_chars(slot.content):
+                    grouped.setdefault(slot.artifact_id, []).append(slot)
+            for artifact_id, group in grouped.items():
+                group.sort(key=lambda slot: slot.ordinal)
+                for duplicate in group[:-1]:
+                    duplicate.container[duplicate.field] = self._receipt(duplicate)
+                    receipts += 1
+                    duplicates += 1
+                newest = group[-1]
+                try:
+                    inline = self.store.exposure_available(
+                        session_id=session_id,
+                        artifact_id=artifact_id,
+                        request_id=request_id,
+                        inline_limit=self.config.inline_lease_exposures,
+                    )
+                except Exception:
+                    # A read failure cannot suppress native evidence.
+                    logger.debug(
+                        "Token Terminator exposure preflight failed", exc_info=True
+                    )
+                    inline = True
+                if not inline:
+                    newest.container[newest.field] = self._receipt(newest)
+                    receipts += 1
+                else:
+                    pending_claims.append((newest, artifact_id))
 
             # Prove the preflight candidate before durable inline claims. The
             # claim is authoritative; a concurrent winner can only replace an
@@ -374,7 +373,7 @@ class RequestCompiler:
                         receipts += 1
 
             graph_injected = False
-            if self.config.compiler_enabled and mode in {"messages", "responses"}:
+            if mode in {"messages", "responses"}:
                 without_graph = copy.deepcopy(working)
                 try:
                     graph_injected = self._inject_graph_context(working, mode)
@@ -396,6 +395,18 @@ class RequestCompiler:
             # payload larger. Artifact capture remains private, but the
             # provider request is accepted only on strict reduction.
             if compiled_chars >= raw_chars:
+                for artifact_id in artifact_ids:
+                    try:
+                        self.store.record_exposure(
+                            session_id=session_id,
+                            artifact_id=artifact_id,
+                            request_id=request_id,
+                            inline=True,
+                        )
+                    except Exception:
+                        logger.debug(
+                            "Token Terminator exposure accounting failed", exc_info=True
+                        )
                 result = CompileResult(
                     request=original,
                     raw_chars=raw_chars,

@@ -38,9 +38,13 @@ def test_vault_capacity_and_observations_are_bounded(tmp_path):
     assert duplicate.artifact_id == stored.artifact_id
     assert store.counts()["artifact_observations"] == 1
 
-    with pytest.raises(VaultCapacityError):
-        store.put_artifact("b" * 6, session_id="s1", tool_call_id="c2")
-    assert store.counts()["artifacts"] == 1
+    replacement = store.put_artifact("b" * 6, session_id="s1", tool_call_id="c2")
+    assert store.get_artifact(replacement.artifact_id).content == "b" * 6
+    with pytest.raises(KeyError):
+        store.get_artifact(stored.artifact_id)
+    counts = store.counts()
+    assert counts["artifacts"] == 1
+    assert counts["vault_pruned_artifacts"] == 1
 
 
 def test_exposure_and_request_metric_rows_do_not_grow_on_retries(tmp_path):

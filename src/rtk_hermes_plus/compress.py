@@ -32,6 +32,8 @@ class RecoveryStore:
                 max_artifact_chars=config.max_artifact_chars,
                 max_vault_bytes=config.vault_max_bytes,
                 max_page_chars=config.max_artifact_page_chars,
+                high_water_pct=config.vault_high_water_pct,
+                low_water_pct=config.vault_low_water_pct,
             )
         except Exception as exc:  # noqa: BLE001 - plugin must remain fail-open
             self.store = None
@@ -301,13 +303,27 @@ def _collapse_consecutive(lines: list[str]) -> list[str]:
 
 
 def _collapsed_line(line: str, count: int) -> str:
-    return f"{line}  [repeated ×{count}]" if count > 2 else "\n".join([line] * count)
+    original = "\n".join([line] * count)
+    if count <= 2:
+        return original
+    collapsed = f"{line}  [repeated ×{count}]"
+    return collapsed if len(collapsed) < len(original) else original
 
 
 def _recovery_note(raw_chars: int, compact_chars: int, artifact_id: str) -> str:
-    savings = (
-        round((raw_chars - compact_chars) / raw_chars * 100, 1) if raw_chars else 0.0
-    )
+    savings = 0.0
+    note = ""
+    for _ in range(3):
+        note = (
+            f"[Token Terminator: {savings}% fewer characters; "
+            f"full artifact={artifact_id}; recover with token_terminator action=artifact_get]"
+        )
+        delivered_chars = compact_chars + 2 + len(note)
+        savings = (
+            round((raw_chars - delivered_chars) / raw_chars * 100, 1)
+            if raw_chars
+            else 0.0
+        )
     return (
         f"[Token Terminator: {savings}% fewer characters; "
         f"full artifact={artifact_id}; recover with token_terminator action=artifact_get]"

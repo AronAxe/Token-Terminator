@@ -21,15 +21,21 @@ class TokenAwareRequestCompiler(RequestCompiler):
         super().__init__(*args, **kwargs)
         self.token_budget = token_budget
 
-    def _rollback_exposure_claims(self, *, session_id: str, request_id: str) -> None:
-        try:
-            with self.store.connection(write=True) as conn:
-                conn.execute(
-                    "DELETE FROM artifact_exposures WHERE session_id=? AND request_id=?",
-                    (str(session_id or ""), str(request_id or "")),
+    def _record_actual_exposures(
+        self, *, session_id: str, request_id: str, artifact_ids: list[str]
+    ) -> None:
+        for artifact_id in artifact_ids:
+            try:
+                self.store.record_exposure(
+                    session_id=session_id,
+                    artifact_id=artifact_id,
+                    request_id=request_id,
+                    inline=True,
                 )
-        except Exception:
-            logger.debug("Token Terminator lease rollback failed", exc_info=True)
+            except Exception:
+                logger.debug(
+                    "Token Terminator exposure accounting failed", exc_info=True
+                )
 
     def compile(self, request: Any, **kwargs: Any) -> CompileResult:
         result = super().compile(request, **kwargs)
@@ -48,9 +54,10 @@ class TokenAwareRequestCompiler(RequestCompiler):
             return result
 
         session_id = str(kwargs.get("session_id") or "")
-        self._rollback_exposure_claims(
+        self._record_actual_exposures(
             session_id=session_id,
             request_id=result.request_id,
+            artifact_ids=result.artifact_ids,
         )
         return CompileResult(
             request=copy.deepcopy(request),
@@ -123,18 +130,30 @@ class RuntimeV05(BaseRuntime):
                 self.token_budget,
             )
 
+    def _temporal_transform(
+        self, *, tool_name: str, args: dict, result: str, **kwargs: Any
+    ) -> str | None:
+        if self.config.mode not in {"balanced", "aggressive"}:
+            return None
+        return self.temporal.transform(
+            tool_name=tool_name, args=args, result=result, **kwargs
+        )
+
     def transform_tool_result(
         self, *, tool_name: str, args: dict, result: str, **kwargs: Any
     ):
-        temporal = None
-        if self.config.mode in {"balanced", "aggressive"}:
-            temporal = self.temporal.transform(
-                tool_name=tool_name,
-                args=args,
-                result=result,
-                **kwargs,
-            )
+        temporal = self._temporal_transform(
+            tool_name=tool_name, args=args, result=result, **kwargs
+        )
         if temporal is not None:
+            self._record_native(
+                session_id=str(kwargs.get("session_id") or ""),
+                turn_id=str(kwargs.get("turn_id") or ""),
+                raw_chars=len(result),
+                output_chars=len(temporal),
+                raw_text=result,
+                output_text=temporal,
+            )
             return temporal
         return super().transform_tool_result(
             tool_name=tool_name,

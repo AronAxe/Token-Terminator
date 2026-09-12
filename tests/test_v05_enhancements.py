@@ -133,7 +133,7 @@ class _RejectReceiptsBudget:
         return TokenMeasurement(tokens=tokens, backend="test")
 
 
-def test_token_gate_rolls_back_lease_claim_when_receipt_expands_tokens(tmp_path):
+def test_token_gate_records_actual_exposure_when_receipt_expands_tokens(tmp_path):
     config = _config(tmp_path, inline_lease_exposures=1)
     store = TokenTerminatorStore(config.db_path)
     compiler = TokenAwareRequestCompiler(
@@ -175,4 +175,4 @@ def test_token_gate_rolls_back_lease_claim_when_receipt_expands_tokens(tmp_path)
         count = conn.execute(
             "SELECT COUNT(*) FROM artifact_exposures WHERE request_id='request-a'"
         ).fetchone()[0]
-    assert count == 0
+    assert count == 1
