@@ -66,7 +66,7 @@ replace_once(
                 request_id=f"tool:{kwargs.get('tool_call_id') or artifact_id}",
                 inline=False,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - exact recovery must fail open
             self.metrics.add("native_recovery_unavailable")
             return None
         self.metrics.add("native_compressed")
@@ -119,13 +119,13 @@ replace_once(
 def _strip_internal_metadata(request: Any) -> Any:
 """,
     """INTERNAL_REQUEST_KEY_PREFIX = "_tt_"
-_ARTIFACT_ID_PATTERN = re.compile(r"\ba_[0-9a-f]{32}(?:[0-9a-f]{32})?\b")
+_ARTIFACT_ID_PATTERN = re.compile(r"\\ba_[0-9a-f]{32}(?:[0-9a-f]{32})?\\b")
 
 
 def _artifact_ids_in_value(value: Any) -> tuple[str, ...]:
     try:
         serialized = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
-    except Exception:
+    except (TypeError, ValueError):
         return ()
     return tuple(sorted(set(_ARTIFACT_ID_PATTERN.findall(serialized))))
 
@@ -150,7 +150,7 @@ replace_once(
                         request_id=compiled.request_id or "provider-request",
                         inline=False,
                     )
-                except Exception:
+                except Exception:  # noqa: BLE001 - protection must fail open
                     logger.debug(
                         "Token Terminator recovery-reference protection failed",
                         exc_info=True,
