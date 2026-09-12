@@ -424,6 +424,10 @@ class TokenTerminatorStore:
                 SELECT 1 FROM terminal_snapshots t
                 WHERE t.artifact_id=a.artifact_id
             )
+              AND NOT EXISTS (
+                SELECT 1 FROM artifact_exposures e
+                WHERE e.artifact_id=a.artifact_id
+            )
             GROUP BY a.artifact_id
             ORDER BY last_observed ASC, a.created_at ASC, a.artifact_id ASC
             """

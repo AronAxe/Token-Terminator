@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.5.0"><img alt="Release v0.5.0" src="https://img.shields.io/badge/release-v0.5.0-ef2b25"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.5.1"><img alt="Release v0.5.1" src="https://img.shields.io/badge/release-v0.5.1-ef2b25"></a>
   <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/crates/v/token-terminator?logo=rust"></a>
   <a href="https://docs.rs/token-terminator"><img alt="docs.rs" src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>
   <img alt="Python 3.10–3.13" src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB?logo=python&logoColor=white">
@@ -302,7 +302,7 @@ compiled = await terminator.llm_request_middleware(
 
 Cancelling the awaiting asyncio task, or calling the thread-safe `cancellation.cancel()`, raises `asyncio.CancelledError` at the adapter boundary. Active RTK subprocesses are killed and reaped. Compiler and SQLite operations already running in an executor remain atomic and may finish in that worker after the caller has stopped waiting; their result is discarded. Token Terminator does not intercept or buffer provider response streams, so adapters compile immediately before dispatch and leave streaming responses under host control.
 
-The artifact vault enables SQLite WAL mode and uses `synchronous=NORMAL`, a ten-second busy timeout, bounded retries for transient multi-process startup locks, short-lived connections, and `BEGIN IMMEDIATE` writes. Independent runtime instances and agent processes may share one local vault while preserving content deduplication, lease limits, and observation provenance. Keep the database on a local filesystem: SQLite WAL is not a network-filesystem coordination protocol.
+The artifact vault enables SQLite WAL mode and uses `synchronous=NORMAL`, a ten-second busy timeout, bounded retries for transient multi-process startup locks, short-lived connections, and `BEGIN IMMEDIATE` writes. Independent runtime instances and agent processes may share one local vault while preserving content deduplication, lease limits, and observation provenance. High-water retention prunes only abandoned, non-recovery-referenced artifacts; evidence named by accepted recovery receipts remains protected. Keep the database on a local filesystem: SQLite WAL is not a network-filesystem coordination protocol.
 
 ## Exact and layered recovery
 

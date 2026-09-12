@@ -9,7 +9,7 @@ Token Terminator 0.5.1 supersedes Token Terminator 0.5.0 and replaces the older 
 
 ## Boundary
 
-| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.5.0 |
+| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.5.1 |
 |---|---|---|
 | Distribution | `rtk-hermes-plus` | `token-terminator` |
 | Hermes plugin key | `rtk-plus` | `token-terminator` |
@@ -75,7 +75,7 @@ Verify:
 /token-terminator status
 ```
 
-- plugin key is `token-terminator` and version is `0.5.0`;
+- plugin key is `token-terminator` and version is `0.5.1`;
 - `vault_available` is `true`;
 - the selected mode is correct;
 - `temporal_delta` reports whether the feature is enabled and active in the selected mode;
@@ -93,7 +93,7 @@ The decisive runtime switch is the enabled plugin key. Package installation alon
 
 ## Roll back to Token Terminator 0.4.0
 
-Disable 0.5.0 first and reinstall the immutable 0.4.0 tag:
+Disable 0.5.1 first and reinstall the immutable 0.4.0 tag:
 
 ```bash
 hermes plugins disable token-terminator
