@@ -1,0 +1,56 @@
+name: Publish Wiki
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "wiki/**"
+      - ".github/workflows/publish-wiki.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-token-terminator-wiki
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Publish wiki source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          PUBLIC_WIKI_URL="https://github.com/${REPOSITORY}.wiki.git"
+          if ! git ls-remote "$PUBLIC_WIKI_URL" HEAD >/dev/null 2>&1; then
+            echo "::notice::GitHub Wiki storage has not been initialized yet. Create the first Wiki page once in the GitHub UI, then rerun this workflow."
+            exit 0
+          fi
+
+          WIKI_DIR="$(mktemp -d)"
+          AUTH_WIKI_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.wiki.git"
+          git clone --quiet "$AUTH_WIKI_URL" "$WIKI_DIR"
+
+          find "$WIKI_DIR" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a wiki/. "$WIKI_DIR"/
+
+          cd "$WIKI_DIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Wiki already matches repository source."
+            exit 0
+          fi
+
+          git commit -m "docs: sync Token Terminator wiki from ${GITHUB_SHA}"
+          git push --quiet origin HEAD
