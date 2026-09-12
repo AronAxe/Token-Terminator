@@ -1,0 +1,62 @@
+name: Publish Token Terminator v0.5.1
+
+on:
+  push:
+    branches: [v0.5.1-release]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 60d83cad3829e5837e54109002694faf0c0f1798
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build verified Python artifacts
+        run: |
+          python -m pip install -e '.[dev]'
+          python -m pytest
+          python scripts/benchmark.py --skip-rtk
+          rm -rf dist build
+          python -m build
+          python -m twine check dist/*
+          python scripts/verify_release.py 'dist/*'
+
+      - name: Write release notes
+        run: |
+          cat > /tmp/release-notes.md <<'EOF'
+          v0.5.1 is the post-0.5.0 hardening release. It systematically closes the ten-item audit while preserving Token Terminator's fail-open and exact-recovery contracts.
+
+          Highlights:
+          - capacity-managed vault retention with O(1) byte accounting and high/low watermarks;
+          - recovery-safe GC: artifacts referenced by accepted receipts and temporal deltas are protected;
+          - context-collapse/inline-window invariants and unified defaults;
+          - Unicode-correct artifact search and cwd-aware RTK rewrite caching;
+          - AsyncRuntime temporal-delta parity;
+          - statistically honest experiment comparison with unpaired accounting and deterministic 95% bootstrap intervals;
+          - schema-managed temporal snapshots, Windows URI fixes, safer directory permissions, optional RTK path pinning, and documentation cleanup.
+
+          Verification on the final main tree:
+          - Python 3.10, 3.11, 3.12, 3.13: green;
+          - Windows: green;
+          - Rust fmt, Clippy -D warnings, tests, rustdoc: green;
+          - package build, Twine, release-containment verification: green;
+          - final focused verification: 174 passed, 2 skipped.
+          EOF
+
+      - name: Create GitHub release and tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create v0.5.1 dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target 60d83cad3829e5837e54109002694faf0c0f1798 \
+            --title "Token Terminator v0.5.1" \
+            --notes-file /tmp/release-notes.md
