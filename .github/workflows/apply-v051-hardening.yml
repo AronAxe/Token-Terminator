@@ -34,6 +34,9 @@ jobs:
       - name: Apply hardening patch
         run: python scripts/apply_v051_hardening.py
 
+      - name: Reconcile generated fixtures and migration docs
+        run: python scripts/fix_v051_generated.py
+
       - name: Install test dependencies
         run: python -m pip install -e '.[dev]'
 
@@ -71,7 +74,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -f scripts/apply_v051_hardening.py scripts/fix_v051_patcher.py .github/workflows/apply-v051-hardening.yml
+          rm -f scripts/apply_v051_hardening.py scripts/fix_v051_patcher.py scripts/fix_v051_generated.py .github/workflows/apply-v051-hardening.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
