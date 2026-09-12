@@ -165,6 +165,18 @@ class NativeCompressor:
         if len(transformed) >= len(result):
             self.metrics.add("native_not_smaller")
             return None
+        try:
+            if self.recovery.store is None:
+                raise RuntimeError("recovery store unavailable")
+            self.recovery.store.record_exposure(
+                session_id=str(kwargs.get("session_id") or ""),
+                artifact_id=artifact_id,
+                request_id=f"tool:{kwargs.get('tool_call_id') or artifact_id}",
+                inline=False,
+            )
+        except Exception:  # noqa: BLE001 - exact recovery must fail open
+            self.metrics.add("native_recovery_unavailable")
+            return None
         self.metrics.add("native_compressed")
         self.metrics.add("native_raw_chars", len(result))
         self.metrics.add("native_output_chars", len(transformed))

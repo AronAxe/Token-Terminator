@@ -241,6 +241,19 @@ class TemporalDeltaReducer:
                 self.metrics.add("temporal_not_smaller")
                 return None
 
+            exposure_id = f"temporal:{state_key}:{current.artifact_id}"
+            self.store.record_exposure(
+                session_id=str(session_id or ""),
+                artifact_id=previous_id,
+                request_id=exposure_id,
+                inline=False,
+            )
+            self.store.record_exposure(
+                session_id=str(session_id or ""),
+                artifact_id=current.artifact_id,
+                request_id=exposure_id,
+                inline=False,
+            )
             self.metrics.add("temporal_reduced")
             self.metrics.add("temporal_raw_chars", len(result))
             self.metrics.add("temporal_output_chars", len(candidate))
