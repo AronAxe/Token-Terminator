@@ -26,13 +26,17 @@ A transformation is accepted only when it is safer than passing the original thr
 
 Temporal terminal reduction adds one more rule: **the command still executes every time**. Only the representation shown to the model may become a smaller delta.
 
+## What v0.5.2 adds
+
+v0.5.2 makes tokenizer-aware savings durable rather than transient: exact raw, final, and saved request-token counts are persisted with model and tokenizer-backend provenance whenever a supported tokenizer is available. `tiktoken` now ships by default for supported OpenAI-family models, active model identity is propagated into native and temporal accounting, and fallback estimates are explicitly labelled instead of being mixed with exact measurements. See [Release 0.5.2](Release-0.5.2).
+
 ## What v0.5.1 hardened
 
 v0.5.1 is the post-0.5.0 hardening release. It adds bounded vault lifecycle management, Unicode-safe artifact search, cwd-aware rewrite caching, async temporal parity, schema-owned temporal snapshots, more honest experiment statistics, Windows URI fixes, safer permissions, RTK path pinning, and recovery-safe GC. Artifacts already named by accepted recovery receipts or temporal deltas are protected from automatic retention pruning.
 
 ## Current release
 
-- Python package/release: **v0.5.1**
+- Python package/release: **v0.5.2**
 - Python support: **3.10–3.13**
-- Rust interoperability crate: **token-terminator 0.5.1**
+- Rust interoperability crate: **token-terminator 0.5.2**
 - First-party runtime adapter: **Hermes Agent**
