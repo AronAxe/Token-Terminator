@@ -206,7 +206,7 @@ class TokenBudgetAdapter:
                     model,
                 )
             except Exception:  # noqa: BLE001 - optional optimizer must fail open
-                pass
+                encoding = None
 
         return TokenMeasurement(None, "character-fallback", model)
 
