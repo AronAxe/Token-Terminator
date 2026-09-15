@@ -8,6 +8,7 @@ from typing import Any
 
 _TRUE = frozenset({"1", "true", "yes", "on"})
 _FALSE = frozenset({"0", "false", "no", "off"})
+_OPENAI_MODEL_PREFIXES = ("gpt-4o", "gpt-4.1", "gpt-5", "o1", "o3", "o4")
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -42,6 +43,20 @@ def _serialize(value: Any) -> str:
     )
 
 
+def _tokenizer_model_name(model: str) -> str:
+    """Normalize common provider-qualified model names for tokenizer lookup."""
+    normalized = str(model or "").strip()
+    if not normalized:
+        return ""
+    # OpenRouter and several compatible gateways expose names like
+    # ``openai/gpt-5``. Tiktoken expects the provider-local model name.
+    if "/" in normalized:
+        normalized = normalized.rsplit("/", 1)[-1]
+    if normalized.lower().startswith("openai:"):
+        normalized = normalized.split(":", 1)[1]
+    return normalized
+
+
 @dataclass(frozen=True)
 class TokenMeasurement:
     tokens: int | None
@@ -54,17 +69,19 @@ class TokenMeasurement:
 
 
 class TokenBudgetAdapter:
-    """Best-available tokenizer alignment without making tokenizers mandatory.
+    """Best-available tokenizer alignment with explicit fallback provenance.
 
-    Exact tokenizers are preferred when explicitly available. A configured
-    Hugging Face ``tokenizer.json`` wins, followed by tiktoken model lookup or
-    a configured tiktoken encoding. If neither backend is installed or usable,
-    callers keep Token Terminator's existing character-based invariant.
+    A configured Hugging Face ``tokenizer.json`` wins, followed by tiktoken
+    model lookup or a configured tiktoken encoding. The base package ships with
+    tiktoken so OpenAI-family models are measured automatically. If no suitable
+    tokenizer exists, callers retain Token Terminator's character invariant and
+    reporting labels the result as a fallback rather than pretending it is an
+    exact token count.
 
-    Measurements intentionally use the complete canonical request JSON. This
-    gives a stable apples-to-apples reduction measure. Provider-specific hidden
-    framing can still add tokens, which is why context budgeting keeps an
-    explicit output reservation and safety margin.
+    Measurements use canonical request JSON. That makes reduction deltas stable
+    and tokenizer-aware, but provider-specific hidden framing may still add
+    billed tokens. Provider adapters can later supply stricter framing-aware
+    counters without changing this interface.
     """
 
     def __init__(self) -> None:
@@ -85,7 +102,7 @@ class TokenBudgetAdapter:
         self._hf_tokenizer: Any = None
         self._tiktoken_attempted = False
         self._tiktoken: Any = None
-        self._encodings: dict[str, Any] = {}
+        self._encodings: dict[str, tuple[Any, str]] = {}
 
     @property
     def usable_context_tokens(self) -> int | None:
@@ -129,16 +146,17 @@ class TokenBudgetAdapter:
         if tiktoken is None:
             return None, ""
 
-        cache_key = model or self.encoding_name or ""
+        lookup_model = _tokenizer_model_name(model)
+        cache_key = lookup_model or self.encoding_name or ""
         if cache_key in self._encodings:
-            return self._encodings[cache_key], f"tiktoken:{cache_key}"
+            return self._encodings[cache_key]
 
         encoding = None
         label = ""
-        if model:
+        if lookup_model:
             try:
-                encoding = tiktoken.encoding_for_model(model)
-                label = f"tiktoken:model:{model}"
+                encoding = tiktoken.encoding_for_model(lookup_model)
+                label = f"tiktoken:model:{lookup_model}"
             except KeyError:
                 encoding = None
 
@@ -149,11 +167,10 @@ class TokenBudgetAdapter:
             except ValueError:
                 encoding = None
 
-        # Recent OpenAI families use o200k_base. Keep this fallback narrowly
-        # scoped rather than applying an OpenAI tokenizer to unrelated models.
-        if encoding is None and model.lower().startswith(
-            ("gpt-4o", "gpt-4.1", "gpt-5", "o1", "o3", "o4")
-        ):
+        # Recent OpenAI families use o200k_base. Keep the fallback narrowly
+        # scoped rather than silently applying an OpenAI tokenizer to unrelated
+        # model families.
+        if encoding is None and lookup_model.lower().startswith(_OPENAI_MODEL_PREFIXES):
             try:
                 encoding = tiktoken.get_encoding("o200k_base")
                 label = "tiktoken:encoding:o200k_base"
@@ -161,7 +178,7 @@ class TokenBudgetAdapter:
                 encoding = None
 
         if encoding is not None:
-            self._encodings[cache_key] = encoding
+            self._encodings[cache_key] = (encoding, label)
         return encoding, label
 
     def measure_text(self, text: str, *, model: str = "") -> TokenMeasurement:
@@ -189,21 +206,22 @@ class TokenBudgetAdapter:
                     model,
                 )
             except Exception:  # noqa: BLE001 - optional optimizer must fail open
-                encoding = None
+                pass
 
         return TokenMeasurement(None, "character-fallback", model)
 
-    def measure_request(self, request: Any) -> TokenMeasurement:
-        model = ""
+    def measure_request(self, request: Any, *, model: str = "") -> TokenMeasurement:
+        request_model = ""
         if isinstance(request, dict):
             value = request.get("model")
             if isinstance(value, str):
-                model = value
+                request_model = value
+        active_model = str(request_model or model or "")
         try:
             serialized = _serialize(request)
         except Exception:  # noqa: BLE001 - measurement must never break a request
-            return TokenMeasurement(None, "character-fallback", model)
-        return self.measure_text(serialized, model=model)
+            return TokenMeasurement(None, "character-fallback", active_model)
+        return self.measure_text(serialized, model=active_model)
 
     def status(self) -> dict[str, Any]:
         usable = self.usable_context_tokens
