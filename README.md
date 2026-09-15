@@ -140,7 +140,7 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 Token Terminator 0.5.2 supersedes 0.5.1 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
-This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.5.1` release tag.
+This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.5.2` release tag.
 
 ### 1. Install RTK when using terminal rewriting
 
