@@ -1,7 +1,24 @@
 # Migration and rollback: 0.2.0 / 0.4.0 / 0.5.0 / 0.5.1 → 0.5.2
 
-Token Terminator 0.5.2 supersedes Token Terminator 0.5.1 and replaces the older RTK Hermes Plus 0.2.0 distribution. Upgrading from 0.4.0 is an ordinary package replacement. Migrating from 0.2.0 is a distribution/plugin rename as well as a package replacement; the two distributions must not coexist.
+Token Terminator 0.5.2 supersedes Token Terminator 0.5.1 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
 
+## 0.5.1 → 0.5.2
+
+v0.5.2 is a normal in-place package upgrade. It adds persistent tokenizer-aware savings accounting, makes `tiktoken` a default dependency, normalizes common provider-qualified OpenAI model IDs for tokenizer lookup, and propagates active model identity into native and temporal savings accounting.
+
+The artifact vault remains compatible. No destructive migration is required, and exact artifacts keep the same content-addressed identities. Character telemetry remains available alongside exact token measurements.
+
+Install the immutable release tag:
+
+```bash
+hermes plugins disable token-terminator
+<hermes-python> -m pip uninstall -y token-terminator
+<hermes-python> -m pip install \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2'
+hermes plugins enable token-terminator --no-allow-tool-override
+```
+
+Start a new Hermes session after the upgrade. `tiktoken` is installed with Token Terminator; Hugging Face `tokenizers` is only needed when you explicitly configure a local `tokenizer.json`.
 
 ## 0.5.0 → 0.5.1 hardening
 
@@ -9,7 +26,7 @@ Token Terminator 0.5.2 supersedes Token Terminator 0.5.1 and replaces the older 
 
 ## Boundary
 
-| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.5.1 |
+| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.5.2 |
 |---|---|---|
 | Distribution | `rtk-hermes-plus` | `token-terminator` |
 | Hermes plugin key | `rtk-plus` | `token-terminator` |
@@ -21,21 +38,19 @@ Token Terminator 0.5.2 supersedes Token Terminator 0.5.1 and replaces the older 
 
 Both distributions own the same Python import package. They must not coexist.
 
-Token Terminator does not migrate or delete 0.2.0 recovery files or experiment data automatically. It uses the content-addressed artifact vault introduced by Token Terminator 0.3.0. Existing 0.4.0 vaults remain usable; 0.5.0 adds temporal-terminal baseline state without replacing exact artifacts or changing their content-addressed identity. Legacy environment aliases remain compatibility fallbacks, with `TOKEN_TERMINATOR_*` taking precedence.
+Token Terminator does not migrate or delete 0.2.0 recovery files or experiment data automatically. It uses the content-addressed artifact vault introduced by Token Terminator 0.3.0. Existing 0.4.0+ vaults remain usable. Legacy environment aliases remain compatibility fallbacks, with `TOKEN_TERMINATOR_*` taking precedence.
 
-## What 0.5.0 adds over 0.4.0
+## What 0.5.0 added over 0.4.0
 
 - temporal delta compression for repeated large terminal observations in `balanced` and `aggressive` modes; commands still execute every time and the current exact output is vaulted before any delta is emitted;
-- optional model-aware token acceptance through tiktoken or an exact Hugging Face `tokenizer.json`, with character-based fail-open fallback;
+- model-aware token acceptance through tiktoken or an exact Hugging Face `tokenizer.json`, with character-based fail-open fallback;
 - explicit output reservation and context safety margin rather than filling a model context window to its edge;
 - deterministic `artifact_peek` and `artifact_find` recovery views while `artifact_get` remains the immutable exact-recovery path;
 - lease-claim rollback when a character-saving compiler candidate is rejected by the active tokenizer.
 
-The tokenizer packages are optional. Install them only when exact alignment is useful for the models you route through Token Terminator.
-
 ## Pre-change record
 
-Run these before the maintenance window and retain the output:
+Run these before a maintenance window and retain the output:
 
 ```bash
 hermes plugins list
@@ -53,14 +68,14 @@ hermes plugins disable rtk-plus
 hermes plugins disable token-terminator
 <hermes-python> -m pip uninstall -y rtk-hermes-plus token-terminator
 <hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2'
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
 
-If you want exact tokenizer alignment, install one or both optional backends in the same environment:
+For a local Hugging Face tokenizer, install the optional backend in the same environment:
 
 ```bash
-<hermes-python> -m pip install tiktoken tokenizers
+<hermes-python> -m pip install tokenizers
 ```
 
 If a release tag cannot be resolved, use the reviewed release commit SHA instead. Never install an unpinned moving branch into a production profile.
@@ -75,11 +90,12 @@ Verify:
 /token-terminator status
 ```
 
-- plugin key is `token-terminator` and version is `0.5.1`;
+- plugin key is `token-terminator` and version is `0.5.2`;
 - `vault_available` is `true`;
 - the selected mode is correct;
 - `temporal_delta` reports whether the feature is enabled and active in the selected mode;
 - `token_budget` reports the configured tokenizer/budget state;
+- `token_accounting` reports exact-tokenizer coverage and measured savings where available;
 - Hermes' existing context engine is still active;
 - an ordinary non-compressible tool call behaves unchanged;
 - a large supported native result receives an artifact receipt;
@@ -89,11 +105,21 @@ Verify:
 
 For a temporal-delta smoke check, run the same large read-only terminal observation twice in one session. The second result may be replaced by a compact no-change/diff receipt only if the provider-visible result is smaller; the command itself must still execute.
 
-The decisive runtime switch is the enabled plugin key. Package installation alone does not activate the plugin for an existing session.
+## Roll back to Token Terminator 0.5.1
+
+Disable 0.5.2 first and reinstall the immutable 0.5.1 tag:
+
+```bash
+hermes plugins disable token-terminator
+<hermes-python> -m pip uninstall -y token-terminator
+<hermes-python> -m pip install \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1'
+hermes plugins enable token-terminator --no-allow-tool-override
+```
+
+The v0.5.1 runtime ignores the newer token-accounting table. Existing exact artifact content remains in the same private vault.
 
 ## Roll back to Token Terminator 0.4.0
-
-Disable 0.5.1 first and reinstall the immutable 0.4.0 tag:
 
 ```bash
 hermes plugins disable token-terminator
@@ -102,8 +128,6 @@ hermes plugins disable token-terminator
   'git+https://github.com/AronAxe/Token-Terminator.git@v0.4.0'
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
-
-The 0.4.0 runtime ignores 0.5.0's additional temporal-baseline table. Exact artifact content remains in the same private vault.
 
 ## Roll back to RTK Hermes Plus 0.2.0
 
@@ -118,5 +142,3 @@ hermes plugins enable rtk-plus --no-allow-tool-override
 ```
 
 Commence a new Hermes session and verify `/rtk-plus status`.
-
-Rollback does not require Hermes core, LCM, transcript, or state-database migration. It also does not delete `<HERMES_HOME>/token-terminator/`; retain that directory for forensic recovery or remove it separately only after confirming it is no longer needed.
