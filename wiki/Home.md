@@ -6,7 +6,7 @@ Token Terminator is an agent-runtime optimization layer that reduces provider-vi
 
 ## Start here
 
-- [Quick Start](Quick-Start) — install v0.5.1 and verify it is active.
+- [Quick Start](Quick-Start) — install v0.5.2 and verify it is active.
 - [Architecture](Architecture) — understand the host/adapter/core boundary.
 - [Modes and Reduction Pipeline](Modes-and-Reduction-Pipeline) — see what each mode enables.
 - [Configuration](Configuration) — all important environment controls.

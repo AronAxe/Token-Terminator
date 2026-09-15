@@ -29,7 +29,7 @@ Or pin the release explicitly:
 
 ```toml
 [dependencies]
-token-terminator = "0.5.1"
+token-terminator = "0.5.2"
 ```
 
 ## Example

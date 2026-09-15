@@ -1,5 +1,9 @@
 # Migration and Rollback
 
+## 0.5.1 → 0.5.2
+
+v0.5.2 adds persistent tokenizer-aware savings accounting and makes `tiktoken` a default dependency. Existing vault data remains compatible; upgrade the package in place and start a new agent session.
+
 ## 0.5.0 → 0.5.1
 
 v0.5.1 is an in-place hardening release. Artifact identity remains compatible. Existing vaults are opened with additive schema management for temporal snapshots and vault metadata.

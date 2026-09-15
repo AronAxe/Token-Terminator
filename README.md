@@ -12,7 +12,8 @@
 
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.5.1"><img alt="Release v0.5.1" src="https://img.shields.io/badge/release-v0.5.1-ef2b25"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.5.2"><img alt="Release v0.5.2" src="https://img.shields.io/badge/release-v0.5.2-ef2b25"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/wiki"><img alt="GitHub Wiki" src="https://img.shields.io/badge/docs-GitHub%20Wiki-181717?logo=github"></a>
   <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/crates/v/token-terminator?logo=rust"></a>
   <a href="https://docs.rs/token-terminator"><img alt="docs.rs" src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>
   <img alt="Python 3.10–3.13" src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB?logo=python&logoColor=white">
@@ -22,6 +23,8 @@
 </p>
 
 Token Terminator is an agent-runtime optimization layer. It removes token bloat at the tool-result and provider-request boundaries without discarding the underlying evidence.
+
+Documentation: see the [GitHub Wiki](https://github.com/AronAxe/Token-Terminator/wiki) for quick start, architecture, configuration, recovery, security, troubleshooting, migration, and release notes.
 
 The engine has five cooperating reduction paths:
 
@@ -64,7 +67,7 @@ This is an optimizer, not a context decorator.
 | Layer | Runtime dependency | Status |
 |---|---|---|
 | Vault, receipts, leases, temporal deltas, native compression, request compiler, telemetry | Agent-agnostic Python | Included |
-| Exact tokenizer alignment | Optional `tiktoken` or Hugging Face `tokenizers` | Included, optional |
+| Exact tokenizer alignment | Built-in `tiktoken`; optional Hugging Face `tokenizers` | Included |
 | Rust artifact interoperability | `token-terminator` Rust crate | Published on crates.io |
 | RTK command rewriting | Optional `rtk` binary plus a terminal-tool adapter | Included |
 | Hermes lifecycle hooks, slash command, and recovery model tool | Hermes Agent | First-party and turnkey |
@@ -135,7 +138,7 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.5.1 supersedes 0.5.0 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.5.2 supersedes 0.5.1 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
 This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.5.1` release tag.
 
@@ -159,7 +162,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2'
 ```
 
 Windows example:
@@ -168,16 +171,16 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2"
 ```
 
-Exact tokenizer alignment is optional. Install `tiktoken` for supported cloud-model tokenizers and/or Hugging Face `tokenizers` when pointing Token Terminator at a local `tokenizer.json`:
+`tiktoken` now ships with Token Terminator and is used automatically for supported OpenAI-family models, including common provider-qualified model IDs. Hugging Face `tokenizers` remains optional when pointing Token Terminator at a local `tokenizer.json`:
 
 ```bash
-"$HERMES_PY" -m pip install tiktoken tokenizers
+"$HERMES_PY" -m pip install tokenizers
 ```
 
-Without either package, Token Terminator retains the character-based strict-reduction invariant.
+When no exact tokenizer is available for a model, Token Terminator keeps the character-based strict-reduction invariant and labels token savings as an estimate instead of presenting them as exact.
 
 ### 3. Enable one plugin
 
@@ -222,7 +225,7 @@ Install the same distribution in the environment that owns your agent loop:
 
 ```bash
 python -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2'
 ```
 
 Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.

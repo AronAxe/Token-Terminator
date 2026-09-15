@@ -1,6 +1,6 @@
 # Quick Start
 
-This page gets a Hermes Agent installation onto Token Terminator **v0.5.1** with the fewest moving parts.
+This page gets a Hermes Agent installation onto Token Terminator **v0.5.2** with the fewest moving parts.
 
 ## 1. Optional: install RTK
 
@@ -24,7 +24,7 @@ hermes plugins disable token-terminator
 
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2'
 
 hermes plugins enable token-terminator --no-allow-tool-override
 ```

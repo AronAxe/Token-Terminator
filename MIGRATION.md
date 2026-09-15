@@ -1,6 +1,6 @@
-# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.0 → 0.5.1
+# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.0 / 0.5.1 → 0.5.2
 
-Token Terminator 0.5.1 supersedes Token Terminator 0.5.0 and replaces the older RTK Hermes Plus 0.2.0 distribution. Upgrading from 0.4.0 is an ordinary package replacement. Migrating from 0.2.0 is a distribution/plugin rename as well as a package replacement; the two distributions must not coexist.
+Token Terminator 0.5.2 supersedes Token Terminator 0.5.1 and replaces the older RTK Hermes Plus 0.2.0 distribution. Upgrading from 0.4.0 is an ordinary package replacement. Migrating from 0.2.0 is a distribution/plugin rename as well as a package replacement; the two distributions must not coexist.
 
 
 ## 0.5.0 → 0.5.1 hardening
