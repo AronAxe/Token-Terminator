@@ -1,0 +1,71 @@
+name: Publish v0.5.2 release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-v052-release.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: b994d5866925624ef0c012a5e9e7e9e577e7331e
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Verify release tree
+        run: |
+          test "$(git rev-parse HEAD)" = "b994d5866925624ef0c012a5e9e7e9e577e7331e"
+          python -m pip install -e '.[dev]'
+          python -m ruff check .
+          python -m ruff format --check .
+          python -m pytest
+          python scripts/benchmark.py --skip-rtk
+          python -m build
+          python -m twine check dist/*
+          python scripts/verify_release.py 'dist/*'
+          python - <<'PY'
+          from pathlib import Path
+          assert '__version__ = "0.5.2"' in Path('src/rtk_hermes_plus/_version.py').read_text()
+          assert 'version = "0.5.2"' in Path('pyproject.toml').read_text()
+          assert 'version = "0.5.2"' in Path('Cargo.toml').read_text()
+          PY
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > /tmp/release-notes.md <<'EOF'
+          ## Token Terminator v0.5.2
+
+          v0.5.2 makes tokenizer-aware savings accounting durable and automatic.
+
+          - Persists exact raw, final, and saved request-token counts when a supported tokenizer is available.
+          - Records model identity and tokenizer-backend provenance and reports exact-token coverage.
+          - Ships `tiktoken` by default and resolves common provider-qualified OpenAI model IDs automatically.
+          - Carries the active model into native and temporal tool-result savings accounting.
+          - Keeps character counts as the deterministic reduction invariant and clearly labels `chars/4` fallbacks as estimates.
+          - Updates migration/install documentation and links the README directly to the live GitHub Wiki.
+          - Keeps the v0.5.1 artifact vault compatible; no destructive migration is required.
+
+          Verification: Python 3.10–3.13, Windows, package/build checks, and Rust CI all pass on the release tree.
+          EOF
+
+          if gh release view v0.5.2 >/dev/null 2>&1; then
+            echo "v0.5.2 release already exists"
+            exit 0
+          fi
+          gh release create v0.5.2 \
+            dist/* \
+            --target b994d5866925624ef0c012a5e9e7e9e577e7331e \
+            --title "Token Terminator v0.5.2" \
+            --notes-file /tmp/release-notes.md
