@@ -1,0 +1,131 @@
+name: Prepare v0.5.2
+
+on:
+  push:
+    branches: [release-v0.5.2]
+    paths:
+      - ".github/workflows/prepare-v052.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: release-v0.5.2
+          fetch-depth: 0
+
+      - name: Update release metadata and docs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, *, required=True):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  if required:
+                      raise SystemExit(f"missing expected text in {path}: {old!r}")
+                  return
+              p.write_text(text.replace(old, new))
+
+          replace("src/rtk_hermes_plus/_version.py", '__version__ = "0.5.1"', '__version__ = "0.5.2"')
+          replace("pyproject.toml", 'version = "0.5.1"', 'version = "0.5.2"')
+          replace("Cargo.toml", 'version = "0.5.1"', 'version = "0.5.2"')
+
+          readme = Path("README.md")
+          text = readme.read_text()
+          text = text.replace("releases/tag/v0.5.1", "releases/tag/v0.5.2")
+          text = text.replace('alt="Release v0.5.1"', 'alt="Release v0.5.2"')
+          text = text.replace("release-v0.5.1-ef2b25", "release-v0.5.2-ef2b25")
+          text = text.replace("Token Terminator 0.5.1 supersedes 0.5.0", "Token Terminator 0.5.2 supersedes 0.5.1")
+          text = text.replace("v0.5.1 release tag", "v0.5.2 release tag")
+          text = text.replace("@v0.5.1", "@v0.5.2")
+          text = text.replace(
+              "| Exact tokenizer alignment | Optional `tiktoken` or Hugging Face `tokenizers` | Included, optional |",
+              "| Exact tokenizer alignment | Built-in `tiktoken`; optional Hugging Face `tokenizers` | Included |",
+          )
+          old_tokenizer = """Exact tokenizer alignment is optional. Install `tiktoken` for supported cloud-model tokenizers and/or Hugging Face `tokenizers` when pointing Token Terminator at a local `tokenizer.json`:\n\n```bash\n\"$HERMES_PY\" -m pip install tiktoken tokenizers\n```\n\nWithout either package, Token Terminator retains the character-based strict-reduction invariant."""
+          new_tokenizer = """`tiktoken` now ships with Token Terminator and is used automatically for supported OpenAI-family models, including common provider-qualified model IDs. Hugging Face `tokenizers` remains optional when pointing Token Terminator at a local `tokenizer.json`:\n\n```bash\n\"$HERMES_PY\" -m pip install tokenizers\n```\n\nWhen no exact tokenizer is available for a model, Token Terminator keeps the character-based strict-reduction invariant and labels token savings as an estimate instead of presenting them as exact."""
+          if old_tokenizer not in text:
+              raise SystemExit("README tokenizer install paragraph changed unexpectedly")
+          text = text.replace(old_tokenizer, new_tokenizer)
+          release_badge = '  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.5.2"><img alt="Release v0.5.2" src="https://img.shields.io/badge/release-v0.5.2-ef2b25"></a>\n'
+          wiki_badge = '  <a href="https://github.com/AronAxe/Token-Terminator/wiki"><img alt="GitHub Wiki" src="https://img.shields.io/badge/docs-GitHub%20Wiki-181717?logo=github"></a>\n'
+          if wiki_badge not in text:
+              if release_badge not in text:
+                  raise SystemExit("README release badge not found")
+              text = text.replace(release_badge, release_badge + wiki_badge, 1)
+          docs_line = "Documentation: see the [GitHub Wiki](https://github.com/AronAxe/Token-Terminator/wiki) for quick start, architecture, configuration, recovery, security, troubleshooting, migration, and release notes.\n\n"
+          anchor = "Token Terminator is an agent-runtime optimization layer. It removes token bloat at the tool-result and provider-request boundaries without discarding the underlying evidence.\n\n"
+          if docs_line not in text:
+              if anchor not in text:
+                  raise SystemExit("README introduction anchor not found")
+              text = text.replace(anchor, anchor + docs_line, 1)
+          readme.write_text(text)
+
+          changelog = Path("CHANGELOG.md")
+          text = changelog.read_text()
+          entry = """## 0.5.2 - 2026-09-15\n\n- Added durable tokenizer-aware request accounting with exact raw/final/saved token counts, model identity, tokenizer backend provenance, coverage reporting, and persistent per-request metrics.\n- Made `tiktoken` a default Python dependency and normalized common provider-qualified OpenAI model IDs so supported models are measured automatically without manual tokenizer configuration.\n- Propagated the active session model into native and temporal tool-result accounting so those reductions can be measured with the correct tokenizer instead of silently falling back to characters.\n- Kept character counts as the deterministic reduction invariant and audit trail while clearly separating exact-tokenizer savings from explicitly labelled `chars/4` fallback estimates.\n- Linked the README to the source-controlled GitHub Wiki and synchronized current install, migration, Rust interoperability, and release documentation for v0.5.2.\n\n"""
+          if "## 0.5.2 - 2026-09-15" not in text:
+              text = text.replace("# Changelog\n\n", "# Changelog\n\n" + entry, 1)
+          changelog.write_text(text)
+
+          migration = Path("MIGRATION.md")
+          text = migration.read_text()
+          text = text.replace(
+              "# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.0 → 0.5.1",
+              "# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.0 / 0.5.1 → 0.5.2",
+          )
+          text = text.replace(
+              "Token Terminator 0.5.1 supersedes Token Terminator 0.5.0",
+              "Token Terminator 0.5.2 supersedes Token Terminator 0.5.1",
+          )
+          section = """## 0.5.1 → 0.5.2\n\nv0.5.2 is a normal in-place package upgrade. It adds persistent tokenizer-aware savings accounting and installs `tiktoken` by default. Existing artifact-vault data remains compatible; no destructive migration is required. Character telemetry remains available alongside the new exact-token measurements.\n\n"""
+          marker = "## 0.5.0 → 0.5.1\n"
+          if "## 0.5.1 → 0.5.2" not in text and marker in text:
+              text = text.replace(marker, section + marker, 1)
+          migration.write_text(text)
+
+          for path in ("docs/RUST_CRATE.md", "wiki/Rust-Interoperability.md"):
+              p = Path(path)
+              p.write_text(p.read_text().replace('token-terminator = "0.5.1"', 'token-terminator = "0.5.2"'))
+
+          p = Path("wiki/Quick-Start.md")
+          p.write_text(p.read_text().replace("v0.5.1", "v0.5.2").replace("0.5.1", "0.5.2"))
+
+          p = Path("wiki/Home.md")
+          text = p.read_text().replace("install v0.5.1", "install v0.5.2")
+          text = text.replace("[Release 0.5.1](Release-0.5.1)", "[Release 0.5.2](Release-0.5.2) · [Release 0.5.1](Release-0.5.1)")
+          p.write_text(text)
+
+          p = Path("wiki/_Sidebar.md")
+          text = p.read_text()
+          if "[Release 0.5.2](Release-0.5.2)" not in text:
+              text = text.replace("- [Release 0.5.1](Release-0.5.1)", "- [Release 0.5.2](Release-0.5.2)\n- [Release 0.5.1](Release-0.5.1)")
+          p.write_text(text)
+
+          p = Path("wiki/_Footer.md")
+          p.write_text(p.read_text().replace("Token Terminator v0.5.1", "Token Terminator v0.5.2"))
+
+          p = Path("wiki/Migration-and-Rollback.md")
+          text = p.read_text()
+          section = """## 0.5.1 → 0.5.2\n\nv0.5.2 adds persistent tokenizer-aware savings accounting and makes `tiktoken` a default dependency. Existing vault data remains compatible; upgrade the package in place and start a new agent session.\n\n"""
+          marker = "## 0.5.0 → 0.5.1\n"
+          if "## 0.5.1 → 0.5.2" not in text and marker in text:
+              text = text.replace(marker, section + marker, 1)
+          p.write_text(text)
+
+          Path("wiki/Release-0.5.2.md").write_text("""# Release 0.5.2\n\n**Date:** 2026-09-15\n\nv0.5.2 turns tokenizer-aware acceptance into durable tokenizer-aware accounting. Token Terminator now records exact raw, final, and saved request tokens whenever a supported tokenizer is available, together with model and tokenizer-backend provenance.\n\n## Highlights\n\n- Persistent per-request exact token savings and tokenizer coverage reporting.\n- `tiktoken` installed by default for automatic supported OpenAI-family measurement.\n- Provider-qualified OpenAI model names normalized for tokenizer lookup.\n- Active model identity propagated into native and temporal compression accounting.\n- Character counts retained as the deterministic reduction invariant and audit trail.\n- Explicit `chars/4` fallback labelling where no exact tokenizer is available.\n- README now links directly to this GitHub Wiki.\n\n## Compatibility\n\nThe artifact vault remains compatible with v0.5.1. No destructive data migration is required. The public Python import package remains `rtk_hermes_plus`.\n""")
+          PY
+
+      - name: Commit prepared release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md CHANGELOG.md MIGRATION.md Cargo.toml pyproject.toml src/rtk_hermes_plus/_version.py docs/RUST_CRATE.md wiki
+          git commit -m "release: prepare v0.5.2"
+          git push origin HEAD:release-v0.5.2
