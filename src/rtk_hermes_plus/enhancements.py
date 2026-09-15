@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import uuid
 from typing import Any
 
 from .compiler import CompileResult, RequestCompiler
@@ -9,6 +10,7 @@ from .context_compactor import CompactionResult, ContextCompactor
 from .plugin import Runtime as BaseRuntime
 from .recovery_views import artifact_find, artifact_peek
 from .temporal import TemporalDeltaReducer
+from .token_accounting import RequestTokenAccounting
 from .token_budget import TokenBudgetAdapter
 
 logger = logging.getLogger(__name__)
@@ -111,7 +113,9 @@ class RuntimeV05(BaseRuntime):
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.token_budget = TokenBudgetAdapter()
+        self.token_accounting = RequestTokenAccounting(self.store)
         self.temporal = TemporalDeltaReducer(self.store, self.metrics)
+        self._session_models: dict[str, str] = {}
 
         if (
             self.store is not None
@@ -129,6 +133,71 @@ class RuntimeV05(BaseRuntime):
                 self.context_compactor,
                 self.token_budget,
             )
+
+    def _sync_token_budget(self) -> None:
+        if isinstance(self.compiler, TokenAwareRequestCompiler):
+            self.compiler.token_budget = self.token_budget
+        if isinstance(self.context_compactor, TokenAwareContextCompactor):
+            self.context_compactor.token_budget = self.token_budget
+
+    def _model_for(self, session_id: str = "", request: Any = None) -> str:
+        if isinstance(request, dict):
+            value = request.get("model")
+            if isinstance(value, str) and value:
+                return value
+        return self._session_models.get(str(session_id or ""), "")
+
+    def pre_llm_call(
+        self,
+        *,
+        session_id: str = "",
+        model: str = "",
+        **kwargs: Any,
+    ) -> None:
+        if session_id and model:
+            self._session_models[str(session_id)] = str(model)
+        super().pre_llm_call(session_id=session_id, model=model, **kwargs)
+
+    def on_session_finalize(self, *, session_id: str = "", **kwargs: Any) -> None:
+        try:
+            super().on_session_finalize(session_id=session_id, **kwargs)
+        finally:
+            self._session_models.pop(str(session_id or ""), None)
+
+    def _record_native(
+        self,
+        *,
+        session_id: str = "",
+        turn_id: str = "",
+        raw_chars: int,
+        output_chars: int,
+        raw_text: str = "",
+        output_text: str = "",
+        model: str = "",
+    ) -> None:
+        self._ensure_ledger_session(session_id)
+        active_model = str(model or self._model_for(session_id))
+        raw_tokens = 0
+        output_tokens = 0
+        token_measurements = 0
+        if raw_text and output_text:
+            raw_measurement = self.token_budget.measure_text(raw_text, model=active_model)
+            output_measurement = self.token_budget.measure_text(
+                output_text, model=active_model
+            )
+            if raw_measurement.available and output_measurement.available:
+                raw_tokens = int(raw_measurement.tokens or 0)
+                output_tokens = int(output_measurement.tokens or 0)
+                token_measurements = 1
+        self.ledger.record_native(
+            session_id=session_id,
+            turn_id=turn_id,
+            raw_chars=raw_chars,
+            output_chars=output_chars,
+            raw_tokens=raw_tokens,
+            output_tokens=output_tokens,
+            token_measurements=token_measurements,
+        )
 
     def _temporal_transform(
         self, *, tool_name: str, args: dict, result: str, **kwargs: Any
@@ -163,23 +232,59 @@ class RuntimeV05(BaseRuntime):
         )
 
     def llm_request_middleware(self, *, request: dict, **kwargs: Any):
-        decision = super().llm_request_middleware(request=request, **kwargs)
+        if not isinstance(request, dict):
+            return super().llm_request_middleware(request=request, **kwargs)
+
+        self._sync_token_budget()
+        session_id = str(kwargs.get("session_id") or "")
+        model = self._model_for(session_id, request)
+        if session_id and model:
+            self._session_models[session_id] = model
+
+        call_kwargs = dict(kwargs)
+        request_id = str(
+            call_kwargs.get("api_request_id") or call_kwargs.get("request_id") or ""
+        )
+        if not request_id:
+            request_id = f"tt-{uuid.uuid4().hex}"
+            call_kwargs["request_id"] = request_id
+
+        raw = self.token_budget.measure_request(request, model=model)
+        decision = super().llm_request_middleware(request=request, **call_kwargs)
+        final_request = decision.get("request") if decision is not None else request
+        final = self.token_budget.measure_request(final_request, model=model)
+        token_recorded = self.token_accounting.record(
+            session_id=session_id,
+            request_id=request_id,
+            raw=raw,
+            final=final,
+        )
+
         if decision is None:
             return None
 
-        raw = self.token_budget.measure_request(request)
-        final = self.token_budget.measure_request(decision.get("request"))
         metrics = decision.setdefault("metrics", {})
         metrics["tokenizer_backend"] = final.backend
+        metrics["tokenizer_model"] = final.model or raw.model
+        metrics["token_measurement_persisted"] = token_recorded
         if raw.tokens is not None and final.tokens is not None:
             metrics.update(
                 {
                     "raw_tokens": raw.tokens,
                     "final_tokens": final.tokens,
                     "saved_tokens": raw.tokens - final.tokens,
+                    "token_savings_source": "exact-tokenizer",
                 }
             )
             decision["reason"] = "strictly smaller final provider request (token-aware)"
+        else:
+            saved_chars = int(metrics.get("saved_chars") or 0)
+            metrics.update(
+                {
+                    "estimated_saved_tokens": round(saved_chars / 4),
+                    "token_savings_source": "chars/4-fallback",
+                }
+            )
 
         usable = self.token_budget.usable_context_tokens
         if usable is not None:
@@ -253,6 +358,7 @@ class RuntimeV05(BaseRuntime):
         }
         status["temporal_delta"] = temporal_status
         status["token_budget"] = self.token_budget.status()
+        status["token_accounting"] = self.token_accounting.summary()
         return status
 
 
