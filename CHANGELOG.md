@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.2 - 2026-09-15
+
+- Added durable tokenizer-aware request accounting with exact raw/final/saved token counts, model identity, tokenizer backend provenance, coverage reporting, and persistent per-request metrics.
+- Made `tiktoken` a default Python dependency and normalized common provider-qualified OpenAI model IDs so supported models are measured automatically without manual tokenizer configuration.
+- Propagated the active session model into native and temporal tool-result accounting so those reductions can be measured with the correct tokenizer instead of silently falling back to characters.
+- Kept character counts as the deterministic reduction invariant and audit trail while clearly separating exact-tokenizer savings from explicitly labelled `chars/4` fallback estimates.
+- Linked the README to the source-controlled GitHub Wiki and synchronized current install, migration, Rust interoperability, and release documentation for v0.5.2.
+
 ## 0.5.1 - 2026-09-12
 
 - Added capacity-managed vault retention with O(1) byte accounting, configurable high/low watermarks, protected temporal baselines, pruning telemetry, and status reporting instead of a permanent hard-wall failure.

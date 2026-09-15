@@ -21,4 +21,5 @@
 **Development**
 - [Rust Interoperability](Rust-Interoperability)
 - [Developer Guide](Developer-Guide)
+- [Release 0.5.2](Release-0.5.2)
 - [Release 0.5.1](Release-0.5.1)
