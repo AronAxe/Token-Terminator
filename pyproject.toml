@@ -10,7 +10,10 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{name = "Aron Bijl"}]
-dependencies = ["tomli>=2.0; python_version < '3.11'"]
+dependencies = [
+  "tiktoken>=0.12",
+  "tomli>=2.0; python_version < '3.11'",
+]
 keywords = ["hermes-agent", "rtk", "llm", "token-savings", "context-compression", "artifact-vault"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -22,8 +25,8 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-token-budget = ["tiktoken>=0.12", "tokenizers>=0.21"]
-dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "tiktoken>=0.12", "tokenizers>=0.21", "twine>=5"]
+token-budget = ["tokenizers>=0.21"]
+dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "tokenizers>=0.21", "twine>=5"]
 
 [project.scripts]
 token-terminator = "rtk_hermes_plus.cli:main"
