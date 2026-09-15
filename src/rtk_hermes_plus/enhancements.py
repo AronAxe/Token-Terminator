@@ -181,7 +181,9 @@ class RuntimeV05(BaseRuntime):
         output_tokens = 0
         token_measurements = 0
         if raw_text and output_text:
-            raw_measurement = self.token_budget.measure_text(raw_text, model=active_model)
+            raw_measurement = self.token_budget.measure_text(
+                raw_text, model=active_model
+            )
             output_measurement = self.token_budget.measure_text(
                 output_text, model=active_model
             )
