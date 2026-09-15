@@ -1,0 +1,38 @@
+name: Run v0.5.2 release prep
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/run-v052-prep.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Load deterministic prep script
+        run: |
+          git fetch origin release-v0.5.2
+          git show origin/release-v0.5.2:.github/workflows/prepare-v052.yml > /tmp/prepare-v052.yml
+          python - <<'PYRUN'
+          from pathlib import Path
+          text = Path('/tmp/prepare-v052.yml').read_text()
+          marker = "python - <<'PY'\n"
+          block = text.split(marker, 1)[1].split("\n          PY\n", 1)[0]
+          script = "\n".join(line[10:] if line.startswith("          ") else line for line in block.splitlines())
+          exec(compile(script, 'prepare-v052', 'exec'))
+          PYRUN
+      - name: Commit release preparation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md CHANGELOG.md MIGRATION.md Cargo.toml pyproject.toml src/rtk_hermes_plus/_version.py docs/RUST_CRATE.md wiki
+          git commit -m "release: prepare v0.5.2"
+          git push origin HEAD:main
