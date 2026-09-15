@@ -42,7 +42,9 @@ class _DeterministicBudget:
 
     def measure_text(self, text, *, model=""):
         self.text_models.append(str(model or ""))
-        return TokenMeasurement(max(1, len(text) // 3), "test-tokenizer", str(model or ""))
+        return TokenMeasurement(
+            max(1, len(text) // 3), "test-tokenizer", str(model or "")
+        )
 
     def status(self):
         return {"enabled": True, "backend": "test-tokenizer"}
