@@ -96,9 +96,13 @@ class RuntimeV06(RuntimeV05):
             request=routed_request,
             **call_kwargs,
         )
-        final_request = decision.get("request") if decision is not None else routed_request
+        final_request = (
+            decision.get("request") if decision is not None else routed_request
+        )
 
-        final_measurement = self.token_budget.measure_request(final_request, model=model)
+        final_measurement = self.token_budget.measure_request(
+            final_request, model=model
+        )
         # RuntimeV05 has already recorded routed->final. Replace that same
         # request identity with the true original->final measurement so v0.6
         # savings include SkillGate rather than double-accounting around it.
@@ -152,7 +156,9 @@ class RuntimeV06(RuntimeV05):
         else:
             metrics.update(
                 {
-                    "estimated_saved_tokens": round(max(0, raw_chars - final_chars) / 4),
+                    "estimated_saved_tokens": round(
+                        max(0, raw_chars - final_chars) / 4
+                    ),
                     "token_savings_source": "chars/4-fallback",
                 }
             )
