@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.5.2"><img alt="Release v0.5.2" src="https://img.shields.io/badge/release-v0.5.2-ef2b25"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.6.0"><img alt="Release v0.6.0" src="https://img.shields.io/badge/release-v0.6.0-ef2b25"></a>
   <a href="https://github.com/AronAxe/Token-Terminator/wiki"><img alt="GitHub Wiki" src="https://img.shields.io/badge/docs-GitHub%20Wiki-181717?logo=github"></a>
   <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/crates/v/token-terminator?logo=rust"></a>
   <a href="https://docs.rs/token-terminator"><img alt="docs.rs" src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>
@@ -26,13 +26,14 @@ Token Terminator is an agent-runtime optimization layer. It removes token bloat 
 
 Documentation: see the [GitHub Wiki](https://github.com/AronAxe/Token-Terminator/wiki) for quick start, architecture, configuration, recovery, security, troubleshooting, migration, and release notes.
 
-The engine has five cooperating reduction paths:
+The engine has six cooperating reduction paths:
 
 1. transparent terminal-command rewriting through [RTK](https://github.com/rtk-ai/rtk);
 2. temporal delta compression for repeated terminal observations, after the command has actually executed;
 3. deterministic compression of large tool results;
 4. content-addressed vaulting, duplicate collapse, evidence leases, compact recovery receipts, and deterministic layered recovery views;
-5. final provider-request compilation, with model-aware token acceptance when an exact tokenizer is available and optional bounded working-state injection only when the complete request is still smaller.
+5. SkillGate routing that keeps only prompt-relevant skill index entries while preserving on-demand discovery;
+6. final provider-request compilation, with model-aware token acceptance when an exact tokenizer is available and optional bounded working-state injection only when the complete request is still smaller.
 
 The reduction core is not intrinsically tied to Hermes: it operates on Python dictionaries, strings, stable request/session identifiers, and a local SQLite vault. The repository includes a turnkey Hermes plugin because Hermes exposes the required lifecycle hooks. Other agent runtimes need a small adapter that presents the same boundaries; they do not need a fork of the reduction engine.
 
@@ -43,11 +44,12 @@ It does **not** replace the host's context engine, memory system, transcript sto
 ## What it does
 
 - **Shrinks before the model sees it.** Large tool output is compacted, repeated terminal observations can become exact-recoverable deltas, and repeated evidence is replaced with bounded receipts.
+- **Routes skills before generation.** Large Hermes skill indexes are reduced to every entry that clears the relevance threshold; there is no hard skill-count cap by default, and omitted skills remain discoverable through `skills_list`/`skill_view`.
 - **Keeps the original evidence.** Exact content is stored in a private, content-addressed SQLite vault and can be recovered exactly, previewed deterministically, or searched without returning the whole artifact.
 - **Compiles the final request.** Duplicate artifacts, expired inline exposures, and old context are reduced after the host assembles the provider payload.
 - **Aligns with the active tokenizer when possible.** A configured Hugging Face `tokenizer.json` or tiktoken backend adds a second acceptance gate; unavailable tokenizers fall back to the established character invariant.
 - **Refuses bad optimizations.** A transformed payload is used only when it is strictly smaller, recoverable, provider-valid, and leaves caller-owned objects untouched.
-- **Measures the result.** Content-free request/session telemetry separates compiler, compactor, and end-to-end savings.
+- **Measures the result.** Content-free request/session telemetry separates compiler, compactor, and end-to-end savings and attributes raw/final token cost across instructions, skill catalogs, tool schemas, tool results, the current user turn, prior history, other fields, and request framing.
 
 ## Core invariant
 
@@ -85,9 +87,11 @@ This is an optimizer, not a context decorator.
 | Aggressive structured reads | Large `read_file` results | ✓ |
 | Same-request duplicate collapse | Repeated large tool artifacts | ✓ |
 | Cross-request evidence leases | Previously exposed large artifacts | ✓ |
+| SkillGate | Prompt-relevant entries from large Hermes skill indexes | on-demand discovery |
 | Request compiler | Final provider request, after normal Hermes context assembly | ✓ |
 | Token-aware acceptance gate | Complete request when an exact tokenizer is available | n/a |
 | Bounded working state | Optional request-selection aid; disabled by default | n/a |
+| Request component attribution | Raw/final token cost by request component | content-free |
 | Experiment ledger | Request/session savings and mode comparison | content-free |
 
 The Python import package remains `rtk_hermes_plus` for source compatibility. The public distribution, Hermes plugin, CLI, slash command, model tool, environment namespace, and repository are Token Terminator.
@@ -140,7 +144,7 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 Token Terminator 0.5.2 supersedes 0.5.1 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
-This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.5.2` release tag.
+This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.6.0` release tag.
 
 ### 1. Install RTK when using terminal rewriting
 
@@ -162,7 +166,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.6.0'
 ```
 
 Windows example:
@@ -171,7 +175,7 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.6.0"
 ```
 
 `tiktoken` now ships with Token Terminator and is used automatically for supported OpenAI-family models, including common provider-qualified model IDs. Hugging Face `tokenizers` remains optional when pointing Token Terminator at a local `tokenizer.json`:
@@ -225,7 +229,7 @@ Install the same distribution in the environment that owns your agent loop:
 
 ```bash
 python -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.6.0'
 ```
 
 Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.
@@ -395,7 +399,7 @@ Inside Hermes:
 
 The process-local metrics contain bounded counters and character totals. Durable request metrics separate compiler-stage savings (`raw_chars - compiled_chars`), context-compactor savings (`compiled_chars - final_chars`), and measured end-to-end savings (`raw_chars - final_chars`). Compiler-only rows are reported separately from requests whose final provider payload was observed. These columns are an additive schema-2 extension so a rollback to the original 0.3.0 package can still open and write the database. If that legacy writer updates a measured identity, a database trigger clears the newer fields so status reports the row as unmeasured rather than retaining stale end-to-end telemetry.
 
-When exact token measurement is available, provider-request decisions also report the tokenizer backend and raw/final/saved token counts. A configured context limit reports the usable budget after the output reservation and safety margin; it does not authorize Token Terminator to silently truncate a request.
+When exact token measurement is available, provider-request decisions also report the tokenizer backend and raw/final/saved token counts. v0.6.0 additionally persists component-level raw/final token attribution and SkillGate savings without storing prompt or skill content. A configured context limit reports the usable budget after the output reservation and safety margin; it does not authorize Token Terminator to silently truncate a request.
 
 The durable experiment ledger stores session/turn identifiers, mode/model labels, token/cost totals, transformation counts, and salted local prompt fingerprints. It does not store command strings, prompts, or tool contents.
 

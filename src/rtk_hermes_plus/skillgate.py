@@ -190,13 +190,17 @@ class SkillGateResult:
 
 
 class SkillGate:
-    """Route large skill catalogs down to the few entries relevant this turn.
+    """Route large skill catalogs down to the entries relevant this turn.
 
     SkillGate recognizes Hermes-style ``<available_skills>`` blocks in trusted
     system/developer instruction fields. It never rewrites user, assistant, or
     tool content that merely quotes the same tag. Routing activates only when
     both ``skills_list`` and ``skill_view`` are provider-visible so filtered
     skills remain discoverable on demand.
+
+    There is no skill-count ceiling by default: every skill whose score clears
+    ``min_score`` is retained. ``max_skills`` is an explicit opt-in cap for hosts
+    with their own bounded-context requirements.
 
     The default scorer is deterministic lexical-IDF. A future tiny learned
     reranker can be injected through ``scorer`` without changing the middleware.
@@ -207,7 +211,7 @@ class SkillGate:
         token_budget: TokenBudgetAdapter,
         *,
         enabled: bool = True,
-        max_skills: int = 4,
+        max_skills: int | None = None,
         min_score: float = 2.0,
         min_catalog_skills: int = 8,
         always_keep: tuple[str, ...] = (),
@@ -215,7 +219,7 @@ class SkillGate:
     ) -> None:
         self.token_budget = token_budget
         self.enabled = bool(enabled)
-        self.max_skills = max(1, int(max_skills))
+        self.max_skills = None if max_skills is None else max(1, int(max_skills))
         self.min_score = max(0.0, float(min_score))
         self.min_catalog_skills = max(1, int(min_catalog_skills))
         self.always_keep = frozenset(name.casefold() for name in always_keep if name)
@@ -312,7 +316,10 @@ class SkillGate:
             if score >= self.min_score:
                 scored.append((score, entry.name.casefold(), entry))
         scored.sort(key=lambda item: (-item[0], item[1]))
-        return [item[2] for item in scored[: self.max_skills]]
+        selected = [item[2] for item in scored]
+        if self.max_skills is None:
+            return selected
+        return selected[: self.max_skills]
 
     @staticmethod
     def _render(entries: list[SkillEntry], *, total: int) -> str:

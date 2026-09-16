@@ -184,3 +184,15 @@ def test_user_quoted_skill_catalog_is_never_rewritten():
     assert result.changed is True
     assert result.request["messages"][1]["content"] == original_user
     assert result.request["messages"][0]["content"] != request["messages"][0]["content"]
+
+
+def test_default_router_has_no_skill_count_ceiling():
+    gate = SkillGate(_Budget(), min_score=0.1)
+    gate.set_scorer(lambda _prompt, _skill: 1.0)
+    entries = gate._parse(_catalog().split("<available_skills>", 1)[1].split("</available_skills>", 1)[0])
+
+    selected = gate._select("Use every relevant skill.", entries)
+
+    assert gate.max_skills is None
+    assert len(entries) == 8
+    assert len(selected) == 8
