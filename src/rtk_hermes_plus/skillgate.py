@@ -140,7 +140,7 @@ class SkillEntry:
 
     @property
     def searchable(self) -> str:
-        return " ".join((self.name, self.category, self.description)).strip()
+        return f"{self.name} {self.category} {self.description}".strip()
 
 
 @dataclass(frozen=True)
