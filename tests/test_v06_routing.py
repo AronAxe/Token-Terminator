@@ -148,13 +148,19 @@ def test_runtime_persists_original_to_final_attribution(tmp_path):
     assert token_row is not None
     assert token_row["raw_tokens"] == raw_tokens
     assert token_row["final_tokens"] < token_row["raw_tokens"]
-    assert token_row["saved_tokens"] == token_row["raw_tokens"] - token_row["final_tokens"]
+    assert (
+        token_row["saved_tokens"]
+        == token_row["raw_tokens"] - token_row["final_tokens"]
+    )
     assert skill_row is not None
     assert skill_row["raw_tokens"] > skill_row["final_tokens"]
 
     status = runtime.status()
     assert status["request_attribution"]["requests"] == 1
-    assert status["request_attribution"]["components"]["skill_catalog"]["saved_tokens"] > 0
+    assert (
+        status["request_attribution"]["components"]["skill_catalog"]["saved_tokens"]
+        > 0
+    )
     assert status["skill_gate"]["scorer"] == "lexical-idf"
 
 
