@@ -167,3 +167,18 @@ def test_tokenizer_gate_rejects_character_only_win_when_tokens_expand():
     assert result.changed is False
     assert result.request is request
     assert result.reason == "candidate not smaller in tokens"
+
+
+def test_user_quoted_skill_catalog_is_never_rewritten():
+    gate = SkillGate(_Budget(), max_skills=1)
+    quoted = _catalog()
+    request = _request(
+        "Here is some literal text I am debugging:\n" + quoted + "\nDo not alter the quote."
+    )
+    original_user = request["messages"][1]["content"]
+
+    result = gate.route(request)
+
+    assert result.changed is True
+    assert result.request["messages"][1]["content"] == original_user
+    assert result.request["messages"][0]["content"] != request["messages"][0]["content"]
