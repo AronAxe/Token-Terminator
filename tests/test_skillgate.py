@@ -173,7 +173,9 @@ def test_user_quoted_skill_catalog_is_never_rewritten():
     gate = SkillGate(_Budget(), max_skills=1)
     quoted = _catalog()
     request = _request(
-        "Here is some literal text I am debugging:\n" + quoted + "\nDo not alter the quote."
+        "Here is some literal text I am debugging:\n"
+        + quoted
+        + "\nDo not alter the quote."
     )
     original_user = request["messages"][1]["content"]
 
