@@ -397,7 +397,9 @@ class SkillGate:
         for key in _INSTRUCTION_KEYS:
             if key not in candidate:
                 continue
-            routed, count, chosen = self._route_instruction_value(candidate[key], prompt)
+            routed, count, chosen = self._route_instruction_value(
+                candidate[key], prompt
+            )
             candidate[key] = routed
             total += count
             selected.extend(chosen)
