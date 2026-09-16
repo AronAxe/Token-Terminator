@@ -1,0 +1,53 @@
+name: Publish Rust crate
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git tag or commit to publish
+        required: true
+        default: v0.6.0
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-rust-crate-${{ github.event.release.tag_name || inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'AronAxe/Token-Terminator'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@1.78.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify crate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+          RUSTDOCFLAGS='-D warnings' cargo doc --no-deps
+          rm -f Cargo.lock
+          cargo publish --dry-run
+
+      - name: Authenticate with crates.io
+        id: crates-io
+        uses: rust-lang/crates-io-auth-action@v1
+
+      - name: Publish crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-io.outputs.token }}
+        run: cargo publish
