@@ -1,0 +1,47 @@
+name: Fix crates badge v0.6.0
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/fix-crates-badge-v060.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.repository == 'AronAxe/Token-Terminator'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Pin crates.io badge to v0.6.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('README.md')
+          text = path.read_text()
+          old = 'https://img.shields.io/crates/v/token-terminator?logo=rust'
+          new = 'https://img.shields.io/badge/crates.io-v0.6.0-orange?logo=rust'
+          if old in text:
+              path.write_text(text.replace(old, new, 1))
+          elif new not in text:
+              raise SystemExit('Expected crates.io badge URL not found')
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md
+          if git diff --cached --quiet; then
+            echo 'Badge already pinned to v0.6.0.'
+          else
+            git commit -m 'docs: pin crates.io badge to v0.6.0'
+            git push origin HEAD:main
+          fi
