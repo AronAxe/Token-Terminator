@@ -26,6 +26,12 @@ A transformation is accepted only when it is safer than passing the original thr
 
 Temporal terminal reduction adds one more rule: **the command still executes every time**. Only the representation shown to the model may become a smaller delta.
 
+## What v0.6.0 adds
+
+v0.6.0 prevents more prompt bloat before provider dispatch. Request attribution now shows where input tokens come from, and SkillGate reduces large Hermes `<available_skills>` indexes to the entries relevant to the current user request while keeping omitted skills discoverable on demand.
+
+SkillGate has **no hard skill-count ceiling by default**: every entry above the relevance threshold survives. The deterministic lexical-IDF scorer is the bootstrap implementation; a pluggable scorer interface is ready for a tiny learned/local reranker. Routing is fail-open and only touches trusted system/developer instruction fields.
+
 ## What v0.5.2 adds
 
 v0.5.2 makes tokenizer-aware savings durable rather than transient: exact raw, final, and saved request-token counts are persisted with model and tokenizer-backend provenance whenever a supported tokenizer is available. `tiktoken` now ships by default for supported OpenAI-family models, active model identity is propagated into native and temporal accounting, and fallback estimates are explicitly labelled instead of being mixed with exact measurements. See [Release 0.5.2](Release-0.5.2).
@@ -36,7 +42,7 @@ v0.5.1 is the post-0.5.0 hardening release. It adds bounded vault lifecycle mana
 
 ## Current release
 
-- Python package/release: **v0.5.2**
+- Python package/release: **v0.6.0**
 - Python support: **3.10–3.13**
-- Rust interoperability crate: **token-terminator 0.5.2**
+- Rust interoperability crate: **token-terminator 0.6.0**
 - First-party runtime adapter: **Hermes Agent**

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 - 2026-09-16
+
+- Added content-free component-level request token attribution for instructions, skill catalogs, tool schemas, tool results, the current user turn, prior history, other fields, and request framing, with raw/final token and character totals.
+- Added SkillGate routing for Hermes-style `<available_skills>` indexes so irrelevant skill metadata can be removed before the expensive model sees it while omitted skills remain discoverable through `skills_list` and `skill_view`.
+- Kept SkillGate fail-open: it runs only when both discovery tools are provider-visible, never rewrites user/tool/history content, preserves caller immutability, and accepts a routed payload only when the complete request is strictly smaller.
+- Removed the default SkillGate count ceiling. Every skill above the relevance threshold is retained; `max_skills` is now an explicit opt-in host constraint rather than a Token Terminator default.
+- Added a pluggable `(prompt, skill) -> relevance` scorer boundary so a tiny trained/local reranker can replace the deterministic lexical-IDF bootstrap without changing middleware plumbing.
+- Updated Python and Rust package metadata, install docs, migration notes, and the source-controlled GitHub Wiki for v0.6.0.
+
 ## 0.5.2 - 2026-09-15
 
 - Added durable tokenizer-aware request accounting with exact raw/final/saved token counts, model identity, tokenizer backend provenance, coverage reporting, and persistent per-request metrics.

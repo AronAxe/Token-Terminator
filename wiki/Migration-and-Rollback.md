@@ -1,5 +1,9 @@
 # Migration and Rollback
 
+## 0.5.2 → 0.6.0
+
+Normal in-place upgrade. v0.6.0 adds component-level request attribution and fail-open SkillGate routing. Existing vault content remains valid. SkillGate has no default count cap: all skills above the relevance threshold survive, while filtered skills remain available through `skills_list` and `skill_view`.
+
 ## 0.5.1 → 0.5.2
 
 v0.5.2 adds persistent tokenizer-aware savings accounting and makes `tiktoken` a default dependency. Existing vault data remains compatible; upgrade the package in place and start a new agent session.

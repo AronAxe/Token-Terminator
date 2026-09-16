@@ -1,6 +1,22 @@
-# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.0 / 0.5.1 → 0.5.2
+# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.x → 0.6.0
 
-Token Terminator 0.5.2 supersedes Token Terminator 0.5.1 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
+Token Terminator 0.6.0 supersedes Token Terminator 0.5.2 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
+
+## 0.5.2 → 0.6.0
+
+v0.6.0 is a normal in-place upgrade. It adds component-level request attribution and SkillGate routing. The artifact vault and content-addressed identities remain compatible; the new attribution table is additive and stores metrics only, not prompt or skill text.
+
+SkillGate has no hard skill-count ceiling by default. It retains every skill above the relevance threshold, runs only when `skills_list` and `skill_view` remain provider-visible, and passes the original request through when routing cannot be proven smaller.
+
+Install the immutable release tag:
+
+```bash
+hermes plugins disable token-terminator
+<hermes-python> -m pip uninstall -y token-terminator
+<hermes-python> -m pip install \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.6.0'
+hermes plugins enable token-terminator --no-allow-tool-override
+```
 
 ## 0.5.1 → 0.5.2
 
@@ -14,7 +30,7 @@ Install the immutable release tag:
 hermes plugins disable token-terminator
 <hermes-python> -m pip uninstall -y token-terminator
 <hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.6.0'
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
 
@@ -26,7 +42,7 @@ Start a new Hermes session after the upgrade. `tiktoken` is installed with Token
 
 ## Boundary
 
-| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.5.2 |
+| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.6.0 |
 |---|---|---|
 | Distribution | `rtk-hermes-plus` | `token-terminator` |
 | Hermes plugin key | `rtk-plus` | `token-terminator` |
@@ -68,7 +84,7 @@ hermes plugins disable rtk-plus
 hermes plugins disable token-terminator
 <hermes-python> -m pip uninstall -y rtk-hermes-plus token-terminator
 <hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.2'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.6.0'
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
 
