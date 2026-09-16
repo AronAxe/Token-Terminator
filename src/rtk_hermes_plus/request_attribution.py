@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -10,6 +12,7 @@ from .token_budget import TokenBudgetAdapter
 
 _COMPONENT_ORDER = (
     "instructions",
+    "skill_catalog",
     "tool_schemas",
     "tool_results",
     "current_user",
@@ -27,6 +30,9 @@ _TOOL_RESULT_TYPES = frozenset(
         "computer_call_output",
         "mcp_call_output",
     }
+)
+_SKILL_BLOCK_RE = re.compile(
+    r"<available_skills>.*?</available_skills>", re.IGNORECASE | re.DOTALL
 )
 
 
@@ -73,6 +79,30 @@ def _latest_user_index(items: list[Any]) -> int | None:
         if _role(items[index]) == "user":
             return index
     return None
+
+
+def _split_skill_catalog(value: Any) -> tuple[Any, list[str]]:
+    """Return a copy with skill indexes removed plus the exact removed blocks."""
+    if isinstance(value, str):
+        blocks = _SKILL_BLOCK_RE.findall(value)
+        return _SKILL_BLOCK_RE.sub("", value), blocks
+    if isinstance(value, list):
+        output: list[Any] = []
+        blocks: list[str] = []
+        for item in value:
+            cleaned, found = _split_skill_catalog(item)
+            output.append(cleaned)
+            blocks.extend(found)
+        return output, blocks
+    if isinstance(value, dict):
+        output: dict[Any, Any] = {}
+        blocks: list[str] = []
+        for key, item in value.items():
+            cleaned, found = _split_skill_catalog(item)
+            output[key] = cleaned
+            blocks.extend(found)
+        return output, blocks
+    return copy.deepcopy(value), []
 
 
 @dataclass(frozen=True)
@@ -126,12 +156,13 @@ class AttributionSnapshot:
 
 
 class RequestAttributor:
-    """Partition a provider request into disjoint token-cost buckets.
+    """Partition a provider request into useful token-cost buckets.
 
-    The attribution is diagnostic, not an acceptance gate. It intentionally
-    counts the serialized payload nodes in each component and assigns remaining
-    request-level JSON framing to ``request_framing``. When the active tokenizer
-    is unavailable, every bucket is explicitly labelled as a chars/4 estimate.
+    The attribution is diagnostic, not an acceptance gate. Skill catalogs are
+    separated from the surrounding system/developer instructions so the cost of
+    always-on skill discovery is visible on its own. Remaining request-level JSON
+    structure is assigned to ``request_framing``. When no tokenizer is available,
+    buckets are explicitly labelled as chars/4 estimates.
     """
 
     def __init__(self, token_budget: TokenBudgetAdapter):
@@ -157,6 +188,17 @@ class RequestAttributor:
             source="chars/4-fallback",
         )
 
+    @staticmethod
+    def _add_instruction(
+        buckets: dict[str, list[Any]], value: Any, *, wrapper_key: str | None = None
+    ) -> None:
+        cleaned, skill_blocks = _split_skill_catalog(value)
+        buckets["skill_catalog"].extend(skill_blocks)
+        if wrapper_key is not None:
+            buckets["instructions"].append({wrapper_key: cleaned})
+        else:
+            buckets["instructions"].append(cleaned)
+
     def measure(self, request: Any, *, model: str = "") -> AttributionSnapshot:
         buckets: dict[str, list[Any]] = {
             name: [] for name in _COMPONENT_ORDER if name != "request_framing"
@@ -171,7 +213,7 @@ class RequestAttributor:
             handled_top: set[str] = set()
             for key in _INSTRUCTION_KEYS:
                 if key in request:
-                    buckets["instructions"].append({key: request[key]})
+                    self._add_instruction(buckets, request[key], wrapper_key=key)
                     handled_top.add(key)
             for key in _TOOL_SCHEMA_KEYS:
                 if key in request:
@@ -196,7 +238,7 @@ class RequestAttributor:
                 for index, item in enumerate(value):
                     role = _role(item)
                     if role in {"system", "developer"}:
-                        buckets["instructions"].append(item)
+                        self._add_instruction(buckets, item)
                     elif _is_tool_result(item):
                         buckets["tool_results"].append(item)
                     elif latest_user is not None and index == latest_user:
@@ -355,8 +397,9 @@ class RequestAttributionAccounting:
             with self.store.connection() as conn:
                 requests = int(
                     conn.execute(
-                        "SELECT COUNT(DISTINCT session_id || char(0) || request_id) "
-                        "FROM request_component_metrics"
+                        "SELECT COUNT(*) FROM ("
+                        "SELECT session_id, request_id FROM request_component_metrics "
+                        "GROUP BY session_id, request_id)"
                     ).fetchone()[0]
                 )
                 rows = conn.execute(
@@ -374,7 +417,12 @@ class RequestAttributionAccounting:
                 ).fetchall()
         except Exception as exc:  # noqa: BLE001 - status must fail open
             self.error = str(exc)
-            return {"available": False, "error": self.error, "requests": 0, "components": {}}
+            return {
+                "available": False,
+                "error": self.error,
+                "requests": 0,
+                "components": {},
+            }
 
         total_raw_tokens = sum(int(row["raw_tokens"]) for row in rows)
         components: dict[str, Any] = {}
