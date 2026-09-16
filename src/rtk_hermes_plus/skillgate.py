@@ -456,7 +456,9 @@ class SkillGate:
             raw_chars=raw_chars,
             final_chars=final_chars,
             raw_tokens=int(raw_tokens.tokens or 0) if raw_tokens.available else None,
-            final_tokens=int(final_tokens.tokens or 0) if final_tokens.available else None,
+            final_tokens=int(final_tokens.tokens or 0)
+            if final_tokens.available
+            else None,
             tokenizer_backend=(
                 final_tokens.backend if final_tokens.available else "character-fallback"
             ),
