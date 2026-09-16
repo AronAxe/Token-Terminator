@@ -189,7 +189,9 @@ def test_user_quoted_skill_catalog_is_never_rewritten():
 def test_default_router_has_no_skill_count_ceiling():
     gate = SkillGate(_Budget(), min_score=0.1)
     gate.set_scorer(lambda _prompt, _skill: 1.0)
-    entries = gate._parse(_catalog().split("<available_skills>", 1)[1].split("</available_skills>", 1)[0])
+    entries = gate._parse(
+        _catalog().split("<available_skills>", 1)[1].split("</available_skills>", 1)[0]
+    )
 
     selected = gate._select("Use every relevant skill.", entries)
 
