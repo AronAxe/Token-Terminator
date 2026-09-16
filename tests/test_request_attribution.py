@@ -118,7 +118,9 @@ def test_component_accounting_persists_only_metrics(tmp_path):
     with store.connection() as conn:
         columns = {
             row[1]
-            for row in conn.execute("PRAGMA table_info(request_component_metrics)").fetchall()
+            for row in conn.execute(
+                "PRAGMA table_info(request_component_metrics)"
+            ).fetchall()
         }
     assert "content" not in columns
     assert "prompt" not in columns
