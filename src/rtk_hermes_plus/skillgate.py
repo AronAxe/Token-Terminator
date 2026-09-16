@@ -55,6 +55,9 @@ _STOPWORDS = frozenset(
     }
 )
 _DISCOVERY_NAMES = frozenset({"skills_list", "skill_view"})
+_INSTRUCTION_KEYS = ("instructions", "system", "developer")
+_CONVERSATION_KEYS = ("messages", "input")
+_INSTRUCTION_ROLES = frozenset({"system", "developer"})
 
 
 def _serialize(value: Any) -> str:
@@ -189,9 +192,12 @@ class SkillGateResult:
 class SkillGate:
     """Route large skill catalogs down to the few entries relevant this turn.
 
-    SkillGate recognizes Hermes-style ``<available_skills>`` blocks. It only
-    activates when both ``skills_list`` and ``skill_view`` are present in the
-    request's tool schemas, preserving on-demand discovery for skills it removes.
+    SkillGate recognizes Hermes-style ``<available_skills>`` blocks in trusted
+    system/developer instruction fields. It never rewrites user, assistant, or
+    tool content that merely quotes the same tag. Routing activates only when
+    both ``skills_list`` and ``skill_view`` are provider-visible so filtered
+    skills remain discoverable on demand.
+
     The default scorer is deterministic lexical-IDF. A future tiny learned
     reranker can be injected through ``scorer`` without changing the middleware.
     """
@@ -351,7 +357,10 @@ class SkillGate:
 
         return _SKILLS_BLOCK_RE.sub(replace, text), total_entries, selected_all
 
-    def _walk(self, value: Any, prompt: str) -> tuple[Any, int, list[SkillEntry]]:
+    def _route_instruction_value(
+        self, value: Any, prompt: str
+    ) -> tuple[Any, int, list[SkillEntry]]:
+        """Route skill catalogs only inside a trusted instruction value."""
         if isinstance(value, str):
             if "<available_skills>" not in value.lower():
                 return value, 0, []
@@ -361,7 +370,7 @@ class SkillGate:
             selected: list[SkillEntry] = []
             output: list[Any] = []
             for item in value:
-                routed, count, chosen = self._walk(item, prompt)
+                routed, count, chosen = self._route_instruction_value(item, prompt)
                 output.append(routed)
                 total += count
                 selected.extend(chosen)
@@ -371,12 +380,48 @@ class SkillGate:
             selected: list[SkillEntry] = []
             output: dict[Any, Any] = {}
             for key, item in value.items():
-                routed, count, chosen = self._walk(item, prompt)
+                routed, count, chosen = self._route_instruction_value(item, prompt)
                 output[key] = routed
                 total += count
                 selected.extend(chosen)
             return output, total, selected
         return value, 0, []
+
+    def _route_instruction_fields(
+        self, request: dict[str, Any], prompt: str
+    ) -> tuple[dict[str, Any], int, list[SkillEntry]]:
+        candidate = copy.deepcopy(request)
+        total = 0
+        selected: list[SkillEntry] = []
+
+        for key in _INSTRUCTION_KEYS:
+            if key not in candidate:
+                continue
+            routed, count, chosen = self._route_instruction_value(candidate[key], prompt)
+            candidate[key] = routed
+            total += count
+            selected.extend(chosen)
+
+        for key in _CONVERSATION_KEYS:
+            items = candidate.get(key)
+            if not isinstance(items, list):
+                continue
+            for index, item in enumerate(items):
+                if not isinstance(item, dict):
+                    continue
+                role = str(item.get("role") or "").strip().lower()
+                if role not in _INSTRUCTION_ROLES:
+                    continue
+                if "content" not in item:
+                    continue
+                routed, count, chosen = self._route_instruction_value(
+                    item["content"], prompt
+                )
+                candidate[key][index]["content"] = routed
+                total += count
+                selected.extend(chosen)
+
+        return candidate, total, selected
 
     def route(self, request: dict[str, Any], *, model: str = "") -> SkillGateResult:
         raw_chars = len(_serialize(request))
@@ -406,7 +451,9 @@ class SkillGate:
                 reason="no user prompt available",
             )
 
-        candidate, catalog_count, selected = self._walk(copy.deepcopy(request), prompt)
+        candidate, catalog_count, selected = self._route_instruction_fields(
+            request, prompt
+        )
         if catalog_count <= 0 or candidate == request:
             return SkillGateResult(
                 request=request,
