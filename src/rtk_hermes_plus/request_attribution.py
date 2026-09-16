@@ -254,7 +254,9 @@ class RequestAttributor:
 
         total_text = _serialize(request)
         total_chars = len(total_text)
-        total_measurement = self.token_budget.measure_request(request, model=active_model)
+        total_measurement = self.token_budget.measure_request(
+            request, model=active_model
+        )
         total_exact = total_measurement.available
         total_tokens = (
             int(total_measurement.tokens or 0)
