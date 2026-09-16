@@ -9,7 +9,8 @@ from . import plugin as _plugin
 from ._version import __version__
 from .cancellation import CancellationToken
 from .enhancements import install as install_v05
-from .v06 import RuntimeV06, install as install_v06
+from .v06 import RuntimeV06
+from .v06 import install as install_v06
 
 install_v05(_plugin)
 install_v06(_plugin)
