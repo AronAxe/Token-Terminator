@@ -1,0 +1,114 @@
+name: Publish v0.6.0 release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-v060-release.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-token-terminator-v0.6.0
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'AronAxe/Token-Terminator'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: c82d6885179640ee631e0fb782e82499759e43e7
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Verify frozen v0.6.0 release tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "c82d6885179640ee631e0fb782e82499759e43e7"
+          python -m pip install -e '.[dev]'
+          python -m ruff check .
+          python -m ruff format --check .
+          python -m pytest
+          python scripts/benchmark.py --skip-rtk
+          python -m build
+          python -m twine check dist/*
+          python scripts/verify_release.py 'dist/*'
+          python - <<'PY'
+          from pathlib import Path
+          assert '__version__ = "0.6.0"' in Path('src/rtk_hermes_plus/_version.py').read_text()
+          assert 'version = "0.6.0"' in Path('pyproject.toml').read_text()
+          assert 'version = "0.6.0"' in Path('Cargo.toml').read_text()
+          assert 'max_skills: int | None = None' in Path('src/rtk_hermes_plus/skillgate.py').read_text()
+          PY
+
+      - name: Publish GitHub v0.6.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view v0.6.0 >/dev/null 2>&1; then
+            echo 'GitHub v0.6.0 release already exists; leaving it unchanged.'
+          else
+            gh release create v0.6.0 \
+              dist/* \
+              --target c82d6885179640ee631e0fb782e82499759e43e7 \
+              --title "Token Terminator v0.6.0" \
+              --notes-file wiki/Release-0.6.0.md
+          fi
+
+      - uses: dtolnay/rust-toolchain@1.78.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check whether Rust crate 0.6.0 is already published
+        id: registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          if curl --fail --silent --show-error \
+            'https://crates.io/api/v1/crates/token-terminator/0.6.0' \
+            >/dev/null 2>&1; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify Rust crate 0.6.0
+        if: steps.registry.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fx 'version = "0.6.0"' Cargo.toml >/dev/null
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+          RUSTDOCFLAGS='-D warnings' cargo doc --no-deps
+          rm -f Cargo.lock
+          cargo publish --dry-run
+
+      - name: Publish token-terminator 0.6.0 to crates.io
+        if: steps.registry.outputs.exists != 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="${CARGO_REGISTRY_TOKEN:-${CRATES_IO_TOKEN:-}}"
+          if [[ -z "$token" ]]; then
+            echo '::error::No crates.io publishing token is configured.'
+            exit 1
+          fi
+          cargo publish --token "$token"
+
+      - name: Crate already published
+        if: steps.registry.outputs.exists == 'true'
+        run: echo 'token-terminator 0.6.0 already exists on crates.io; publication is a no-op.'
