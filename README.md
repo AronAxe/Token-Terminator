@@ -142,7 +142,7 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.5.2 supersedes 0.5.1 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.6.0 supersedes 0.5.2 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
 This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.6.0` release tag.
 
