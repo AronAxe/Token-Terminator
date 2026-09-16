@@ -7,7 +7,7 @@ from typing import Any
 
 from .enhancements import RuntimeV05
 from .request_attribution import RequestAttributionAccounting, RequestAttributor
-from .skillgate import SkillEntry, SkillGate
+from .skillgate import SkillEntry, SkillGate, SkillGateResult
 
 
 def _serialized_chars(value: Any) -> int:
@@ -30,6 +30,13 @@ class RuntimeV06(RuntimeV05):
         self.request_attributor = RequestAttributor(self.token_budget)
         self.request_attribution = RequestAttributionAccounting(self.store)
         self.skill_gate = SkillGate(self.token_budget)
+
+    def _sync_token_budget(self) -> None:
+        super()._sync_token_budget()
+        if hasattr(self, "request_attributor"):
+            self.request_attributor.token_budget = self.token_budget
+        if hasattr(self, "skill_gate"):
+            self.skill_gate.token_budget = self.token_budget
 
     def set_skill_scorer(
         self, scorer: Callable[[str, SkillEntry], float] | None
@@ -66,17 +73,23 @@ class RuntimeV06(RuntimeV05):
         if self.config.compiler_enabled:
             skill_gate = self.skill_gate.route(request, model=model)
         else:
-            skill_gate = self.skill_gate.route(request, model=model)
-            if skill_gate.changed:
-                # Mode semantics win over routing defaults: only balanced and
-                # aggressive own the provider-request boundary.
-                skill_gate = type(skill_gate)(
-                    request=request,
-                    changed=False,
-                    raw_chars=skill_gate.raw_chars,
-                    final_chars=skill_gate.raw_chars,
-                    reason="request compiler disabled in current mode",
-                )
+            raw_chars = _serialized_chars(request)
+            skill_gate = SkillGateResult(
+                request=request,
+                changed=False,
+                raw_chars=raw_chars,
+                final_chars=raw_chars,
+                reason="request compiler disabled in current mode",
+            )
+
+        if skill_gate.changed:
+            self.metrics.add("skillgate_requests")
+            self.metrics.add("skillgate_catalog_skills", skill_gate.catalog_skills)
+            self.metrics.add("skillgate_selected_skills", skill_gate.selected_skills)
+            self.metrics.add("skillgate_removed_skills", skill_gate.removed_skills)
+            self.metrics.add("skillgate_saved_chars", skill_gate.saved_chars)
+            if skill_gate.saved_tokens is not None:
+                self.metrics.add("skillgate_saved_tokens", skill_gate.saved_tokens)
 
         routed_request = skill_gate.request if skill_gate.changed else request
         decision = super().llm_request_middleware(
@@ -148,7 +161,9 @@ class RuntimeV06(RuntimeV05):
             "final": final_attribution.as_dict(),
         }
         if skill_gate.changed:
-            decision["reason"] = "strictly smaller final provider request with SkillGate routing"
+            decision["reason"] = (
+                "strictly smaller final provider request with SkillGate routing"
+            )
         return decision
 
     def observe_tool_call(self, *, tool_name: str, args: dict, **kwargs: Any) -> None:
