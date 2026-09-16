@@ -17,6 +17,8 @@ Token Terminator v0.6.0 adds **request component attribution** and **SkillGate**
 
 This is an in-place upgrade from v0.5.2. Existing content-addressed artifacts remain valid. The new request-attribution telemetry is additive. Python support remains 3.10–3.13. The Rust interoperability crate is released as `token-terminator` 0.6.0.
 
+The v0.6.0 Git tag and GitHub release are cut from the same tested source tree used for the Python package and Rust crate.
+
 ## Install
 
 ```bash
