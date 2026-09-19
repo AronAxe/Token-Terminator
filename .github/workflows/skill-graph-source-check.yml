@@ -10,9 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - run: git archive --format=tar.gz HEAD > source.tar.gz
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: python -m pip download --dest wheels ruff tiktoken tokenizers build twine tomli setuptools wheel
       - uses: actions/upload-artifact@v4
         with:
-          name: skill-graph-source
-          path: source.tar.gz
+          name: skill-graph-dev-wheels
+          path: wheels/
           retention-days: 1
