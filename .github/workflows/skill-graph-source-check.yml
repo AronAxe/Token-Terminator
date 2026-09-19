@@ -12,10 +12,13 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
-      - run: python -m pip download --dest wheels ruff tiktoken tokenizers build twine tomli setuptools wheel
+          python-version: '3.13'
+      - run: |
+          python -m pip download --dest tools/wheels ruff tiktoken tokenizers build twine tomli setuptools wheel
+          python -m pip install tiktoken
+          TIKTOKEN_CACHE_DIR=tools/token-cache python -c "import tiktoken; tiktoken.get_encoding('cl100k_base'); tiktoken.get_encoding('o200k_base')"
       - uses: actions/upload-artifact@v4
         with:
-          name: skill-graph-dev-wheels
-          path: wheels/
+          name: skill-graph-dev-tools
+          path: tools/
           retention-days: 1
