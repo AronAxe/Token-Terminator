@@ -57,6 +57,7 @@ class RuntimeV06(RuntimeV05):
 
     def replace_skill_documents(self, documents: list[SkillDocument]) -> None:
         """Populate the runtime graph explicitly for a non-Hermes host or test."""
+        self.skill_graph.set_document_provider(None)
         self.skill_graph.replace_documents(documents)
 
     def set_skill_scorer(
