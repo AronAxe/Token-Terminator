@@ -345,9 +345,7 @@ class SkillGraph:
         best_node = 0.0
         for internal in node.internal_nodes:
             node_overlap = prompt_terms & internal.terms
-            node_score = sum(
-                1.5 * self._idf.get(term, 1.0) for term in node_overlap
-            )
+            node_score = sum(1.5 * self._idf.get(term, 1.0) for term in node_overlap)
             if internal.kind == "section":
                 title = internal.title.casefold()
                 heading_terms = _terms(internal.title)
