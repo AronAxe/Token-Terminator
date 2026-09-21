@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Added an empty-by-default runtime graph-of-skill-graphs for SkillGate. Each installed skill is an outer node with its own internal section/resource graph; skill contents are discovered locally from the active host rather than shipped in the repository.
+- Added a fail-open Hermes skill-document adapter for trusted project, local, external, and plugin skills, plus a host-neutral provider hook for other runtimes.
+- SkillGraph routing can now match against installed skill contents, follow explicit transitive `requires` dependencies, and use `related_skills` only as a weak source-backed hint; lexical similarity never creates cross-skill edges.
+- Kept private installed skill contents outside provider-visible requests and added synthetic-only privacy/routing tests.
+
 ## 0.6.0 - 2026-09-16
 
 - Added content-free component-level request token attribution for instructions, skill catalogs, tool schemas, tool results, the current user turn, prior history, other fields, and request framing, with raw/final token and character totals.

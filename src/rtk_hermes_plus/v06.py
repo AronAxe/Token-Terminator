@@ -7,6 +7,12 @@ from typing import Any
 
 from .enhancements import RuntimeV05
 from .request_attribution import RequestAttributionAccounting, RequestAttributor
+from .skill_graph import (
+    SkillDocument,
+    SkillDocumentProvider,
+    SkillGraph,
+    discover_hermes_skill_documents,
+)
 from .skillgate import SkillEntry, SkillGate, SkillGateResult
 
 
@@ -29,7 +35,8 @@ class RuntimeV06(RuntimeV05):
         super().__init__(*args, **kwargs)
         self.request_attributor = RequestAttributor(self.token_budget)
         self.request_attribution = RequestAttributionAccounting(self.store)
-        self.skill_gate = SkillGate(self.token_budget)
+        self.skill_graph = SkillGraph(discover_hermes_skill_documents)
+        self.skill_gate = SkillGate(self.token_budget, skill_graph=self.skill_graph)
 
     def _sync_token_budget(self) -> None:
         super()._sync_token_budget()
@@ -37,6 +44,21 @@ class RuntimeV06(RuntimeV05):
             self.request_attributor.token_budget = self.token_budget
         if hasattr(self, "skill_gate"):
             self.skill_gate.token_budget = self.token_budget
+
+    def set_skill_document_provider(
+        self, provider: SkillDocumentProvider | None
+    ) -> None:
+        """Replace the host adapter that supplies installed skill documents.
+
+        The graph ships empty. Hosts populate it from their own local skill
+        inventory; Token Terminator never carries a built-in skill catalog.
+        """
+        self.skill_graph.set_document_provider(provider)
+
+    def replace_skill_documents(self, documents: list[SkillDocument]) -> None:
+        """Populate the runtime graph explicitly for a non-Hermes host or test."""
+        self.skill_graph.set_document_provider(None)
+        self.skill_graph.replace_documents(documents)
 
     def set_skill_scorer(
         self, scorer: Callable[[str, SkillEntry], float] | None
@@ -180,6 +202,7 @@ class RuntimeV06(RuntimeV05):
     def status(self) -> dict[str, Any]:
         status = super().status()
         status["request_attribution"] = self.request_attribution.summary()
+        status["skill_graph"] = self.skill_graph.status()
         status["skill_gate"] = {
             "enabled": self.skill_gate.enabled and self.config.compiler_enabled,
             "max_skills": self.skill_gate.max_skills,

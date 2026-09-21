@@ -32,7 +32,7 @@ The engine has six cooperating reduction paths:
 2. temporal delta compression for repeated terminal observations, after the command has actually executed;
 3. deterministic compression of large tool results;
 4. content-addressed vaulting, duplicate collapse, evidence leases, compact recovery receipts, and deterministic layered recovery views;
-5. SkillGate routing that keeps only prompt-relevant skill index entries while preserving on-demand discovery;
+5. runtime SkillGraph + SkillGate routing that models each installed skill as its own internal graph, follows only source-backed inter-skill relationships, and keeps only prompt-relevant skill index entries while preserving on-demand discovery;
 6. final provider-request compilation, with model-aware token acceptance when an exact tokenizer is available and optional bounded working-state injection only when the complete request is still smaller.
 
 The reduction core is not intrinsically tied to Hermes: it operates on Python dictionaries, strings, stable request/session identifiers, and a local SQLite vault. The repository includes a turnkey Hermes plugin because Hermes exposes the required lifecycle hooks. Other agent runtimes need a small adapter that presents the same boundaries; they do not need a fork of the reduction engine.
@@ -44,7 +44,7 @@ It does **not** replace the host's context engine, memory system, transcript sto
 ## What it does
 
 - **Shrinks before the model sees it.** Large tool output is compacted, repeated terminal observations can become exact-recoverable deltas, and repeated evidence is replaced with bounded receipts.
-- **Routes skills before generation.** Large Hermes skill indexes are reduced to every entry that clears the relevance threshold; there is no hard skill-count cap by default, and omitted skills remain discoverable through `skills_list`/`skill_view`.
+- **Routes skills before generation.** A runtime-only graph is populated from the current host's installed skills. Each skill stays an isolated internal graph; explicit `related_skills` and dependency metadata are the only cross-skill edges. SkillGate uses that local structure to improve relevance while still sending only compact catalog entries. There is no hard skill-count cap by default, and omitted skills remain discoverable through `skills_list`/`skill_view`.
 - **Keeps the original evidence.** Exact content is stored in a private, content-addressed SQLite vault and can be recovered exactly, previewed deterministically, or searched without returning the whole artifact.
 - **Compiles the final request.** Duplicate artifacts, expired inline exposures, and old context are reduced after the host assembles the provider payload.
 - **Aligns with the active tokenizer when possible.** A configured Hugging Face `tokenizer.json` or tiktoken backend adds a second acceptance gate; unavailable tokenizers fall back to the established character invariant.
@@ -69,7 +69,7 @@ This is an optimizer, not a context decorator.
 | Layer | Runtime dependency | Status |
 |---|---|---|
 | Vault, receipts, leases, temporal deltas, native compression, request compiler, telemetry | Agent-agnostic Python | Included |
-| Exact tokenizer alignment | Built-in `tiktoken`; optional Hugging Face `tokenizers` | Included |
+| Exact tokenizer alignment | Built-in `tiktoken`; optional Hugging Face `tokenizers` | Included |\n| Runtime skill graph | Host-local skill documents; Hermes adapter discovers trusted installed skills | Included; graph ships empty |
 | Rust artifact interoperability | `token-terminator` Rust crate | Published on crates.io |
 | RTK command rewriting | Optional `rtk` binary plus a terminal-tool adapter | Included |
 | Hermes lifecycle hooks, slash command, and recovery model tool | Hermes Agent | First-party and turnkey |
@@ -409,7 +409,7 @@ For answer quality—not just token accounting—use the paired non-inferiority 
 
 ## Security and privacy
 
-- Exact raw artifacts and their private provenance are stored locally because recovery is part of the product contract.
+- Exact raw artifacts and their private provenance are stored locally because recovery is part of the product contract.\n- The skill graph ships empty. Installed skill contents are read only from the current host at runtime, remain process-local, and are not written into the repository or provider request.
 - Temporal deltas never skip command execution and never replace the exact current artifact in the vault.
 - Layered recovery views are deterministic and explicitly lossy; the immutable artifact remains authoritative.
 - The vault enforces per-artifact and total-capacity limits, SQLite WAL, foreign keys, busy timeouts, schema-version checks, short-lived transactions, and serialized writes.
