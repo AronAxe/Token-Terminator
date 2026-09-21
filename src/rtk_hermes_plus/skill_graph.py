@@ -338,21 +338,27 @@ class SkillGraph:
             return 0.0
 
         body_overlap = prompt_terms & node.internal_terms
-        score = sum(1.15 * self._idf.get(term, 1.0) for term in body_overlap)
+        # Global overlap is intentionally weak; the stronger signal is whether
+        # the task terms concentrate inside one coherent internal node.
+        score = sum(0.75 * self._idf.get(term, 1.0) for term in body_overlap)
 
-        best_heading = 0.0
+        best_node = 0.0
         for internal in node.internal_nodes:
-            if internal.kind != "section":
-                continue
-            title = internal.title.casefold()
-            heading_terms = _terms(internal.title)
-            heading_score = sum(
-                1.75 * self._idf.get(term, 1.0) for term in prompt_terms & heading_terms
+            node_overlap = prompt_terms & internal.terms
+            node_score = sum(
+                1.5 * self._idf.get(term, 1.0) for term in node_overlap
             )
-            if title and title != "root" and title in prompt_folded:
-                heading_score += 4.0
-            best_heading = max(best_heading, heading_score)
-        return min(12.0, score + best_heading)
+            if internal.kind == "section":
+                title = internal.title.casefold()
+                heading_terms = _terms(internal.title)
+                node_score += sum(
+                    1.75 * self._idf.get(term, 1.0)
+                    for term in prompt_terms & heading_terms
+                )
+                if title and title != "root" and title in prompt_folded:
+                    node_score += 4.0
+            best_node = max(best_node, node_score)
+        return min(12.0, score + best_node)
 
     def required_closure(self, names: Iterable[str]) -> frozenset[str]:
         """Follow explicit requires edges only; related edges never imply necessity."""
