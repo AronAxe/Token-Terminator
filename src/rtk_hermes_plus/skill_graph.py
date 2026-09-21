@@ -367,8 +367,10 @@ class SkillGraph:
                 continue
             for required in node.requires_skills:
                 target = str(required).casefold()
-                if target and target not in selected and target in self._nodes:
-                    selected.add(target)
+                if not target or target in selected:
+                    continue
+                selected.add(target)
+                if target in self._nodes:
                     queue.append(target)
         return frozenset(selected)
 
