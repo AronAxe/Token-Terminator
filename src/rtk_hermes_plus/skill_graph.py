@@ -319,7 +319,7 @@ class SkillGraph:
         try:
             self.replace_documents(tuple(self._provider()))
             self._catalog_fingerprint = digest
-        except Exception as exc:  # fail open: routing can keep using catalog metadata
+        except Exception as exc:  # noqa: BLE001 - graph routing must fail open
             self._load_error = f"{type(exc).__name__}: {exc}"
             self._loaded = True
 
