@@ -62,6 +62,18 @@ def _request(prompt: str, rows: list[tuple[str, str]]) -> dict:
     }
 
 
+def _padded_rows(*rows: tuple[str, str]) -> list[tuple[str, str]]:
+    output = list(rows)
+    for index in range(8):
+        output.append(
+            (
+                f"synthetic-filler-{index}",
+                f"Maintain fictional lunar orchard inventory register number {index}",
+            )
+        )
+    return output
+
+
 def test_graph_ships_empty():
     graph = SkillGraph()
 
@@ -142,7 +154,10 @@ def test_internal_skill_graph_can_route_on_content_not_catalog_description():
     result = gate.route(
         _request(
             "I need zirconium-reticulation for this task.",
-            [("alpha", "Generic workflow"), ("beta", "Generic workflow")],
+            _padded_rows(
+                ("alpha", "Generic workflow"),
+                ("beta", "Generic workflow"),
+            ),
         )
     )
 
@@ -177,11 +192,11 @@ def test_explicit_requires_edge_keeps_dependency():
     result = gate.route(
         _request(
             "Ship the frobnicator package.",
-            [
+            _padded_rows(
                 ("publisher", "Publish a package"),
                 ("verifier", "Verification support"),
                 ("calendar", "Calendar operations"),
-            ],
+            ),
         )
     )
 
@@ -210,7 +225,10 @@ def test_private_skill_contents_never_enter_routed_request():
     )
 
     result = gate.route(
-        _request("Do zirconium-reticulation.", [("alpha", "Generic workflow")])
+        _request(
+            "Do zirconium-reticulation.",
+            _padded_rows(("alpha", "Generic workflow")),
+        )
     )
 
     serialized = json.dumps(result.request, ensure_ascii=False)
@@ -240,14 +258,17 @@ def test_provider_refreshes_only_when_catalog_changes():
         min_score=2.0,
         skill_graph=graph,
     )
-    request = _request("Do zirconium-reticulation.", [("alpha", "Generic workflow")])
+    request = _request(
+        "Do zirconium-reticulation.",
+        _padded_rows(("alpha", "Generic workflow")),
+    )
 
     first = gate.route(request)
     second = gate.route(request)
     changed_catalog = gate.route(
         _request(
             "Do zirconium-reticulation.",
-            [("alpha", "Updated generic workflow")],
+            _padded_rows(("alpha", "Updated generic workflow")),
         )
     )
 
