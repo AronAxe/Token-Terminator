@@ -199,6 +199,8 @@ def _build_internal_graph(content: str) -> tuple[tuple[SkillInternalNode, ...], 
             stack.pop()
         if stack:
             edges.append(SkillEdge(stack[-1][1], node_id, "contains"))
+        elif node_id != "section:0":
+            edges.append(SkillEdge("section:0", node_id, "contains"))
         if sections:
             edges.append(SkillEdge(sections[-1].node_id, node_id, "next"))
         stack.append((level, node_id))
@@ -209,7 +211,7 @@ def _build_internal_graph(content: str) -> tuple[tuple[SkillInternalNode, ...], 
     flush()
 
     resource_targets: set[str] = set()
-    for section in sections:
+    for section in tuple(sections):
         for match in _MARKDOWN_LINK_RE.finditer(section.text):
             target = match.group(1).strip()
             if not target or "://" in target or target.startswith(("#", "mailto:")):
@@ -409,14 +411,14 @@ def discover_hermes_skill_documents() -> tuple[SkillDocument, ...]:
             skill_matches_environment,
             skill_matches_platform,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 - Hermes adapter is optional
         return ()
 
     try:
         project_dirs = list(get_project_skills_dirs())
         normal_dirs = list(get_all_skills_dirs())
         disabled = {str(name).casefold() for name in get_disabled_skill_names()}
-    except Exception:
+    except Exception:  # noqa: BLE001 - host discovery must fail open
         return ()
 
     documents: list[SkillDocument] = []
@@ -478,7 +480,7 @@ def discover_hermes_skill_documents() -> tuple[SkillDocument, ...]:
                 )
             )
             seen.add(key)
-        except Exception:
+        except Exception:  # noqa: BLE001 - one malformed skill must not break routing
             return
 
     for root in project_dirs:
@@ -486,7 +488,7 @@ def discover_hermes_skill_documents() -> tuple[SkillDocument, ...]:
             files = iter_project_skill_files(root)
             for skill_md in files:
                 add_file(Path(skill_md), Path(root))
-        except Exception:
+        except Exception:  # noqa: BLE001, S112 - skip unreadable host root
             continue
 
     for root in normal_dirs:
@@ -494,7 +496,7 @@ def discover_hermes_skill_documents() -> tuple[SkillDocument, ...]:
             files = iter_skill_index_files(root, "SKILL.md")
             for skill_md in files:
                 add_file(Path(skill_md), Path(root))
-        except Exception:
+        except Exception:  # noqa: BLE001, S112 - skip unreadable host root
             continue
 
     try:
@@ -509,7 +511,7 @@ def discover_hermes_skill_documents() -> tuple[SkillDocument, ...]:
             path = manager.find_plugin_skill(name)
             if path is not None:
                 add_file(Path(path), Path(path).parent.parent, qualified_name=name)
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 - plugin skills are optional
         pass
 
     return tuple(documents)
