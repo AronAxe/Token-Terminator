@@ -74,11 +74,7 @@ def _string_list(value: Any) -> tuple[str, ...]:
     else:
         values = (value,)
     return tuple(
-        dict.fromkeys(
-            item
-            for raw in values
-            if (item := str(raw).strip().strip("\"'"))
-        )
+        dict.fromkeys(item for raw in values if (item := str(raw).strip().strip("\"'")))
     )
 
 
@@ -156,7 +152,9 @@ class SkillNode:
 SkillDocumentProvider = Callable[[], Iterable[SkillDocument]]
 
 
-def _build_internal_graph(content: str) -> tuple[tuple[SkillInternalNode, ...], tuple[SkillEdge, ...]]:
+def _build_internal_graph(
+    content: str,
+) -> tuple[tuple[SkillInternalNode, ...], tuple[SkillEdge, ...]]:
     """Turn one SKILL.md body into a bounded graph without crossing skill boundaries."""
 
     lines = str(content or "").splitlines()
@@ -349,8 +347,7 @@ class SkillGraph:
             title = internal.title.casefold()
             heading_terms = _terms(internal.title)
             heading_score = sum(
-                1.75 * self._idf.get(term, 1.0)
-                for term in prompt_terms & heading_terms
+                1.75 * self._idf.get(term, 1.0) for term in prompt_terms & heading_terms
             )
             if title and title != "root" and title in prompt_folded:
                 heading_score += 4.0
@@ -384,10 +381,18 @@ class SkillGraph:
         return {
             "loaded": self._loaded,
             "skills": len(self._nodes),
-            "internal_nodes": sum(len(node.internal_nodes) for node in self._nodes.values()),
-            "internal_edges": sum(len(node.internal_edges) for node in self._nodes.values()),
-            "outer_related_edges": sum(len(node.related_skills) for node in self._nodes.values()),
-            "outer_requires_edges": sum(len(node.requires_skills) for node in self._nodes.values()),
+            "internal_nodes": sum(
+                len(node.internal_nodes) for node in self._nodes.values()
+            ),
+            "internal_edges": sum(
+                len(node.internal_edges) for node in self._nodes.values()
+            ),
+            "outer_related_edges": sum(
+                len(node.related_skills) for node in self._nodes.values()
+            ),
+            "outer_requires_edges": sum(
+                len(node.requires_skills) for node in self._nodes.values()
+            ),
             "load_error": self._load_error,
         }
 
@@ -428,9 +433,13 @@ def discover_hermes_skill_documents() -> tuple[SkillDocument, ...]:
         try:
             raw = skill_md.read_text(encoding="utf-8")
             frontmatter, body = parse_frontmatter(raw)
-            if not skill_matches_platform(frontmatter) or not skill_matches_environment(frontmatter):
+            if not skill_matches_platform(frontmatter) or not skill_matches_environment(
+                frontmatter
+            ):
                 return
-            name = str(qualified_name or frontmatter.get("name") or skill_md.parent.name).strip()
+            name = str(
+                qualified_name or frontmatter.get("name") or skill_md.parent.name
+            ).strip()
             key = name.casefold()
             if not name or key in seen or key in disabled:
                 return
@@ -453,7 +462,8 @@ def discover_hermes_skill_documents() -> tuple[SkillDocument, ...]:
             metadata = frontmatter.get("metadata")
             hermes_meta = (
                 metadata.get("hermes", {})
-                if isinstance(metadata, dict) and isinstance(metadata.get("hermes"), dict)
+                if isinstance(metadata, dict)
+                and isinstance(metadata.get("hermes"), dict)
                 else {}
             )
             tags = _string_list(hermes_meta.get("tags") or frontmatter.get("tags"))
