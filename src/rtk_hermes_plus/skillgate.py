@@ -302,9 +302,16 @@ class SkillGate:
 
     def _select(self, prompt: str, entries: list[SkillEntry]) -> list[SkillEntry]:
         idf = self._idf(entries)
-        scored: list[tuple[float, str, SkillEntry]] = []
+        if self.skill_graph is not None:
+            # The graph starts empty and is populated from this host's installed
+            # skills only when the provider-visible catalog is first encountered
+            # or changes. Skill contents never enter the provider request here.
+            self.skill_graph.sync_catalog(entries)
+
+        scores: dict[str, tuple[float, SkillEntry]] = {}
         for entry in entries:
-            if entry.name.casefold() in self.always_keep:
+            key = entry.name.casefold()
+            if key in self.always_keep:
                 score = float("inf")
             elif self.scorer is not None:
                 try:
@@ -313,8 +320,54 @@ class SkillGate:
                     score = self._score_default(prompt, entry, idf=idf)
             else:
                 score = self._score_default(prompt, entry, idf=idf)
-            if score >= self.min_score:
-                scored.append((score, entry.name.casefold(), entry))
+
+            # The outer catalog card stays compact. The internal graph contributes
+            # relevance from the actual installed skill without flattening skill
+            # contents together or exposing them to the provider.
+            if self.skill_graph is not None and score != float("inf"):
+                score += self.skill_graph.internal_score(prompt, entry.name)
+            scores[key] = (score, entry)
+
+        if self.skill_graph is not None:
+            # Explicit "related_skills" edges are weak hints only. They may lift
+            # an already somewhat relevant skill, but never make an unrelated
+            # neighbor relevant merely because two skills are connected.
+            direct_selected = {
+                key for key, (score, _entry) in scores.items() if score >= self.min_score
+            }
+            for source in tuple(direct_selected):
+                source_score = scores[source][0]
+                if source_score == float("inf"):
+                    relation_boost = 1.0
+                else:
+                    relation_boost = min(1.0, max(0.25, source_score * 0.05))
+                for related in self.skill_graph.related(source):
+                    target = str(related).casefold()
+                    if target not in scores:
+                        continue
+                    target_score, target_entry = scores[target]
+                    if 0.0 < target_score < self.min_score:
+                        scores[target] = (target_score + relation_boost, target_entry)
+
+            selected_names = {
+                key for key, (score, _entry) in scores.items() if score >= self.min_score
+            }
+            # "requires" is different from "related": explicit dependencies are
+            # part of the selected procedure and are followed transitively.
+            required = self.skill_graph.required_closure(
+                scores[key][1].name for key in selected_names
+            )
+            selected_names.update(name for name in required if name in scores)
+        else:
+            selected_names = {
+                key for key, (score, _entry) in scores.items() if score >= self.min_score
+            }
+
+        scored = [
+            (score, key, entry)
+            for key, (score, entry) in scores.items()
+            if key in selected_names
+        ]
         scored.sort(key=lambda item: (-item[0], item[1]))
         selected = [item[2] for item in scored]
         if self.max_skills is None:
