@@ -333,7 +333,9 @@ class SkillGate:
             # an already somewhat relevant skill, but never make an unrelated
             # neighbor relevant merely because two skills are connected.
             direct_selected = {
-                key for key, (score, _entry) in scores.items() if score >= self.min_score
+                key
+                for key, (score, _entry) in scores.items()
+                if score >= self.min_score
             }
             for source in tuple(direct_selected):
                 source_score = scores[source][0]
@@ -350,7 +352,9 @@ class SkillGate:
                         scores[target] = (target_score + relation_boost, target_entry)
 
             selected_names = {
-                key for key, (score, _entry) in scores.items() if score >= self.min_score
+                key
+                for key, (score, _entry) in scores.items()
+                if score >= self.min_score
             }
             # "requires" is different from "related": explicit dependencies are
             # part of the selected procedure and are followed transitively.
@@ -360,7 +364,9 @@ class SkillGate:
             selected_names.update(name for name in required if name in scores)
         else:
             selected_names = {
-                key for key, (score, _entry) in scores.items() if score >= self.min_score
+                key
+                for key, (score, _entry) in scores.items()
+                if score >= self.min_score
             }
 
         scored = [
