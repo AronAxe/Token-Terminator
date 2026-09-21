@@ -9,6 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from .skill_graph import SkillGraph
 from .token_budget import TokenBudgetAdapter
 
 _SKILLS_BLOCK_RE = re.compile(
@@ -216,6 +217,7 @@ class SkillGate:
         min_catalog_skills: int = 8,
         always_keep: tuple[str, ...] = (),
         scorer: Callable[[str, SkillEntry], float] | None = None,
+        skill_graph: SkillGraph | None = None,
     ) -> None:
         self.token_budget = token_budget
         self.enabled = bool(enabled)
@@ -224,6 +226,7 @@ class SkillGate:
         self.min_catalog_skills = max(1, int(min_catalog_skills))
         self.always_keep = frozenset(name.casefold() for name in always_keep if name)
         self.scorer = scorer
+        self.skill_graph = skill_graph
 
     def set_scorer(self, scorer: Callable[[str, SkillEntry], float] | None) -> None:
         self.scorer = scorer
