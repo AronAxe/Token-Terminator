@@ -12,7 +12,7 @@ Or pin:
 
 ```toml
 [dependencies]
-token-terminator = "0.6.0"
+token-terminator = "0.7.0"
 ```
 
 ## Example
