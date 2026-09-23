@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 - 2026-09-23
 
 - Added an empty-by-default runtime graph-of-skill-graphs for SkillGate. Each installed skill is an outer node with its own internal section/resource graph; skill contents are discovered locally from the active host rather than shipped in the repository.
 - Added a fail-open Hermes skill-document adapter for trusted project, local, external, and plugin skills, plus a host-neutral provider hook for other runtimes.
