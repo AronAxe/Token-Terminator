@@ -1,5 +1,9 @@
 # Migration and Rollback
 
+## 0.6.0 → 0.7.0
+
+Normal in-place upgrade. v0.7.0 adds the runtime graph-of-skill-graphs used by SkillGate. The graph starts empty and is populated from the current host's installed skills; skill contents remain local and outside provider-visible requests. Existing vault content and artifact identities remain compatible.
+
 ## 0.5.2 → 0.6.0
 
 Normal in-place upgrade. v0.6.0 adds component-level request attribution and fail-open SkillGate routing. Existing vault content remains valid. SkillGate has no default count cap: all skills above the relevance threshold survive, while filtered skills remain available through `skills_list` and `skill_view`.

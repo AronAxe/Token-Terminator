@@ -21,6 +21,6 @@
 **Development**
 - [Rust Interoperability](Rust-Interoperability)
 - [Developer Guide](Developer-Guide)
-- [Release 0.6.0](Release-0.6.0)
+- [Release 0.7.0](Release-0.7.0)\n- [Release 0.6.0](Release-0.6.0)
 - [Release 0.5.2](Release-0.5.2)
 - [Release 0.5.1](Release-0.5.1)

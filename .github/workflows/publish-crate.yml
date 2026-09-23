@@ -8,7 +8,7 @@ on:
       ref:
         description: Git tag or commit to publish
         required: true
-        default: v0.6.0
+        default: v0.7.0
 
 permissions:
   contents: read
