@@ -1,0 +1,104 @@
+name: Publish v0.7.0 release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-v070-release.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-v070-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'AronAxe/Token-Terminator'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install release tooling
+        run: python -m pip install -e '.[dev]'
+
+      - name: Verify Python release
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(python -c 'from rtk_hermes_plus import __version__; print(__version__)')" = "0.7.0"
+          grep -q 'version = "0.7.0"' pyproject.toml
+          python -m ruff check .
+          python -m ruff format --check .
+          python -m pytest
+          rm -rf dist build
+          python -m build
+          python -m twine check dist/*
+          python scripts/verify_release.py 'dist/*'
+
+      - uses: dtolnay/rust-toolchain@1.78.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify Rust release
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'version = "0.7.0"' Cargo.toml
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+          RUSTDOCFLAGS='-D warnings' cargo doc --no-deps
+          rm -f Cargo.lock
+          cargo publish --dry-run
+
+      - name: Create immutable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(git rev-parse HEAD)"
+          if git rev-parse -q --verify refs/tags/v0.7.0 >/dev/null; then
+            actual="$(git rev-list -n 1 v0.7.0)"
+            test "$actual" = "$expected" || {
+              echo "v0.7.0 already points to $actual, expected $expected"
+              exit 1
+            }
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git tag -a v0.7.0 -m 'Token Terminator v0.7.0'
+            git push origin v0.7.0
+          fi
+
+          if gh release view v0.7.0 >/dev/null 2>&1; then
+            echo 'GitHub v0.7.0 release already exists; leaving it unchanged.'
+          else
+            gh release create v0.7.0 dist/* \
+              --title 'Token Terminator v0.7.0' \
+              --notes-file wiki/Release-0.7.0.md
+          fi
+
+      - name: Publish Rust crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if curl -fsS https://crates.io/api/v1/crates/token-terminator/0.7.0 >/dev/null 2>&1; then
+            echo 'token-terminator 0.7.0 already exists on crates.io; skipping.'
+          else
+            test -n "$CARGO_REGISTRY_TOKEN" || {
+              echo 'CARGO_REGISTRY_TOKEN secret is not configured'
+              exit 1
+            }
+            cargo publish
+          fi
