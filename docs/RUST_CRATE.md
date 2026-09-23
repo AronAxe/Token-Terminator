@@ -29,7 +29,7 @@ Or pin the release explicitly:
 
 ```toml
 [dependencies]
-token-terminator = "0.6.0"
+token-terminator = "0.7.0"
 ```
 
 ## Example
@@ -101,4 +101,4 @@ The crates.io publication workflow uses the repository secret `CARGO_REGISTRY_TO
 
 ## Versioning
 
-The Rust crate follows Token Terminator product versions when its interoperability contract changes. Version `0.5.0` corresponds to the artifact identity and baseline reduction contract used by Token Terminator 0.5.x.
+The Rust crate follows Token Terminator product versions when its interoperability contract changes. Version `0.7.0` accompanies Token Terminator 0.7.0; the crate continues to expose the stable artifact-identity and strict-reduction interoperability contract.
