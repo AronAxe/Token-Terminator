@@ -69,7 +69,8 @@ This is an optimizer, not a context decorator.
 | Layer | Runtime dependency | Status |
 |---|---|---|
 | Vault, receipts, leases, temporal deltas, native compression, request compiler, telemetry | Agent-agnostic Python | Included |
-| Exact tokenizer alignment | Built-in `tiktoken`; optional Hugging Face `tokenizers` | Included |\n| Runtime skill graph | Host-local skill documents; Hermes adapter discovers trusted installed skills | Included; graph ships empty |
+| Exact tokenizer alignment | Built-in `tiktoken`; optional Hugging Face `tokenizers` | Included |
+| Runtime skill graph | Host-local skill documents; Hermes adapter discovers trusted installed skills | Included; graph ships empty |
 | Rust artifact interoperability | `token-terminator` Rust crate | Published on crates.io |
 | RTK command rewriting | Optional `rtk` binary plus a terminal-tool adapter | Included |
 | Hermes lifecycle hooks, slash command, and recovery model tool | Hermes Agent | First-party and turnkey |
@@ -409,7 +410,8 @@ For answer quality—not just token accounting—use the paired non-inferiority 
 
 ## Security and privacy
 
-- Exact raw artifacts and their private provenance are stored locally because recovery is part of the product contract.\n- The skill graph ships empty. Installed skill contents are read only from the current host at runtime, remain process-local, and are not written into the repository or provider request.
+- Exact raw artifacts and their private provenance are stored locally because recovery is part of the product contract.
+- The skill graph ships empty. Installed skill contents are read only from the current host at runtime, remain process-local, and are not written into the repository or provider request.
 - Temporal deltas never skip command execution and never replace the exact current artifact in the vault.
 - Layered recovery views are deterministic and explicitly lossy; the immutable artifact remains authoritative.
 - The vault enforces per-artifact and total-capacity limits, SQLite WAL, foreign keys, busy timeouts, schema-version checks, short-lived transactions, and serialized writes.
