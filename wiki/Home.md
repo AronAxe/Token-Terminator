@@ -6,7 +6,7 @@ Token Terminator is an agent-runtime optimization layer that reduces provider-vi
 
 ## Start here
 
-- [Quick Start](Quick-Start) — install v0.7.0 and verify it is active.
+- [Quick Start](Quick-Start) — install v0.8.0 and verify it is active.
 - [Architecture](Architecture) — understand the host/adapter/core boundary.
 - [Modes and Reduction Pipeline](Modes-and-Reduction-Pipeline) — see what each mode enables.
 - [Configuration](Configuration) — all important environment controls.
@@ -26,7 +26,15 @@ A transformation is accepted only when it is safer than passing the original thr
 
 Temporal terminal reduction adds one more rule: **the command still executes every time**. Only the representation shown to the model may become a smaller delta.
 
-## What v0.7.0 adds\n\nv0.7.0 adds the runtime graph-of-skill-graphs. The graph ships empty and is populated only from the current host's installed skills. Each skill keeps its own internal section/resource graph; cross-skill relationships come only from source-backed metadata such as `related_skills` and explicit dependencies. Skill contents stay local and outside provider-visible requests.\n\n## What v0.6.0 adds
+## What v0.8.0 adds
+
+v0.8.0 adds the optional [Jev Semantic Context Gate](Jev-Semantic-Context-Gate). Jev runs **after** Token Terminator's normal request compiler and deterministic context compactor; it does not replace them. With explicit opt-in and a TypeSafe API key, it can exact-vault low-relevance prior plain-text dialogue and replace it with compact recovery receipts. The default remains Jev-off.
+
+## What v0.7.0 adds
+
+v0.7.0 added the runtime graph-of-skill-graphs used by SkillGate. The graph ships empty and is populated only from the current host's installed skills. Each skill keeps its own internal section/resource graph; cross-skill relationships come only from source-backed metadata such as `related_skills` and explicit dependencies. Skill contents stay local and outside provider-visible requests.
+
+## What v0.6.0 adds
 
 v0.6.0 prevents more prompt bloat before provider dispatch. Request attribution now shows where input tokens come from, and SkillGate reduces large Hermes `<available_skills>` indexes to the entries relevant to the current user request while keeping omitted skills discoverable on demand.
 
@@ -42,7 +50,7 @@ v0.5.1 is the post-0.5.0 hardening release. It adds bounded vault lifecycle mana
 
 ## Current release
 
-- Python package/release: **v0.7.0**
+- Python package/release: **v0.8.0**
 - Python support: **3.10–3.13**
-- Rust interoperability crate: **token-terminator 0.7.0**
+- Rust interoperability crate: **token-terminator 0.8.0**
 - First-party runtime adapter: **Hermes Agent**
