@@ -133,12 +133,16 @@ class RuntimeV05(BaseRuntime):
                 self.context_compactor,
                 self.token_budget,
             )
+        if getattr(self, "jev_reducer", None) is not None:
+            self.jev_reducer.token_budget = self.token_budget
 
     def _sync_token_budget(self) -> None:
         if isinstance(self.compiler, TokenAwareRequestCompiler):
             self.compiler.token_budget = self.token_budget
         if isinstance(self.context_compactor, TokenAwareContextCompactor):
             self.context_compactor.token_budget = self.token_budget
+        if getattr(self, "jev_reducer", None) is not None:
+            self.jev_reducer.token_budget = self.token_budget
 
     def _model_for(self, session_id: str = "", request: Any = None) -> str:
         if isinstance(request, dict):

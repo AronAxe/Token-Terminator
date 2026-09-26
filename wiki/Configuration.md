@@ -68,6 +68,27 @@ High-water retention can reclaim abandoned artifacts, but artifacts already refe
 
 The collapse window must be disabled (`0`) or be at least as large as the fully-inline recent-turn window. Direct `Config(...)` construction rejects an invalid pair; environment loading clamps it to a safe boundary.
 
+## Jev semantic context gate
+
+Jev is **disabled by default** and does not replace any existing reduction path. It runs after the deterministic compiler/compactor.
+
+| Variable | Default |
+|---|---:|
+| `TOKEN_TERMINATOR_JEV` | `false` |
+| `TOKEN_TERMINATOR_JEV_API_KEY` | empty |
+| `TYPESAFE_API_KEY` | empty fallback key |
+| `TOKEN_TERMINATOR_JEV_MODEL` | `jev-latest` |
+| `TOKEN_TERMINATOR_JEV_TIMEOUT_MS` | `1500` |
+| `TOKEN_TERMINATOR_JEV_RELEVANCE_THRESHOLD` | `0.15` |
+| `TOKEN_TERMINATOR_JEV_MIN_MESSAGE_CHARS` | `600` |
+| `TOKEN_TERMINATOR_JEV_MAX_CANDIDATES` | `12` |
+| `TOKEN_TERMINATOR_JEV_MAX_CANDIDATE_CHARS` | `12000` |
+| `TOKEN_TERMINATOR_JEV_MAX_STATE_CHARS` | `60000` |
+
+A candidate prior message is compacted only when both Jev's relevance and guard probabilities fall below the threshold, the exact content has been vaulted and verified, and the full provider request remains smaller. Exact-token measurement can veto a character-saving Jev candidate.
+
+The API key is read from environment only and is never returned by `/token-terminator status`. See [Jev Semantic Context Gate](Jev-Semantic-Context-Gate).
+
 ## Token budgeting
 
 | Variable | Default |

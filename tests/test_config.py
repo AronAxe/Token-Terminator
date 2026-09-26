@@ -80,3 +80,23 @@ def test_legacy_rtk_environment_remains_a_compatibility_fallback(monkeypatch):
     monkeypatch.delenv("TOKEN_TERMINATOR_MODE", raising=False)
     monkeypatch.setenv("RTK_HERMES_PLUS_MODE", "native")
     assert load_config().mode == "native"
+
+
+def test_jev_requires_explicit_enable_and_reads_key_from_environment(monkeypatch):
+    monkeypatch.setenv("TYPESAFE_API_KEY", "typesafe-test-key")
+    monkeypatch.delenv("TOKEN_TERMINATOR_JEV", raising=False)
+    monkeypatch.delenv("TOKEN_TERMINATOR_JEV_API_KEY", raising=False)
+
+    disabled = load_config()
+    assert disabled.jev_enabled is False
+    assert disabled.jev_api_key == "typesafe-test-key"
+
+    monkeypatch.setenv("TOKEN_TERMINATOR_JEV", "true")
+    monkeypatch.setenv("TOKEN_TERMINATOR_JEV_API_KEY", "tt-specific-key")
+    monkeypatch.setenv("TOKEN_TERMINATOR_JEV_RELEVANCE_THRESHOLD", "1.7")
+    enabled = load_config()
+
+    assert enabled.jev_enabled is True
+    assert enabled.jev_api_key == "tt-specific-key"
+    assert enabled.jev_relevance_threshold == 1.0
+    assert enabled.jev_model == "jev-latest"

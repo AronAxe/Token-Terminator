@@ -2,14 +2,16 @@
 
 Token Terminator uses one runtime mode to control which reduction paths are active.
 
-| Mode | RTK terminal rewrite | Temporal delta | Native search/process | Native `read_file` | Request compiler |
-|---|:---:|:---:|:---:|:---:|:---:|
-| `balanced` | ✓ | ✓ | ✓ | — | ✓ |
-| `aggressive` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `native` | — | — | ✓ | — | — |
-| `terminal` | ✓ | — | — | — | — |
-| `suggest` | measure only | — | — | — | — |
-| `off` | — | — | — | — | — |
+| Mode | RTK terminal rewrite | Temporal delta | Native search/process | Native `read_file` | Request compiler | Optional Jev gate |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| `balanced` | ✓ | ✓ | ✓ | — | ✓ | ✓* |
+| `aggressive` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓* |
+| `native` | — | — | ✓ | — | — | — |
+| `terminal` | ✓ | — | — | — | — | — |
+| `suggest` | measure only | — | — | — | — | — |
+| `off` | — | — | — | — | — | — |
+
+*Jev still requires `TOKEN_TERMINATOR_JEV=true` plus an API key. It is off by default even in `balanced` and `aggressive` modes. When enabled, it runs after the normal deterministic request-reduction phases; it never disables them.*
 
 ## Balanced
 

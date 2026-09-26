@@ -1,0 +1,98 @@
+name: Publish GitHub release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/rtk_hermes_plus/_version.py"
+      - "pyproject.toml"
+      - "Cargo.toml"
+      - "CHANGELOG.md"
+      - ".github/workflows/publish-release.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-token-terminator-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'AronAxe/Token-Terminator'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Read and verify version
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/rtk_hermes_plus/_version.py)"
+          test -n "$VERSION"
+          TAG="v${VERSION}"
+          grep -q "^## ${VERSION} -" CHANGELOG.md
+          grep -q "version = \"${VERSION}\"" pyproject.toml
+          grep -q "version = \"${VERSION}\"" Cargo.toml
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether release already exists
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Python release artifacts
+        if: steps.existing.outputs.exists != 'true'
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build
+          python -m twine check dist/*
+          python scripts/verify_release.py 'dist/*'
+
+      - name: Extract release notes
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          lines = Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines()
+          heading = f"## {version} -"
+          start = next(i for i, line in enumerate(lines) if line.startswith(heading))
+          end = next(
+              (i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")),
+              len(lines),
+          )
+          notes = "\n".join(lines[start + 1:end]).strip() + "\n"
+          Path("release-notes.md").write_text(notes, encoding="utf-8")
+          PY
+
+      - name: Create tag and GitHub release
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          gh release create "$TAG" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "Token Terminator v${VERSION}" \
+            --notes-file release-notes.md
