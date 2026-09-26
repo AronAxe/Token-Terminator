@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1 - 2026-09-26
+
+- Fixed Jev handling for Hermes memory-provider context: `<memory-context>` blocks appended to the current user message are now separated from the user's actual request and evaluated as background context.
+- Preserved the current user's own words verbatim while allowing low-relevance recalled-memory blocks (including Hindsight auto-recall) to be exact-vaulted and replaced with a fenced recovery receipt.
+- Added an offline regression test proving the real user request is not sent to the removal path, the fenced memory block remains recoverable exactly, and Jev still fails open.
+
 ## 0.8.0 - 2026-09-26
 
 - Added an **optional Jev semantic context gate** after the existing request compiler and deterministic context compactor. Jev augments Token Terminator; it does not replace terminal rewriting, temporal deltas, native compression, SkillGate, vaulting, recovery, or tokenizer-aware acceptance.
