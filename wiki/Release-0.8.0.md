@@ -1,5 +1,8 @@
 # Release 0.8.0
 
+
+> **Provider routing note:** v0.8.2 supersedes the Jev credential/endpoint setup documented below. Current installs support OpenRouter (`OPENROUTER_API_KEY`) or direct TypeSafe (`TYPESAFE_API_KEY`), one key at a time.
+
 Released: **2026-09-26**
 
 Token Terminator 0.8.0 adds an **optional TypeSafe Jev semantic context gate** without replacing any existing Token Terminator mechanism.
