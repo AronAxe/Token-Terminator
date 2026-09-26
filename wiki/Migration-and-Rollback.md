@@ -1,5 +1,24 @@
 # Migration and Rollback
 
+## 0.7.0 → 0.8.0
+
+Normal in-place upgrade. v0.8.0 adds the optional Jev semantic context gate after the existing request compiler and deterministic context compactor. Jev is off by default, so an existing 0.7.0 installation keeps its previous behavior until you explicitly enable Jev and supply a TypeSafe API key.
+
+All existing reduction paths remain active when Jev is enabled. Existing vault content and artifact identities remain compatible.
+
+Install the immutable release tag:
+
+```bash
+HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
+hermes plugins disable token-terminator
+"$HERMES_PY" -m pip uninstall -y token-terminator
+"$HERMES_PY" -m pip install \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.0'
+hermes plugins enable token-terminator --no-allow-tool-override
+```
+
+See [Jev Semantic Context Gate](Jev-Semantic-Context-Gate) before enabling the external API boundary.
+
 ## 0.6.0 → 0.7.0
 
 Normal in-place upgrade. v0.7.0 adds the runtime graph-of-skill-graphs used by SkillGate. The graph starts empty and is populated from the current host's installed skills; skill contents remain local and outside provider-visible requests. Existing vault content and artifact identities remain compatible.
