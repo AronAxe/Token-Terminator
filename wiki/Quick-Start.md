@@ -1,6 +1,6 @@
 # Quick Start
 
-This page gets a Hermes Agent installation onto Token Terminator **v0.7.0** with the fewest moving parts.
+This page gets a Hermes Agent installation onto Token Terminator **v0.8.0** with the fewest moving parts.
 
 ## 1. Optional: install RTK
 
@@ -24,7 +24,7 @@ hermes plugins disable token-terminator
 
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.7.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.0'
 
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
@@ -39,7 +39,18 @@ On Windows, use the Hermes virtual-environment Python under `%LOCALAPPDATA%\herm
 
 Use a Hugging Face `tokenizer.json` or a supported tiktoken encoding through the configuration variables described in [Configuration](Configuration). If no exact tokenizer is available, the strict character-reduction invariant remains active.
 
-## 4. Start a fresh Hermes session
+## 4. Optional: enable Jev semantic context reduction
+
+Jev is not required. The existing Token Terminator pipeline works without it.
+
+```bash
+export TOKEN_TERMINATOR_JEV=true
+export TYPESAFE_API_KEY="..."
+```
+
+Use `TOKEN_TERMINATOR_JEV_API_KEY` instead if you want a Token Terminator-specific key variable. Never commit the key. Enabling Jev sends the current user request plus selected prior plain-text user/assistant candidates to TypeSafe; see [Jev Semantic Context Gate](Jev-Semantic-Context-Gate) and [Security and Trust Model](Security-and-Trust-Model).
+
+## 5. Start a fresh Hermes session
 
 Then check:
 
@@ -50,7 +61,7 @@ Then check:
 
 You want to see the plugin enabled, the expected mode, and a usable vault. If temporal delta or token budgeting is configured, their status is shown here too.
 
-## 5. First recovery smoke test
+## 6. First recovery smoke test
 
 After a large supported tool result is compressed, its receipt contains an artifact ID. Recover the exact content with the model tool:
 
