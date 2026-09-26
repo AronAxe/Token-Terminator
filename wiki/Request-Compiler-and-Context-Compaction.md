@@ -38,6 +38,16 @@ The default is six turns before collapse, with the five most recent turns guaran
 
 This does **not** delete the host's persisted transcript. It changes only the provider-bound copied request.
 
+## Optional Jev phase
+
+When `TOKEN_TERMINATOR_JEV=true` and a TypeSafe API key is available, Token Terminator can run one additional semantic pass **after** deterministic context compaction.
+
+The current user request and bounded prior plain-text user/assistant candidates are sent to Jev in one batch. Each candidate gets independent relevance and guard probabilities. A candidate is eligible for replacement only when both are below the configured threshold.
+
+Jev does not generate a summary. Token Terminator stores the exact original candidate in the local vault and substitutes a compact recovery receipt. If Jev fails, returns malformed data, or fails either the character or exact-token reduction gate, the already-reduced deterministic request remains in use.
+
+See [Jev Semantic Context Gate](Jev-Semantic-Context-Gate).
+
 ## Working-state injection
 
 `TOKEN_TERMINATOR_WORKING_GRAPH_CHARS` defaults to `0`. When enabled, the bounded selector is optional context, not a second memory system. If injecting it would erase the end-to-end reduction, it is removed.
