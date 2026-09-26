@@ -59,6 +59,16 @@ def _decimal(name: str, default: float = 0.0, *, legacy: str | None = None) -> f
         return default
 
 
+def _probability(name: str, default: float) -> float:
+    raw = _env(name)
+    if raw is None:
+        return default
+    try:
+        return max(0.0, min(1.0, float(raw)))
+    except ValueError:
+        return default
+
+
 def _csv(
     name: str,
     default: tuple[str, ...],
@@ -132,6 +142,18 @@ class Config:
     context_collapse_after_turns: int = 6
     context_inline_recent_turns: int = 5
 
+    # Optional external semantic context gate. Jev augments, never replaces,
+    # the deterministic compiler/compactor/vault pipeline.
+    jev_enabled: bool = False
+    jev_api_key: str = ""
+    jev_model: str = "jev-latest"
+    jev_timeout_ms: int = 1500
+    jev_relevance_threshold: float = 0.15
+    jev_min_message_chars: int = 600
+    jev_max_candidates: int = 12
+    jev_max_candidate_chars: int = 12_000
+    jev_max_state_chars: int = 60_000
+
     # Disabled by default. This is a bounded working-state selector, not the
     # principal's broader graph-reasoning architecture.
     graph_context_chars: int = 0
@@ -159,11 +181,18 @@ class Config:
             "vault_max_bytes",
             "max_artifact_page_chars",
             "max_search_results",
+            "jev_timeout_ms",
+            "jev_min_message_chars",
+            "jev_max_candidates",
+            "jev_max_candidate_chars",
+            "jev_max_state_chars",
         ):
             if getattr(self, name) < 1:
                 raise ValueError(f"{name} must be positive")
         if self.min_artifact_chars > self.max_artifact_chars:
             raise ValueError("min_artifact_chars must not exceed max_artifact_chars")
+        if not 0.0 <= self.jev_relevance_threshold <= 1.0:
+            raise ValueError("jev_relevance_threshold must be between 0 and 1")
         if not 0 <= self.vault_low_water_pct < self.vault_high_water_pct <= 100:
             raise ValueError("vault watermarks must satisfy 0 <= low < high <= 100")
         if (
@@ -244,6 +273,12 @@ def load_config() -> Config:
     min_artifact_chars = min(min_artifact_chars, max_artifact_chars)
 
     rtk_raw = _env("TOKEN_TERMINATOR_RTK_PATH")
+    jev_api_key = (
+        _env("TOKEN_TERMINATOR_JEV_API_KEY")
+        or os.getenv("TYPESAFE_API_KEY", "")
+    ).strip()
+    jev_model = (_env("TOKEN_TERMINATOR_JEV_MODEL") or "jev-latest").strip()
+    jev_model = jev_model[:120] or "jev-latest"
     context_inline_recent_turns = _integer(
         "TOKEN_TERMINATOR_CONTEXT_INLINE_RECENT_TURNS", 5, minimum=0
     )
@@ -387,5 +422,41 @@ def load_config() -> Config:
         ),
         context_collapse_after_turns=context_collapse_after_turns,
         context_inline_recent_turns=context_inline_recent_turns,
+        jev_enabled=_boolean("TOKEN_TERMINATOR_JEV", False),
+        jev_api_key=jev_api_key,
+        jev_model=jev_model,
+        jev_timeout_ms=_integer(
+            "TOKEN_TERMINATOR_JEV_TIMEOUT_MS",
+            1500,
+            minimum=100,
+            maximum=30_000,
+        ),
+        jev_relevance_threshold=_probability(
+            "TOKEN_TERMINATOR_JEV_RELEVANCE_THRESHOLD",
+            0.15,
+        ),
+        jev_min_message_chars=_integer(
+            "TOKEN_TERMINATOR_JEV_MIN_MESSAGE_CHARS",
+            600,
+            minimum=100,
+        ),
+        jev_max_candidates=_integer(
+            "TOKEN_TERMINATOR_JEV_MAX_CANDIDATES",
+            12,
+            minimum=1,
+            maximum=64,
+        ),
+        jev_max_candidate_chars=_integer(
+            "TOKEN_TERMINATOR_JEV_MAX_CANDIDATE_CHARS",
+            12_000,
+            minimum=500,
+            maximum=500_000,
+        ),
+        jev_max_state_chars=_integer(
+            "TOKEN_TERMINATOR_JEV_MAX_STATE_CHARS",
+            60_000,
+            minimum=1_000,
+            maximum=2_000_000,
+        ),
     )
     return config
