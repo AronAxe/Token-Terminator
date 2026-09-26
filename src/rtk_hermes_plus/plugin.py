@@ -14,6 +14,7 @@ from .compress import NativeCompressor
 from .config import MODES, Config, load_config
 from .context_compactor import CompactionResult, ContextCompactor
 from .graph import MAX_BATCH_OPERATIONS, WorkingStateGraph
+from .jev_context import JevReductionResult, JevSemanticReducer
 from .ledger import ExperimentLedger, dump_compare
 from .metrics import Metrics
 from .rewrite import (
@@ -237,6 +238,8 @@ class Runtime:
             if not compaction.failed_open and compaction.saved_chars > 0:
                 final_request = compaction.request
 
+        post_compaction_chars = _serialized_chars(final_request)
+
         # Phase 3: Optional Jev semantic context gate. This is deliberately
         # additive: deterministic compiler/compactor work has already happened.
         # Jev may only remove remaining prior plain-text context after exact
@@ -264,7 +267,12 @@ class Runtime:
             )
             return None
 
-        compactor_saved = compiled.compiled_chars - final_chars
+        compactor_saved = compiled.compiled_chars - post_compaction_chars
+        jev_saved = (
+            jev_reduction.saved_chars
+            if jev_reduction is not None and not jev_reduction.failed_open
+            else 0
+        )
         end_to_end_saved = compiled.raw_chars - final_chars
         self._record_request_metric(
             compiled,
@@ -299,6 +307,7 @@ class Runtime:
                 "final_chars": final_chars,
                 "compiler_saved_chars": compiled.saved_chars,
                 "compactor_saved_chars": compactor_saved,
+                "jev_saved_chars": jev_saved,
                 "end_to_end_saved_chars": end_to_end_saved,
                 "saved_chars": end_to_end_saved,
                 "compiled_chars": compiled.compiled_chars,
