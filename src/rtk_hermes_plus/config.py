@@ -145,8 +145,9 @@ class Config:
     # Optional external semantic context gate. Jev augments, never replaces,
     # the deterministic compiler/compactor/vault pipeline.
     jev_enabled: bool = False
+    jev_provider: str = "auto"
     jev_api_key: str = ""
-    jev_model: str = "jev-latest"
+    jev_model: str = "~typesafe/jev-latest"
     jev_timeout_ms: int = 1500
     jev_relevance_threshold: float = 0.15
     jev_min_message_chars: int = 600
@@ -273,11 +274,44 @@ def load_config() -> Config:
     min_artifact_chars = min(min_artifact_chars, max_artifact_chars)
 
     rtk_raw = _env("TOKEN_TERMINATOR_RTK_PATH")
-    jev_api_key = (
-        _env("TOKEN_TERMINATOR_JEV_API_KEY") or os.getenv("TYPESAFE_API_KEY", "")
+    jev_provider = (_env("TOKEN_TERMINATOR_JEV_PROVIDER") or "auto").strip().lower()
+    if jev_provider not in {"auto", "openrouter", "typesafe"}:
+        jev_provider = "auto"
+
+    openrouter_jev_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    # TOKEN_TERMINATOR_JEV_API_KEY was introduced in v0.8.0 as a direct
+    # TypeSafe credential. Keep it as a temporary compatibility alias.
+    typesafe_jev_key = (
+        os.getenv("TYPESAFE_API_KEY", "")
+        or _env("TOKEN_TERMINATOR_JEV_API_KEY")
+        or ""
     ).strip()
-    jev_model = (_env("TOKEN_TERMINATOR_JEV_MODEL") or "jev-latest").strip()
-    jev_model = jev_model[:120] or "jev-latest"
+
+    if jev_provider == "auto":
+        if openrouter_jev_key:
+            jev_provider = "openrouter"
+        elif typesafe_jev_key:
+            jev_provider = "typesafe"
+
+    if jev_provider == "typesafe":
+        jev_api_key = typesafe_jev_key
+        default_jev_model = "jev-latest"
+    else:
+        jev_api_key = openrouter_jev_key
+        default_jev_model = "~typesafe/jev-latest"
+
+    jev_model = (_env("TOKEN_TERMINATOR_JEV_MODEL") or default_jev_model).strip()
+    if jev_provider == "openrouter":
+        if jev_model == "jev-latest":
+            jev_model = "~typesafe/jev-latest"
+        elif jev_model.startswith("jev-"):
+            jev_model = f"typesafe/{jev_model}"
+    elif jev_provider == "typesafe":
+        if jev_model.startswith("~typesafe/"):
+            jev_model = jev_model.removeprefix("~typesafe/")
+        elif jev_model.startswith("typesafe/"):
+            jev_model = jev_model.removeprefix("typesafe/")
+    jev_model = jev_model[:120] or default_jev_model
     context_inline_recent_turns = _integer(
         "TOKEN_TERMINATOR_CONTEXT_INLINE_RECENT_TURNS", 5, minimum=0
     )
@@ -422,6 +456,7 @@ def load_config() -> Config:
         context_collapse_after_turns=context_collapse_after_turns,
         context_inline_recent_turns=context_inline_recent_turns,
         jev_enabled=_boolean("TOKEN_TERMINATOR_JEV", False),
+        jev_provider=jev_provider,
         jev_api_key=jev_api_key,
         jev_model=jev_model,
         jev_timeout_ms=_integer(
