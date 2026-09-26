@@ -5,8 +5,8 @@ import json
 import re
 from dataclasses import dataclass
 
+from rtk_hermes_plus import jev_context
 from rtk_hermes_plus.config import Config
-import rtk_hermes_plus.jev_context as jev_context
 from rtk_hermes_plus.jev_context import JevSemanticReducer
 from rtk_hermes_plus.storage import TokenTerminatorStore
 
