@@ -1,6 +1,28 @@
-# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.x / 0.6.0 / 0.7.0 / 0.8.0 → 0.8.1
+# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.x / 0.6.0 / 0.7.0 / 0.8.x → 0.8.2
 
-Token Terminator 0.8.1 supersedes Token Terminator 0.8.0 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
+Token Terminator 0.8.2 supersedes Token Terminator 0.8.1 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
+
+## 0.8.1 → 0.8.2
+
+v0.8.2 corrects the Jev provider boundary. Jev can now use either OpenRouter's Decisions API or TypeSafe directly.
+
+The default is `TOKEN_TERMINATOR_JEV_PROVIDER=auto`:
+- if `OPENROUTER_API_KEY` exists, OpenRouter is used;
+- otherwise, if `TYPESAFE_API_KEY` exists, TypeSafe is used directly;
+- if both exist, OpenRouter wins;
+- set `TOKEN_TERMINATOR_JEV_PROVIDER=openrouter` or `typesafe` to force a route.
+
+No user needs two keys. The old `TOKEN_TERMINATOR_JEV_API_KEY` remains only as a temporary direct-TypeSafe compatibility alias.
+
+Install the immutable release tag:
+
+```bash
+hermes plugins disable token-terminator
+<hermes-python> -m pip uninstall -y token-terminator
+<hermes-python> -m pip install \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2'
+hermes plugins enable token-terminator --no-allow-tool-override
+```
 
 ## 0.8.0 → 0.8.1
 
@@ -92,7 +114,7 @@ Start a new Hermes session after the upgrade. `tiktoken` is installed with Token
 
 ## Boundary
 
-| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.8.1 |
+| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.8.2 |
 |---|---|---|
 | Distribution | `rtk-hermes-plus` | `token-terminator` |
 | Hermes plugin key | `rtk-plus` | `token-terminator` |
@@ -134,7 +156,7 @@ hermes plugins disable rtk-plus
 hermes plugins disable token-terminator
 <hermes-python> -m pip uninstall -y rtk-hermes-plus token-terminator
 <hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2'
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
 
@@ -156,7 +178,7 @@ Verify:
 /token-terminator status
 ```
 
-- plugin key is `token-terminator` and version is `0.8.1`;
+- plugin key is `token-terminator` and version is `0.8.2`;
 - `vault_available` is `true`;
 - the selected mode is correct;
 - `temporal_delta` reports whether the feature is enabled and active in the selected mode;
