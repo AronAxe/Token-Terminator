@@ -249,7 +249,7 @@ class JevSemanticReducer:
             method="POST",
         )
         timeout = self.config.jev_timeout_ms / 1000.0
-        with urlopen(request, timeout=timeout) as response:  # noqa: S310 - fixed HTTPS endpoint
+        with urlopen(request, timeout=timeout) as response:
             raw = response.read()
         decoded = json.loads(raw.decode("utf-8"))
         if not isinstance(decoded, dict):
@@ -367,7 +367,7 @@ class JevSemanticReducer:
                 output_tokens=int(usage.get("output_tokens") or 0),
                 model=str(response.get("model") or self.config.jev_model),
             )
-        except Exception as exc:  # noqa: BLE001 - fail-open is the contract
+        except Exception as exc:
             logger.debug("Jev semantic context reduction failed open", exc_info=True)
             return JevReductionResult(
                 request=original,
