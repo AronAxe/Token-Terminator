@@ -26,7 +26,11 @@ A transformation is accepted only when it is safer than passing the original thr
 
 Temporal terminal reduction adds one more rule: **the command still executes every time**. Only the representation shown to the model may become a smaller delta.
 
-## What v0.8.1 changes\n\nv0.8.1 makes the Jev gate aware of Hermes `<memory-context>` fencing. Recalled background from Hindsight or another memory provider can be scored separately from the current user request, while the user's own words remain protected from Jev removal.\n\n## What v0.8.0 adds
+## What v0.8.1 changes
+
+v0.8.1 makes the Jev gate aware of Hermes `<memory-context>` fencing. Recalled background from Hindsight or another memory provider can be scored separately from the current user request, while the user's own words remain protected from Jev removal.
+
+## What v0.8.0 adds
 
 v0.8.0 adds the optional [Jev Semantic Context Gate](Jev-Semantic-Context-Gate). Jev runs **after** Token Terminator's normal request compiler and deterministic context compactor; it does not replace them. With explicit opt-in and a TypeSafe API key, it can exact-vault low-relevance prior plain-text dialogue and replace it with compact recovery receipts. The default remains Jev-off.
 
