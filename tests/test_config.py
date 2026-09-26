@@ -81,6 +81,7 @@ def test_legacy_rtk_environment_remains_a_compatibility_fallback(monkeypatch):
     monkeypatch.setenv("RTK_HERMES_PLUS_MODE", "native")
     assert load_config().mode == "native"
 
+
 def test_jev_requires_explicit_enable_and_reads_key_from_environment(monkeypatch):
     monkeypatch.setenv("TYPESAFE_API_KEY", "typesafe-test-key")
     monkeypatch.delenv("TOKEN_TERMINATOR_JEV", raising=False)
