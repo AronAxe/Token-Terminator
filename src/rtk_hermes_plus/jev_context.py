@@ -4,7 +4,7 @@ import copy
 import json
 import logging
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any
 from urllib.request import Request, urlopen
 
@@ -35,7 +35,19 @@ class JevReductionResult:
     error: str = ""
 
     def as_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        # Provider/request content must never leak into metrics or status.
+        return {
+            "raw_chars": self.raw_chars,
+            "final_chars": self.final_chars,
+            "saved_chars": self.saved_chars,
+            "candidates": self.candidates,
+            "compacted_messages": self.compacted_messages,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "model": self.model,
+            "failed_open": self.failed_open,
+            "error": self.error,
+        }
 
 
 @dataclass
