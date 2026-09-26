@@ -20,7 +20,7 @@ The plugin itself does not upload this private data by default.
 
 Jev is disabled by default. If you explicitly enable it with `TOKEN_TERMINATOR_JEV=true` and provide `TOKEN_TERMINATOR_JEV_API_KEY` or `TYPESAFE_API_KEY`, Token Terminator sends a bounded state object to TypeSafe's System One API.
 
-That state contains the current user request and selected prior **plain-text user/assistant** candidate messages. System/developer messages, tool messages/results, messages containing tool calls, structured/multimodal content, and the current user message as a removal candidate are excluded.
+That state contains the current user request and selected prior **plain-text user/assistant** candidate messages. Hermes `<memory-context>` background appended to the current user message may also be included as a separately fenced candidate. System/developer messages, tool messages/results, messages containing tool calls, structured/multimodal content, and the user's actual current-turn words as a removal candidate are excluded.
 
 The API key is read from the process environment only. It is not stored in the artifact vault, experiment ledger, request metrics, repository, or status output.
 
