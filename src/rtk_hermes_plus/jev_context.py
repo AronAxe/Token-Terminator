@@ -76,8 +76,10 @@ class JevSemanticReducer:
     vault, or exact-recovery path. It only gets a chance to compact remaining
     prior plain-text user/assistant messages after those stages have run.
 
-    The current user turn, system/developer/tool messages, structured content,
-    and messages carrying tool calls are never candidates.
+    The user's actual current-turn words, system/developer/tool messages,
+    structured content, and messages carrying tool calls are never removal
+    candidates. Hermes <memory-context> background appended to the current
+    user message may be scored separately.
     """
 
     def __init__(
