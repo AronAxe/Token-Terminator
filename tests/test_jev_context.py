@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import copy
+import json
 import re
 from dataclasses import dataclass
 
 from rtk_hermes_plus.config import Config
+import rtk_hermes_plus.jev_context as jev_context
 from rtk_hermes_plus.jev_context import JevSemanticReducer
 from rtk_hermes_plus.storage import TokenTerminatorStore
 
@@ -225,3 +227,78 @@ def test_fenced_current_turn_memory_is_scored_without_touching_user_request(tmp_
     recovered = store.get_artifact(artifact_id).content
     assert recovered.startswith("<memory-context>")
     assert memory in recovered
+
+
+
+def test_jev_http_transport_uses_selected_provider_endpoint(tmp_path, monkeypatch):
+    captured = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "model": "jev-test",
+                    "answers": {"q": {"type": "noul", "noul": 0.5}},
+                    "usage": {"input_tokens": 1, "output_tokens": 1},
+                }
+            ).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        captured.append((request, timeout))
+        return Response()
+
+    monkeypatch.setattr(jev_context, "urlopen", fake_urlopen)
+
+    openrouter = Config(
+        db_path=tmp_path / "openrouter.db",
+        jev_enabled=True,
+        jev_provider="openrouter",
+        jev_api_key="or-key",
+        jev_model="~typesafe/jev-latest",
+    )
+    openrouter_reducer = JevSemanticReducer(
+        TokenTerminatorStore(openrouter.db_path),
+        openrouter,
+    )
+    openrouter_reducer._call(
+        {
+            "model": openrouter.jev_model,
+            "state": "state",
+            "questions": {"q": {"type": "noul", "instructions": "question"}},
+        }
+    )
+
+    request, _ = captured[-1]
+    assert request.full_url == "https://openrouter.ai/api/alpha/decisions"
+    assert request.get_header("Authorization") == "Bearer or-key"
+    assert request.get_header("X-title") == "Token Terminator"
+
+    typesafe = Config(
+        db_path=tmp_path / "typesafe.db",
+        jev_enabled=True,
+        jev_provider="typesafe",
+        jev_api_key="ts-key",
+        jev_model="jev-latest",
+    )
+    typesafe_reducer = JevSemanticReducer(
+        TokenTerminatorStore(typesafe.db_path),
+        typesafe,
+    )
+    typesafe_reducer._call(
+        {
+            "model": typesafe.jev_model,
+            "state": "state",
+            "questions": {"q": {"type": "noul", "instructions": "question"}},
+        }
+    )
+
+    request, _ = captured[-1]
+    assert request.full_url == "https://api.typesafe.ai/v1/systemone"
+    assert request.get_header("Authorization") == "Bearer ts-key"
+    assert request.get_header("X-title") is None
