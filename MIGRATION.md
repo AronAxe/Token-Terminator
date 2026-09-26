@@ -2,8 +2,23 @@
 
 Token Terminator 0.8.1 supersedes Token Terminator 0.8.0 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
 
-## 0.8.0 → 0.8.1\n\nv0.8.1 is a patch upgrade for Hermes memory-provider integration. Hermes appends recalled memory to the current user message inside `<memory-context>` fences. Token Terminator now separates those fenced blocks from the user's actual request before Jev scoring, so Hindsight/other recalled background can participate in semantic routing without making the user's own words removable.\n\nJev remains optional and fail-open. Existing v0.8.0 settings and vault data are compatible.\n\nInstall the immutable release tag:\n\n```bash\nhermes plugins disable token-terminator\n<hermes-python> -m pip uninstall -y token-terminator\n<hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'\nhermes plugins enable token-terminator --no-allow-tool-override\n```\n\n## 0.7.0 → 0.8.0
+## 0.8.0 → 0.8.1
+
+v0.8.1 is a patch upgrade for Hermes memory-provider integration. Hermes appends recalled memory to the current user message inside `<memory-context>` fences. Token Terminator now separates those fenced blocks from the user's actual request before Jev scoring, so Hindsight/other recalled background can participate in semantic routing without making the user's own words removable.
+
+Jev remains optional and fail-open. Existing v0.8.0 settings and vault data are compatible.
+
+Install the immutable release tag:
+
+```bash
+hermes plugins disable token-terminator
+<hermes-python> -m pip uninstall -y token-terminator
+<hermes-python> -m pip install \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'
+hermes plugins enable token-terminator --no-allow-tool-override
+```
+
+## 0.7.0 → 0.8.0
 
 v0.8.0 is a normal in-place upgrade. It adds an optional TypeSafe Jev semantic context gate **after** the existing Token Terminator request compiler and deterministic context compactor. The existing RTK, temporal, native-compression, SkillGate, vault, recovery, and tokenizer-aware paths remain active whether Jev is enabled or not.
 
