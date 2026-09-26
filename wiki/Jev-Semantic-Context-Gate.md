@@ -1,6 +1,6 @@
 # Jev Semantic Context Gate
 
-Token Terminator 0.8.0 adds an **optional** semantic context gate backed by TypeSafe Jev.
+Token Terminator 0.8.0 added the **optional** semantic context gate backed by TypeSafe Jev. v0.8.1 adds Hermes memory-provider awareness for fenced recalled context.
 
 It is not a replacement mode. The normal Token Terminator pipeline still runs first.
 
@@ -24,7 +24,7 @@ With Jev disabled, the pipeline behaves as before.
 
 ## What Jev does
 
-After deterministic Token Terminator reduction, some prior natural-language conversation can still remain inline. Jev receives the current user request plus a bounded set of remaining prior plain-text user/assistant messages and answers two typed `noul` questions per candidate in one batched System One request:
+After deterministic Token Terminator reduction, some prior natural-language conversation can still remain inline. Jev receives the current user request plus a bounded set of remaining prior plain-text user/assistant messages. On Hermes, `<memory-context>` background injected by memory providers such as Hindsight is separated from the user's actual words and may be scored as its own candidate. Jev answers two typed `noul` questions per candidate in one batched System One request:
 
 1. **relevance** — would this prior message materially help answer the current request?
 2. **guard** — does it contain an instruction, constraint, preference, commitment, exact value/name/code/quotation, or other detail whose omission could materially change the answer?
@@ -88,6 +88,6 @@ A timeout, HTTP error, malformed response, missing answer, vault failure, charac
 
 ## External-service boundary
 
-Enabling Jev explicitly permits the bounded current user request and selected prior plain-text user/assistant candidates to be sent to TypeSafe's API. Keep `TOKEN_TERMINATOR_JEV=false` when that external transfer is not appropriate.
+Enabling Jev explicitly permits the bounded current user request, selected prior plain-text user/assistant candidates, and separately fenced Hermes `<memory-context>` background to be sent to TypeSafe's API. Keep `TOKEN_TERMINATOR_JEV=false` when that external transfer is not appropriate.
 
 The exact removed content remains authoritative in Token Terminator's local vault. Jev supplies typed decisions; it never owns the evidence or the recovery path.
