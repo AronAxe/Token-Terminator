@@ -369,11 +369,7 @@ class JevSemanticReducer:
                 if _serialized_chars(receipt) >= _serialized_chars(candidate.content):
                     continue
                 if candidate.kind == "memory":
-                    replacement = (
-                        "<memory-context>\n"
-                        f"{receipt}\n"
-                        "</memory-context>"
-                    )
+                    replacement = f"<memory-context>\n{receipt}\n</memory-context>"
                     current = candidate.container.get(candidate.field)
                     if not isinstance(current, str) or candidate.content not in current:
                         continue
