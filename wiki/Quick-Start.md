@@ -1,6 +1,6 @@
 # Quick Start
 
-This page gets a Hermes Agent installation onto Token Terminator **v0.8.0** with the fewest moving parts.
+This page gets a Hermes Agent installation onto Token Terminator **v0.8.1** with the fewest moving parts.
 
 ## 1. Optional: install RTK
 
@@ -24,7 +24,7 @@ hermes plugins disable token-terminator
 
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'
 
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
@@ -48,7 +48,7 @@ export TOKEN_TERMINATOR_JEV=true
 export TYPESAFE_API_KEY="..."
 ```
 
-Use `TOKEN_TERMINATOR_JEV_API_KEY` instead if you want a Token Terminator-specific key variable. Never commit the key. Enabling Jev sends the current user request plus selected prior plain-text user/assistant candidates to TypeSafe; see [Jev Semantic Context Gate](Jev-Semantic-Context-Gate) and [Security and Trust Model](Security-and-Trust-Model).
+Use `TOKEN_TERMINATOR_JEV_API_KEY` instead if you want a Token Terminator-specific key variable. Never commit the key. Enabling Jev sends the current user request plus selected prior plain-text user/assistant candidates—and, when present, separately fenced Hermes `<memory-context>` background—to TypeSafe; see [Jev Semantic Context Gate](Jev-Semantic-Context-Gate) and [Security and Trust Model](Security-and-Trust-Model).
 
 ## 5. Start a fresh Hermes session
 
