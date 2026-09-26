@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 _JEV_API_URL = "https://api.typesafe.ai/v1/systemone"
 _MEMORY_BLOCK_RE = re.compile(
-    r"<memory-context>\\s*.*?</memory-context>",
+    r"<memory-context>\s*.*?</memory-context>",
     re.IGNORECASE | re.DOTALL,
 )
 
