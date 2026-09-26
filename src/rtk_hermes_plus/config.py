@@ -274,8 +274,7 @@ def load_config() -> Config:
 
     rtk_raw = _env("TOKEN_TERMINATOR_RTK_PATH")
     jev_api_key = (
-        _env("TOKEN_TERMINATOR_JEV_API_KEY")
-        or os.getenv("TYPESAFE_API_KEY", "")
+        _env("TOKEN_TERMINATOR_JEV_API_KEY") or os.getenv("TYPESAFE_API_KEY", "")
     ).strip()
     jev_model = (_env("TOKEN_TERMINATOR_JEV_MODEL") or "jev-latest").strip()
     jev_model = jev_model[:120] or "jev-latest"
