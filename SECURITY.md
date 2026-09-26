@@ -37,3 +37,14 @@ Back up or remove `<HERMES_HOME>/token-terminator/` separately from package unin
 ## RTK executable trust boundary
 
 When `TOKEN_TERMINATOR_RTK_PATH` is unset, Token Terminator discovers `rtk` through the host process `PATH`. A malicious or accidentally shadowed executable named `rtk` can therefore influence command rewriting. Security-sensitive deployments should pin the expected executable with `TOKEN_TERMINATOR_RTK_PATH` and protect that file and its parent directory from untrusted writes. Token Terminator still invokes RTK with an argument array and `shell=False`; executable discovery is the separate trust boundary.
+
+## Optional Jev external-service boundary
+
+Jev integration is disabled by default. Enabling it requires both `TOKEN_TERMINATOR_JEV=true` and an API key supplied through `TOKEN_TERMINATOR_JEV_API_KEY` or `TYPESAFE_API_KEY`.
+
+The key is read from the process environment only. Token Terminator does not write it to the repository, artifact vault, experiment ledger, request metrics, or status output.
+
+When Jev is enabled, Token Terminator sends a bounded state object to TypeSafe's `https://api.typesafe.ai/v1/systemone` endpoint. That state contains the current user request and selected prior **plain-text user/assistant** candidate messages. System/developer messages, tool messages and results, messages containing tool calls, structured/multimodal content, and the current user message as a removal candidate are excluded.
+
+Jev is not trusted with destructive authority. Its typed relevance/guard probabilities can only nominate an eligible prior message for compaction. Token Terminator must first write and read back the exact message from the local vault, prove that the recovery receipt makes the complete request smaller, and—when exact token measurement is available—prove that it also uses fewer tokens. Network errors, timeouts, malformed responses, missing answers, storage failures, and failed size gates all leave the already-reduced non-Jev request unchanged.
+
