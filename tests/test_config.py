@@ -99,4 +99,3 @@ def test_jev_requires_explicit_enable_and_reads_key_from_environment(monkeypatch
     assert enabled.jev_api_key == "tt-specific-key"
     assert enabled.jev_relevance_threshold == 1.0
     assert enabled.jev_model == "jev-latest"
-
