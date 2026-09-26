@@ -125,7 +125,9 @@ class JevSemanticReducer:
         self, request: dict[str, Any]
     ) -> tuple[str, list[_Candidate]]:
         mode = self._mode(request)
-        key = "messages" if mode == "messages" else "input" if mode == "responses" else ""
+        key = (
+            "messages" if mode == "messages" else "input" if mode == "responses" else ""
+        )
         items = request.get(key)
         if not key or not isinstance(items, list):
             return "", []
@@ -192,7 +194,9 @@ class JevSemanticReducer:
             candidate.candidate_id = f"c{index}"
         return current_user, selected
 
-    def _payload(self, current_user: str, candidates: list[_Candidate]) -> dict[str, Any]:
+    def _payload(
+        self, current_user: str, candidates: list[_Candidate]
+    ) -> dict[str, Any]:
         state_candidates = {
             candidate.candidate_id: {
                 "role": candidate.role,
@@ -355,7 +359,9 @@ class JevSemanticReducer:
                         candidates=len(candidates),
                     )
 
-            usage = response.get("usage") if isinstance(response.get("usage"), dict) else {}
+            usage = (
+                response.get("usage") if isinstance(response.get("usage"), dict) else {}
+            )
             return JevReductionResult(
                 request=working,
                 raw_chars=raw_chars,
