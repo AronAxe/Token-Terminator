@@ -40,11 +40,11 @@ When `TOKEN_TERMINATOR_RTK_PATH` is unset, Token Terminator discovers `rtk` thro
 
 ## Optional Jev external-service boundary
 
-Jev integration is disabled by default. Enabling it requires both `TOKEN_TERMINATOR_JEV=true` and an API key supplied through `TOKEN_TERMINATOR_JEV_API_KEY` or `TYPESAFE_API_KEY`.
+Jev integration is disabled by default. Enabling it requires `TOKEN_TERMINATOR_JEV=true` plus one provider credential: `OPENROUTER_API_KEY` for OpenRouter or `TYPESAFE_API_KEY` for direct TypeSafe access. In `auto` mode OpenRouter is preferred when both are present. The legacy `TOKEN_TERMINATOR_JEV_API_KEY` remains a temporary direct-TypeSafe compatibility alias.
 
 The key is read from the process environment only. Token Terminator does not write it to the repository, artifact vault, experiment ledger, request metrics, or status output.
 
-When Jev is enabled, Token Terminator sends a bounded state object to TypeSafe's `https://api.typesafe.ai/v1/systemone` endpoint. That state contains the current user request and selected prior **plain-text user/assistant** candidate messages. On Hermes, separately fenced `<memory-context>` background appended to the current user message may also be included as its own candidate. System/developer messages, tool messages and results, messages containing tool calls, structured/multimodal content, and the user's actual current-turn words as a removal candidate are excluded.
+When Jev is enabled, Token Terminator sends a bounded state object either to OpenRouter's `https://openrouter.ai/api/alpha/decisions` endpoint or directly to TypeSafe's `https://api.typesafe.ai/v1/systemone` endpoint. That state contains the current user request and selected prior **plain-text user/assistant** candidate messages. On Hermes, separately fenced `<memory-context>` background appended to the current user message may also be included as its own candidate. System/developer messages, tool messages and results, messages containing tool calls, structured/multimodal content, and the user's actual current-turn words as a removal candidate are excluded.
 
 Jev is not trusted with destructive authority. Its typed relevance/guard probabilities can only nominate an eligible prior message for compaction. Token Terminator must first write and read back the exact message from the local vault, prove that the recovery receipt makes the complete request smaller, and—when exact token measurement is available—prove that it also uses fewer tokens. Network errors, timeouts, malformed responses, missing answers, storage failures, and failed size gates all leave the already-reduced non-Jev request unchanged.
 
