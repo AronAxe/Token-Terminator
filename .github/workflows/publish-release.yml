@@ -37,12 +37,12 @@ jobs:
           set -euo pipefail
           VERSION="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/rtk_hermes_plus/_version.py)"
           test -n "$VERSION"
-          TAG="v@${VERSION}"
-          grep -q "^## @${VERSION} -" CHANGELOG.md
-          grep -q "version = \"@${VERSION}\"" pyproject.toml
-          grep -q "version = \"@${VERSION}\"" Cargo.toml
-          echo "version=@${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=@${TAG}" >> "$GITHUB_OUTPUT"
+          TAG="v${VERSION}"
+          grep -q "^## ${VERSION} -" CHANGELOG.md
+          grep -q "version = \"${VERSION}\"" pyproject.toml
+          grep -q "version = \"${VERSION}\"" Cargo.toml
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Check whether release already exists
         id: existing
@@ -94,5 +94,5 @@ jobs:
         run: |
           gh release create "$TAG" dist/* \
             --target "$GITHUB_SHA" \
-            --title "Token Terminator v@${VERSION}" \
+            --title "Token Terminator v${VERSION}" \
             --notes-file release-notes.md
