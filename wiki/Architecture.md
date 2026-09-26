@@ -25,15 +25,16 @@ That separation is deliberate. Token Terminator can disappear or fail and the ho
 
 ## Pipeline
 
-A typical request cycle can touch five reduction paths:
+A typical request cycle can touch six reduction paths:
 
 1. **Terminal rewrite** — eligible terminal commands can be rewritten through RTK before execution.
 2. **Temporal delta** — after a repeated terminal command actually executes, the new exact output may be represented as a smaller diff/no-change receipt.
 3. **Native tool-result compression** — supported large tool outputs can be compacted after exact evidence is vaulted.
 4. **Evidence vault / receipts** — duplicate or previously exposed evidence can be represented by bounded recovery receipts.
-5. **Final request compiler** — the fully assembled provider request is deep-copied, compacted, measured, and accepted only if the final payload is smaller.
+5. **Final request compiler + deterministic context compactor** — the fully assembled provider request is deep-copied, deduplicated, old tool evidence can be vaulted, and old completed turns can be deterministically collapsed.
+6. **Optional Jev semantic gate** — after normal TT reduction, bounded remaining prior plain-text user/assistant messages can be batch-scored against the current user request. Only low-relevance/low-guard candidates are exact-vaulted and replaced with recovery receipts.
 
-Optional tokenizer-aware measurement adds a second acceptance gate after character reduction.
+Optional tokenizer-aware measurement adds a second acceptance gate after character reduction, including Jev candidates when Jev is enabled.
 
 ## Hermes adapter seams
 
@@ -42,7 +43,7 @@ The first-party Hermes adapter connects the core through:
 - `tool_request` middleware for terminal rewrites;
 - `transform_tool_result` for native and temporal result reduction;
 - observational lifecycle and `post_tool_call` hooks;
-- `llm_request` middleware for provider-bound request compilation;
+- `llm_request` middleware for provider-bound request compilation, deterministic compaction, and optional Jev semantic reduction;
 - the compact `token_terminator` recovery/status tool.
 
 ## Porting to another runtime
