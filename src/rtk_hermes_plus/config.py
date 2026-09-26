@@ -282,9 +282,7 @@ def load_config() -> Config:
     # TOKEN_TERMINATOR_JEV_API_KEY was introduced in v0.8.0 as a direct
     # TypeSafe credential. Keep it as a temporary compatibility alias.
     typesafe_jev_key = (
-        os.getenv("TYPESAFE_API_KEY", "")
-        or _env("TOKEN_TERMINATOR_JEV_API_KEY")
-        or ""
+        os.getenv("TYPESAFE_API_KEY", "") or _env("TOKEN_TERMINATOR_JEV_API_KEY") or ""
     ).strip()
 
     if jev_provider == "auto":
