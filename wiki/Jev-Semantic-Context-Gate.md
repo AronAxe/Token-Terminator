@@ -1,6 +1,6 @@
 # Jev Semantic Context Gate
 
-Token Terminator 0.8.0 added the **optional** semantic context gate backed by TypeSafe Jev. v0.8.1 adds Hermes memory-provider awareness for fenced recalled context.
+Token Terminator 0.8.0 added the **optional** semantic context gate backed by TypeSafe Jev. v0.8.1 added Hermes memory-provider awareness; v0.8.2 supports both OpenRouter and direct TypeSafe transport.
 
 It is not a replacement mode. The normal Token Terminator pipeline still runs first.
 
@@ -48,20 +48,26 @@ The newest user message is sent as the query against which relevance is judged, 
 
 ## Enable it
 
-Jev is off by default.
+Jev is off by default. You need **one provider key**, not two.
+
+OpenRouter is preferred automatically when its key is available:
 
 ```bash
 export TOKEN_TERMINATOR_JEV=true
+export OPENROUTER_API_KEY="..."
+```
+
+For a direct TypeSafe account:
+
+```bash
+export TOKEN_TERMINATOR_JEV=true
+export TOKEN_TERMINATOR_JEV_PROVIDER=typesafe
 export TYPESAFE_API_KEY="..."
 ```
 
-You can alternatively use:
+The default `TOKEN_TERMINATOR_JEV_PROVIDER=auto` prefers OpenRouter if both keys happen to exist, otherwise it uses the available TypeSafe key. Set `openrouter` or `typesafe` explicitly to force the route.
 
-```bash
-export TOKEN_TERMINATOR_JEV_API_KEY="..."
-```
-
-The Token Terminator-specific variable takes precedence over `TYPESAFE_API_KEY`.
+The old `TOKEN_TERMINATOR_JEV_API_KEY` remains only as a temporary v0.8.0/v0.8.1 compatibility alias for **direct TypeSafe** access.
 
 No API key belongs in the repository. Token Terminator does not persist or print it.
 
@@ -70,7 +76,8 @@ No API key belongs in the repository. Token Terminator does not persist or print
 | Variable | Default |
 |---|---:|
 | `TOKEN_TERMINATOR_JEV` | `false` |
-| `TOKEN_TERMINATOR_JEV_MODEL` | `jev-latest` |
+| `TOKEN_TERMINATOR_JEV_PROVIDER` | `auto` |
+| `TOKEN_TERMINATOR_JEV_MODEL` | provider default |
 | `TOKEN_TERMINATOR_JEV_TIMEOUT_MS` | `1500` |
 | `TOKEN_TERMINATOR_JEV_RELEVANCE_THRESHOLD` | `0.15` |
 | `TOKEN_TERMINATOR_JEV_MIN_MESSAGE_CHARS` | `600` |
@@ -88,6 +95,6 @@ A timeout, HTTP error, malformed response, missing answer, vault failure, charac
 
 ## External-service boundary
 
-Enabling Jev explicitly permits the bounded current user request, selected prior plain-text user/assistant candidates, and separately fenced Hermes `<memory-context>` background to be sent to TypeSafe's API. Keep `TOKEN_TERMINATOR_JEV=false` when that external transfer is not appropriate.
+Enabling Jev explicitly permits the bounded current user request, selected prior plain-text user/assistant candidates, and separately fenced Hermes `<memory-context>` background to be sent either through OpenRouter's Decisions API (which routes Jev to TypeSafe) or directly to TypeSafe. Keep `TOKEN_TERMINATOR_JEV=false` when that external transfer is not appropriate.
 
 The exact removed content remains authoritative in Token Terminator's local vault. Jev supplies typed decisions; it never owns the evidence or the recovery path.

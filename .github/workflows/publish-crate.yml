@@ -3,18 +3,22 @@ name: Publish Rust crate
 on:
   release:
     types: [published]
+  push:
+    branches: [main]
+    paths:
+      - "Cargo.toml"
   workflow_dispatch:
     inputs:
       ref:
         description: Git tag or commit to publish
         required: true
-        default: v0.8.1
+        default: v0.8.2
 
 permissions:
   contents: read
 
 concurrency:
-  group: publish-rust-crate-${{ github.event.release.tag_name || inputs.ref }}
+  group: publish-rust-crate-${{ github.event.release.tag_name || inputs.ref || github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -24,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event.release.tag_name }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event_name == 'release' && github.event.release.tag_name || github.sha }}
           fetch-depth: 0
 
       - uses: dtolnay/rust-toolchain@1.78.0
@@ -42,7 +46,21 @@ jobs:
           rm -f Cargo.lock
           cargo publish --dry-run
 
+      - name: Check whether crate version already exists
+        id: existing
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          test -n "$VERSION"
+          if curl -fsSL "https://crates.io/api/v1/crates/token-terminator/$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish crate
+        if: steps.existing.outputs.exists != 'true'
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |

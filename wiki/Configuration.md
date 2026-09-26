@@ -75,9 +75,11 @@ Jev is **disabled by default** and does not replace any existing reduction path.
 | Variable | Default |
 |---|---:|
 | `TOKEN_TERMINATOR_JEV` | `false` |
-| `TOKEN_TERMINATOR_JEV_API_KEY` | empty |
-| `TYPESAFE_API_KEY` | empty fallback key |
-| `TOKEN_TERMINATOR_JEV_MODEL` | `jev-latest` |
+| `TOKEN_TERMINATOR_JEV_PROVIDER` | `auto` |
+| `OPENROUTER_API_KEY` | empty; used for OpenRouter |
+| `TYPESAFE_API_KEY` | empty; used for direct TypeSafe |
+| `TOKEN_TERMINATOR_JEV_API_KEY` | deprecated direct-TypeSafe compatibility alias |
+| `TOKEN_TERMINATOR_JEV_MODEL` | provider default (`~typesafe/jev-latest` via OpenRouter, `jev-latest` direct) |
 | `TOKEN_TERMINATOR_JEV_TIMEOUT_MS` | `1500` |
 | `TOKEN_TERMINATOR_JEV_RELEVANCE_THRESHOLD` | `0.15` |
 | `TOKEN_TERMINATOR_JEV_MIN_MESSAGE_CHARS` | `600` |
@@ -112,3 +114,8 @@ A context limit is for reporting/acceptance headroom. It does **not** authorize 
 | `TOKEN_TERMINATOR_EXPERIMENT` | `default` |
 
 Use `/token-terminator status` after changing configuration and start a fresh host session where required.
+
+
+### Jev provider selection
+
+`TOKEN_TERMINATOR_JEV_PROVIDER` accepts `auto`, `openrouter`, or `typesafe`. Auto mode prefers `OPENROUTER_API_KEY` when present and otherwise uses `TYPESAFE_API_KEY`. If both keys exist, OpenRouter is selected. You never need both keys for one Jev call.

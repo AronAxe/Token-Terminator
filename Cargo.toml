@@ -1,6 +1,6 @@
 [package]
 name = "token-terminator"
-version = "0.8.1"
+version = "0.8.2"
 edition = "2021"
 rust-version = "1.78"
 description = "Rust interoperability helpers for Token Terminator artifact identities and reduction invariants"

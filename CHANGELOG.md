@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.2 - 2026-09-26
+
+- Corrected Jev provider routing: Token Terminator now supports both OpenRouter's Decisions API and direct TypeSafe System One access.
+- Added `TOKEN_TERMINATOR_JEV_PROVIDER=auto|openrouter|typesafe`. Auto mode prefers `OPENROUTER_API_KEY` when available and otherwise uses `TYPESAFE_API_KEY`; users never need both keys.
+- Changed the OpenRouter default model to `~typesafe/jev-latest` while retaining `jev-latest` for direct TypeSafe access.
+- Kept `TOKEN_TERMINATOR_JEV_API_KEY` only as a temporary backward-compatibility alias for direct TypeSafe users from v0.8.0/v0.8.1.
+- Added offline endpoint-selection tests for both providers and updated the external-service boundary documentation.
+
 ## 0.8.1 - 2026-09-26
 
 - Fixed Jev handling for Hermes memory-provider context: `<memory-context>` blocks appended to the current user message are now separated from the user's actual request and evaluated as background context.

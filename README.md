@@ -12,9 +12,9 @@
 
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.8.1"><img alt="Release v0.8.1" src="https://img.shields.io/badge/release-v0.8.1-ef2b25"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.8.2"><img alt="Release v0.8.2" src="https://img.shields.io/badge/release-v0.8.2-ef2b25"></a>
   <a href="https://github.com/AronAxe/Token-Terminator/wiki"><img alt="GitHub Wiki" src="https://img.shields.io/badge/docs-GitHub%20Wiki-181717?logo=github"></a>
-  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/badge/crates.io-v0.8.1-orange?logo=rust"></a>
+  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/badge/crates.io-v0.8.2-orange?logo=rust"></a>
   <a href="https://docs.rs/token-terminator"><img alt="docs.rs" src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>
   <img alt="Python 3.10–3.13" src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB?logo=python&logoColor=white">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22c55e.svg"></a>
@@ -48,7 +48,7 @@ It does **not** replace the host's context engine, memory system, transcript sto
 - **Routes skills before generation.** A runtime-only graph is populated from the current host's installed skills. Each skill stays an isolated internal graph; explicit `related_skills` and dependency metadata are the only cross-skill edges. SkillGate uses that local structure to improve relevance while still sending only compact catalog entries. There is no hard skill-count cap by default, and omitted skills remain discoverable through `skills_list`/`skill_view`.
 - **Keeps the original evidence.** Exact content is stored in a private, content-addressed SQLite vault and can be recovered exactly, previewed deterministically, or searched without returning the whole artifact.
 - **Compiles the final request.** Duplicate artifacts, expired inline exposures, and old context are reduced after the host assembles the provider payload.
-- **Optionally applies Jev after normal TT reduction.** With explicit opt-in and a TypeSafe API key, remaining prior plain-text user/assistant messages can be semantically screened for relevance and guarded details. System/developer/tool messages and the user's actual current-turn words are never Jev removal candidates; Hermes `<memory-context>` background appended to the current turn is scored separately, and any low-relevance candidate is exact-vaulted before a compact recovery receipt replaces it.
+- **Optionally applies Jev after normal TT reduction.** With explicit opt-in and either an OpenRouter or direct TypeSafe API key, remaining prior plain-text user/assistant messages can be semantically screened for relevance and guarded details. System/developer/tool messages and the user's actual current-turn words are never Jev removal candidates; Hermes `<memory-context>` background appended to the current turn is scored separately, and any low-relevance candidate is exact-vaulted before a compact recovery receipt replaces it.
 - **Aligns with the active tokenizer when possible.** A configured Hugging Face `tokenizer.json` or tiktoken backend adds a second acceptance gate; unavailable tokenizers fall back to the established character invariant.
 - **Refuses bad optimizations.** A transformed payload is used only when it is strictly smaller, recoverable, provider-valid, and leaves caller-owned objects untouched.
 - **Measures the result.** Content-free request/session telemetry separates compiler, compactor, and end-to-end savings and attributes raw/final token cost across instructions, skill catalogs, tool schemas, tool results, the current user turn, prior history, other fields, and request framing.
@@ -72,7 +72,7 @@ This is an optimizer, not a context decorator.
 |---|---|---|
 | Vault, receipts, leases, temporal deltas, native compression, request compiler, telemetry | Agent-agnostic Python | Included |
 | Exact tokenizer alignment | Built-in `tiktoken`; optional Hugging Face `tokenizers` | Included |
-| Jev semantic context gate | Optional TypeSafe Jev API call after deterministic TT compaction | Included; disabled by default |
+| Jev semantic context gate | Optional Jev call through OpenRouter Decisions API or direct TypeSafe API | Included; disabled by default |
 | Runtime skill graph | Host-local skill documents; Hermes adapter discovers trusted installed skills | Included; graph ships empty |
 | Rust artifact interoperability | `token-terminator` Rust crate | Published on crates.io |
 | RTK command rewriting | Optional `rtk` binary plus a terminal-tool adapter | Included |
@@ -147,9 +147,9 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.8.1 supersedes 0.8.0 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.8.2 supersedes 0.8.1 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
-This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.8.1` release tag.
+This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.8.2` release tag.
 
 ### 1. Install RTK when using terminal rewriting
 
@@ -171,7 +171,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2'
 ```
 
 Windows example:
@@ -180,7 +180,7 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2"
 ```
 
 `tiktoken` now ships with Token Terminator and is used automatically for supported OpenAI-family models, including common provider-qualified model IDs. Hugging Face `tokenizers` remains optional when pointing Token Terminator at a local `tokenizer.json`:
@@ -234,7 +234,7 @@ Install the same distribution in the environment that owns your agent loop:
 
 ```bash
 python -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2'
 ```
 
 Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.
@@ -378,8 +378,11 @@ All plugin-owned files default under `<HERMES_HOME>/token-terminator/`.
 | `TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS` | `6` | Collapse completed turns older than this window; `0` disables turn collapse |
 | `TOKEN_TERMINATOR_CONTEXT_INLINE_RECENT_TURNS` | `5` | Recent turns that must remain fully inline before any optional Jev pass |
 | `TOKEN_TERMINATOR_JEV` | `false` | Enable the optional Jev semantic context gate; ignored without an API key |
-| `TOKEN_TERMINATOR_JEV_API_KEY` | empty | TypeSafe API key used only for Jev calls; `TYPESAFE_API_KEY` is accepted as a fallback |
-| `TOKEN_TERMINATOR_JEV_MODEL` | `jev-latest` | TypeSafe Jev model/alias |
+| `TOKEN_TERMINATOR_JEV_PROVIDER` | `auto` | `auto`, `openrouter`, or `typesafe`; auto prefers OpenRouter when both keys exist |
+| `OPENROUTER_API_KEY` | empty | Used when Jev routes through OpenRouter |
+| `TYPESAFE_API_KEY` | empty | Used for direct TypeSafe Jev access |
+| `TOKEN_TERMINATOR_JEV_API_KEY` | empty | Deprecated v0.8.0/v0.8.1 compatibility alias for direct TypeSafe only |
+| `TOKEN_TERMINATOR_JEV_MODEL` | provider default | `~typesafe/jev-latest` via OpenRouter; `jev-latest` direct |
 | `TOKEN_TERMINATOR_JEV_TIMEOUT_MS` | `1500` | Jev request deadline; failures pass through the already-reduced TT request |
 | `TOKEN_TERMINATOR_JEV_RELEVANCE_THRESHOLD` | `0.15` | Conservative keep threshold; a candidate is removed only when both relevance and guard probabilities are below it |
 | `TOKEN_TERMINATOR_JEV_MIN_MESSAGE_CHARS` | `600` | Smallest prior plain-text message considered for Jev reduction |
@@ -397,9 +400,9 @@ All plugin-owned files default under `<HERMES_HOME>/token-terminator/`.
 | `TOKEN_TERMINATOR_EXCLUDE` | empty | Terminal command prefixes never rewritten |
 | `TOKEN_TERMINATOR_PYTEST_GUARD` | `true` | Avoid RTK's pytest double-quiet edge case |
 
-Jev is **off by default**. To use it, set `TOKEN_TERMINATOR_JEV=true` and provide either `TOKEN_TERMINATOR_JEV_API_KEY` or TypeSafe's standard `TYPESAFE_API_KEY` environment variable. No API key is stored in the repository, vault, metrics, or status output. Jev is additive: terminal rewriting, temporal deltas, native compression, the request compiler, deterministic context compaction, vaulting, recovery, SkillGate, and tokenizer gates continue to operate normally when Jev is enabled.
+Jev is **off by default**. To use it, set `TOKEN_TERMINATOR_JEV=true`. In the default `auto` provider mode, Token Terminator uses `OPENROUTER_API_KEY` when present and otherwise falls back to `TYPESAFE_API_KEY`; if both exist, OpenRouter wins. Set `TOKEN_TERMINATOR_JEV_PROVIDER=openrouter` or `typesafe` to force a route. No API key is stored in the repository, vault, metrics, or status output. Jev is additive: terminal rewriting, temporal deltas, native compression, the request compiler, deterministic context compaction, vaulting, recovery, SkillGate, and tokenizer gates continue to operate normally when Jev is enabled.
 
-Because Jev is an external service, enabling it creates an explicit data boundary: Token Terminator sends the **current user request plus selected prior plain-text user/assistant candidates and, when present, separately fenced Hermes `<memory-context>` background** to `api.typesafe.ai` for typed relevance/guard decisions. System/developer messages, tool messages/results, structured multimodal content, and the user's actual current-turn words as a removal candidate are excluded. Keep Jev disabled when that external transfer is not appropriate.
+Because Jev is an external service, enabling it creates an explicit data boundary: Token Terminator sends the **current user request plus selected prior plain-text user/assistant candidates and, when present, separately fenced Hermes `<memory-context>` background** either to OpenRouter's Decisions API (which routes Jev to TypeSafe) or directly to TypeSafe, depending on the selected provider. System/developer messages, tool messages/results, structured multimodal content, and the user's actual current-turn words as a removal candidate are excluded. Keep Jev disabled when that external transfer is not appropriate.
 
 The `TOKEN_TERMINATOR_EQ_*` variables optionally attach a labelled API-equivalent rate card. Actual OAuth/subscription marginal cost remains distinct. Legacy `RTK_HERMES_PLUS_*` aliases are accepted for one migration release, but the new namespace takes precedence.
 
@@ -436,7 +439,7 @@ For answer quality—not just token accounting—use the paired non-inferiority 
 - RTK subprocesses use argument arrays with `shell=False`.
 - Remote terminal backends are disabled by default.
 - Tool arguments and artifact contents never enter receipts, metrics, or the experiment ledger.
-- Jev is disabled by default. When explicitly enabled, the bounded current-user request, selected prior plain-text user/assistant candidates, and separately fenced Hermes `<memory-context>` background may be sent to TypeSafe; API keys are read from environment and never exposed in status output.
+- Jev is disabled by default. When explicitly enabled, the bounded current-user request, selected prior plain-text user/assistant candidates, and separately fenced Hermes `<memory-context>` background may be sent through OpenRouter or directly to TypeSafe; exactly one selected-provider key is used, read from environment and never exposed in status output.
 - Unsupported, malformed, unavailable, non-recoverable, non-smaller, or token-expanding transformations pass through unchanged.
 
 See [SECURITY.md](SECURITY.md) for the reporting policy and data boundaries.

@@ -1,5 +1,17 @@
 # Migration and Rollback
 
+## 0.8.1 → 0.8.2
+
+v0.8.2 corrects Jev provider routing. `auto` prefers `OPENROUTER_API_KEY`; direct TypeSafe remains available through `TYPESAFE_API_KEY`. One provider key is enough.
+
+```bash
+hermes plugins disable token-terminator
+<hermes-python> -m pip uninstall -y token-terminator
+<hermes-python> -m pip install \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2'
+hermes plugins enable token-terminator --no-allow-tool-override
+```
+
 ## 0.8.0 → 0.8.1
 
 Normal patch upgrade. v0.8.1 makes Jev aware of Hermes `<memory-context>` fences so recalled background can be scored separately from the user's actual current-turn words. Existing vault content and configuration remain compatible.

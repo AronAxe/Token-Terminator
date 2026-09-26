@@ -82,21 +82,45 @@ def test_legacy_rtk_environment_remains_a_compatibility_fallback(monkeypatch):
     assert load_config().mode == "native"
 
 
-def test_jev_requires_explicit_enable_and_reads_key_from_environment(monkeypatch):
-    monkeypatch.setenv("TYPESAFE_API_KEY", "typesafe-test-key")
+def test_jev_auto_prefers_openrouter_and_supports_direct_typesafe(monkeypatch):
     monkeypatch.delenv("TOKEN_TERMINATOR_JEV", raising=False)
+    monkeypatch.delenv("TOKEN_TERMINATOR_JEV_PROVIDER", raising=False)
     monkeypatch.delenv("TOKEN_TERMINATOR_JEV_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
 
     disabled = load_config()
     assert disabled.jev_enabled is False
-    assert disabled.jev_api_key == "typesafe-test-key"
+    assert disabled.jev_provider == "auto"
+    assert disabled.jev_api_key == ""
 
     monkeypatch.setenv("TOKEN_TERMINATOR_JEV", "true")
-    monkeypatch.setenv("TOKEN_TERMINATOR_JEV_API_KEY", "tt-specific-key")
-    monkeypatch.setenv("TOKEN_TERMINATOR_JEV_RELEVANCE_THRESHOLD", "1.7")
-    enabled = load_config()
+    monkeypatch.setenv("OPENROUTER_API_KEY", "openrouter-test-key")
+    monkeypatch.setenv("TYPESAFE_API_KEY", "typesafe-test-key")
+    auto = load_config()
 
-    assert enabled.jev_enabled is True
-    assert enabled.jev_api_key == "tt-specific-key"
-    assert enabled.jev_relevance_threshold == 1.0
-    assert enabled.jev_model == "jev-latest"
+    assert auto.jev_enabled is True
+    assert auto.jev_provider == "openrouter"
+    assert auto.jev_api_key == "openrouter-test-key"
+    assert auto.jev_model == "~typesafe/jev-latest"
+
+    monkeypatch.setenv("TOKEN_TERMINATOR_JEV_PROVIDER", "typesafe")
+    direct = load_config()
+
+    assert direct.jev_provider == "typesafe"
+    assert direct.jev_api_key == "typesafe-test-key"
+    assert direct.jev_model == "jev-latest"
+
+
+def test_jev_legacy_key_remains_direct_typesafe_compatibility_alias(monkeypatch):
+    monkeypatch.setenv("TOKEN_TERMINATOR_JEV", "true")
+    monkeypatch.setenv("TOKEN_TERMINATOR_JEV_API_KEY", "legacy-direct-key")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    monkeypatch.delenv("TOKEN_TERMINATOR_JEV_PROVIDER", raising=False)
+
+    cfg = load_config()
+
+    assert cfg.jev_provider == "typesafe"
+    assert cfg.jev_api_key == "legacy-direct-key"
+    assert cfg.jev_model == "jev-latest"

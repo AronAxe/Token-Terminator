@@ -1,6 +1,6 @@
 # Quick Start
 
-This page gets a Hermes Agent installation onto Token Terminator **v0.8.1** with the fewest moving parts.
+This page gets a Hermes Agent installation onto Token Terminator **v0.8.2** with the fewest moving parts.
 
 ## 1. Optional: install RTK
 
@@ -24,7 +24,7 @@ hermes plugins disable token-terminator
 
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2'
 
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
@@ -43,12 +43,22 @@ Use a Hugging Face `tokenizer.json` or a supported tiktoken encoding through the
 
 Jev is not required. The existing Token Terminator pipeline works without it.
 
+OpenRouter (preferred automatically when its key exists):
+
 ```bash
 export TOKEN_TERMINATOR_JEV=true
+export OPENROUTER_API_KEY="..."
+```
+
+Or direct TypeSafe:
+
+```bash
+export TOKEN_TERMINATOR_JEV=true
+export TOKEN_TERMINATOR_JEV_PROVIDER=typesafe
 export TYPESAFE_API_KEY="..."
 ```
 
-Use `TOKEN_TERMINATOR_JEV_API_KEY` instead if you want a Token Terminator-specific key variable. Never commit the key. Enabling Jev sends the current user request plus selected prior plain-text user/assistant candidates—and, when present, separately fenced Hermes `<memory-context>` background—to TypeSafe; see [Jev Semantic Context Gate](Jev-Semantic-Context-Gate) and [Security and Trust Model](Security-and-Trust-Model).
+Never commit either key. You need only one provider key. Enabling Jev sends the bounded Jev state either through OpenRouter's Decisions API or directly to TypeSafe; see [Jev Semantic Context Gate](Jev-Semantic-Context-Gate) and [Security and Trust Model](Security-and-Trust-Model).
 
 ## 5. Start a fresh Hermes session
 
