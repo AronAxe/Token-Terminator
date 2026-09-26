@@ -6,7 +6,7 @@ Token Terminator is an agent-runtime optimization layer that reduces provider-vi
 
 ## Start here
 
-- [Quick Start](Quick-Start) — install v0.8.0 and verify it is active.
+- [Quick Start](Quick-Start) — install v0.8.1 and verify it is active.
 - [Architecture](Architecture) — understand the host/adapter/core boundary.
 - [Modes and Reduction Pipeline](Modes-and-Reduction-Pipeline) — see what each mode enables.
 - [Configuration](Configuration) — all important environment controls.
@@ -26,7 +26,7 @@ A transformation is accepted only when it is safer than passing the original thr
 
 Temporal terminal reduction adds one more rule: **the command still executes every time**. Only the representation shown to the model may become a smaller delta.
 
-## What v0.8.0 adds
+## What v0.8.1 changes\n\nv0.8.1 makes the Jev gate aware of Hermes `<memory-context>` fencing. Recalled background from Hindsight or another memory provider can be scored separately from the current user request, while the user's own words remain protected from Jev removal.\n\n## What v0.8.0 adds
 
 v0.8.0 adds the optional [Jev Semantic Context Gate](Jev-Semantic-Context-Gate). Jev runs **after** Token Terminator's normal request compiler and deterministic context compactor; it does not replace them. With explicit opt-in and a TypeSafe API key, it can exact-vault low-relevance prior plain-text dialogue and replace it with compact recovery receipts. The default remains Jev-off.
 
@@ -50,7 +50,7 @@ v0.5.1 is the post-0.5.0 hardening release. It adds bounded vault lifecycle mana
 
 ## Current release
 
-- Python package/release: **v0.8.0**
+- Python package/release: **v0.8.1**
 - Python support: **3.10–3.13**
-- Rust interoperability crate: **token-terminator 0.8.0**
+- Rust interoperability crate: **token-terminator 0.8.1**
 - First-party runtime adapter: **Hermes Agent**
