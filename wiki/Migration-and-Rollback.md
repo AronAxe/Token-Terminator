@@ -1,6 +1,7 @@
 # Migration and Rollback
 
-## 0.8.0 → 0.8.1\n\nNormal patch upgrade. v0.8.1 makes Jev aware of Hermes `<memory-context>` fences so recalled background can be scored separately from the user's actual current-turn words. Existing vault content and configuration remain compatible.\n\n```bash\nhermes plugins disable token-terminator\n<hermes-python> -m pip uninstall -y token-terminator\n<hermes-python> -m pip install \\\n  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'\nhermes plugins enable token-terminator --no-allow-tool-override\n```\n\n## 0.7.0 → 0.8.0
+## 0.8.0 → 0.8.1\n\nNormal patch upgrade. v0.8.1 makes Jev aware of Hermes `<memory-context>` fences so recalled background can be scored separately from the user's actual current-turn words. Existing vault content and configuration remain compatible.\n\n```bash\nhermes plugins disable token-terminator\n<hermes-python> -m pip uninstall -y token-terminator\n<hermes-python> -m pip install \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'\nhermes plugins enable token-terminator --no-allow-tool-override\n```\n\n## 0.7.0 → 0.8.0
 
 Normal in-place upgrade. v0.8.0 adds the optional Jev semantic context gate after the existing request compiler and deterministic context compactor. Jev is off by default, so an existing 0.7.0 installation keeps its previous behavior until you explicitly enable Jev and supply a TypeSafe API key.
 
