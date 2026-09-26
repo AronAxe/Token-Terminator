@@ -186,10 +186,7 @@ def test_fenced_current_turn_memory_is_scored_without_touching_user_request(tmp_
             if item["kind"] == "memory"
         ]
         assert len(memory_ids) == 1
-        answers = {
-            key: {"type": "noul", "noul": 0.01}
-            for key in payload["questions"]
-        }
+        answers = {key: {"type": "noul", "noul": 0.01} for key in payload["questions"]}
         return {
             "model": "jev-test",
             "answers": answers,
