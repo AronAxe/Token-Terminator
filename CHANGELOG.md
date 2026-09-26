@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0 - 2026-09-26
+
+- Added an **optional Jev semantic context gate** after the existing request compiler and deterministic context compactor. Jev augments Token Terminator; it does not replace terminal rewriting, temporal deltas, native compression, SkillGate, vaulting, recovery, or tokenizer-aware acceptance.
+- Added one batched TypeSafe System One call over the current user request and bounded prior plain-text user/assistant candidates. Each candidate receives independent relevance and guard probabilities; only candidates below both conservative thresholds are eligible for removal.
+- Preserved exact recovery by writing every accepted Jev-reduced message to the content-addressed vault and replacing it with a compact recovery receipt. System/developer/tool messages, tool calls/results, structured content, and the current user turn are never Jev removal candidates.
+- Kept Jev strictly opt-in and fail-open. It requires `TOKEN_TERMINATOR_JEV=true` plus `TOKEN_TERMINATOR_JEV_API_KEY` or `TYPESAFE_API_KEY`; no API key is committed, persisted, logged, or returned by status.
+- Added character and exact-token veto gates around Jev reductions, bounded candidate/state sizes, a configurable timeout, offline mocked tests, response metrics, and explicit external-data-boundary documentation.
+- Added a main-branch release workflow that builds verified Python artifacts and creates the immutable GitHub tag/release; the existing release-triggered Rust publication workflow remains responsible for crates.io.
+
+
 ## 0.7.0 - 2026-09-23
 
 - Added an empty-by-default runtime graph-of-skill-graphs for SkillGate. Each installed skill is an outer node with its own internal section/resource graph; skill contents are discovered locally from the active host rather than shipped in the repository.
