@@ -14,6 +14,10 @@ from .storage import TokenTerminatorStore
 logger = logging.getLogger(__name__)
 
 _JEV_API_URL = "https://api.typesafe.ai/v1/systemone"
+_MEMORY_BLOCK_RE = re.compile(
+    r"<memory-context>\\s*.*?</memory-context>",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def _serialized_chars(value: Any) -> int:
@@ -57,6 +61,7 @@ class _Candidate:
     content: str
     role: str
     ordinal: int
+    kind: str = "message"
     candidate_id: str = ""
 
 
@@ -134,13 +139,21 @@ class JevSemanticReducer:
 
         latest_user_idx = -1
         current_user = ""
+        latest_user_item: dict[str, Any] | None = None
+        latest_user_content = ""
         for index, item in enumerate(items):
             if not isinstance(item, dict) or item.get("role") != "user":
                 continue
             content = item.get("content")
             if isinstance(content, str):
                 latest_user_idx = index
-                current_user = content
+                latest_user_item = item
+                latest_user_content = content
+                # Hermes memory providers append recalled context to the current
+                # user message inside <memory-context> fences. Jev should judge
+                # that injected background against the real user request, not
+                # mistake the memory itself for part of the request.
+                current_user = _MEMORY_BLOCK_RE.sub("", content).strip()
 
         if latest_user_idx < 0 or not current_user:
             return "", []
@@ -174,6 +187,27 @@ class JevSemanticReducer:
                     ordinal=index,
                 )
             )
+
+        # Recalled memory is context too. Hermes appends it to the current user
+        # message inside explicit fences, so score the fenced block separately
+        # while preserving the user's own current request verbatim.
+        if latest_user_item is not None and latest_user_content:
+            for match in _MEMORY_BLOCK_RE.finditer(latest_user_content):
+                block = match.group(0)
+                if len(block) < self.config.jev_min_message_chars:
+                    continue
+                if len(block) > self.config.jev_max_candidate_chars:
+                    continue
+                candidates.append(
+                    _Candidate(
+                        container=latest_user_item,
+                        field="content",
+                        content=block,
+                        role="memory",
+                        ordinal=latest_user_idx,
+                        kind="memory",
+                    )
+                )
 
         # Spend Jev input on the places with the largest possible token payoff.
         candidates.sort(key=lambda candidate: len(candidate.content), reverse=True)
@@ -318,7 +352,11 @@ class JevSemanticReducer:
                 stored = self.store.put_artifact(
                     candidate.content,
                     tool_name="jev_context",
-                    args={"role": candidate.role, "ordinal": candidate.ordinal},
+                    args={
+                        "role": candidate.role,
+                        "kind": candidate.kind,
+                        "ordinal": candidate.ordinal,
+                    },
                     session_id=str(session_id or ""),
                     tool_call_id="",
                 )
@@ -328,7 +366,20 @@ class JevSemanticReducer:
                 receipt = self._receipt(stored.artifact_id, len(candidate.content))
                 if _serialized_chars(receipt) >= _serialized_chars(candidate.content):
                     continue
-                candidate.container[candidate.field] = receipt
+                if candidate.kind == "memory":
+                    replacement = (
+                        "<memory-context>\\n"
+                        f"{receipt}\\n"
+                        "</memory-context>"
+                    )
+                    current = candidate.container.get(candidate.field)
+                    if not isinstance(current, str) or candidate.content not in current:
+                        continue
+                    candidate.container[candidate.field] = current.replace(
+                        candidate.content, replacement, 1
+                    )
+                else:
+                    candidate.container[candidate.field] = receipt
                 compacted += 1
 
             final_chars = _serialized_chars(working)
