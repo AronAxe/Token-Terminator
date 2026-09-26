@@ -1,8 +1,8 @@
-# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.x / 0.6.0 / 0.7.0 → 0.8.0
+# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.x / 0.6.0 / 0.7.0 / 0.8.0 → 0.8.1
 
-Token Terminator 0.8.0 supersedes Token Terminator 0.7.0 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
+Token Terminator 0.8.1 supersedes Token Terminator 0.8.0 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
 
-## 0.7.0 → 0.8.0
+## 0.8.0 → 0.8.1\n\nv0.8.1 is a patch upgrade for Hermes memory-provider integration. Hermes appends recalled memory to the current user message inside `<memory-context>` fences. Token Terminator now separates those fenced blocks from the user's actual request before Jev scoring, so Hindsight/other recalled background can participate in semantic routing without making the user's own words removable.\n\nJev remains optional and fail-open. Existing v0.8.0 settings and vault data are compatible.\n\nInstall the immutable release tag:\n\n```bash\nhermes plugins disable token-terminator\n<hermes-python> -m pip uninstall -y token-terminator\n<hermes-python> -m pip install \\\n  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'\nhermes plugins enable token-terminator --no-allow-tool-override\n```\n\n## 0.7.0 → 0.8.0
 
 v0.8.0 is a normal in-place upgrade. It adds an optional TypeSafe Jev semantic context gate **after** the existing Token Terminator request compiler and deterministic context compactor. The existing RTK, temporal, native-compression, SkillGate, vault, recovery, and tokenizer-aware paths remain active whether Jev is enabled or not.
 
@@ -16,7 +16,7 @@ Install the immutable release tag:
 hermes plugins disable token-terminator
 <hermes-python> -m pip uninstall -y token-terminator
 <hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
 
@@ -76,7 +76,7 @@ Start a new Hermes session after the upgrade. `tiktoken` is installed with Token
 
 ## Boundary
 
-| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.8.0 |
+| Concern | RTK Hermes Plus 0.2.0 | Token Terminator 0.8.1 |
 |---|---|---|
 | Distribution | `rtk-hermes-plus` | `token-terminator` |
 | Hermes plugin key | `rtk-plus` | `token-terminator` |
@@ -118,7 +118,7 @@ hermes plugins disable rtk-plus
 hermes plugins disable token-terminator
 <hermes-python> -m pip uninstall -y rtk-hermes-plus token-terminator
 <hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
 
@@ -140,7 +140,7 @@ Verify:
 /token-terminator status
 ```
 
-- plugin key is `token-terminator` and version is `0.8.0`;
+- plugin key is `token-terminator` and version is `0.8.1`;
 - `vault_available` is `true`;
 - the selected mode is correct;
 - `temporal_delta` reports whether the feature is enabled and active in the selected mode;
