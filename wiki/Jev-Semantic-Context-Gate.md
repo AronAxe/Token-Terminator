@@ -48,20 +48,26 @@ The newest user message is sent as the query against which relevance is judged, 
 
 ## Enable it
 
-Jev is off by default.
+Jev is off by default. You need **one provider key**, not two.
+
+OpenRouter is preferred automatically when its key is available:
 
 ```bash
 export TOKEN_TERMINATOR_JEV=true
+export OPENROUTER_API_KEY="..."
+```
+
+For a direct TypeSafe account:
+
+```bash
+export TOKEN_TERMINATOR_JEV=true
+export TOKEN_TERMINATOR_JEV_PROVIDER=typesafe
 export TYPESAFE_API_KEY="..."
 ```
 
-You can alternatively use:
+The default `TOKEN_TERMINATOR_JEV_PROVIDER=auto` prefers OpenRouter if both keys happen to exist, otherwise it uses the available TypeSafe key. Set `openrouter` or `typesafe` explicitly to force the route.
 
-```bash
-export TOKEN_TERMINATOR_JEV_API_KEY="..."
-```
-
-The Token Terminator-specific variable takes precedence over `TYPESAFE_API_KEY`.
+The old `TOKEN_TERMINATOR_JEV_API_KEY` remains only as a temporary v0.8.0/v0.8.1 compatibility alias for **direct TypeSafe** access.
 
 No API key belongs in the repository. Token Terminator does not persist or print it.
 
