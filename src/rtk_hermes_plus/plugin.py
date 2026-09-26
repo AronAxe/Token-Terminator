@@ -249,7 +249,9 @@ class Runtime:
             jev_reduction = self.jev_reducer.reduce(
                 final_request,
                 session_id=session_id,
-                model=str(request.get("model") or "") if isinstance(request, dict) else "",
+                model=str(request.get("model") or "")
+                if isinstance(request, dict)
+                else "",
             )
             if not jev_reduction.failed_open and jev_reduction.saved_chars > 0:
                 final_request = jev_reduction.request
@@ -578,7 +580,9 @@ class Runtime:
             "vault_error": self.store_error,
             "journal_mode": self.store.journal_mode if self.store else "unavailable",
             "profile": self.profile_name,
-            "jev": self.jev_reducer.status() if self.jev_reducer is not None else {
+            "jev": self.jev_reducer.status()
+            if self.jev_reducer is not None
+            else {
                 "enabled": False,
                 "configured": False,
             },
