@@ -1,6 +1,6 @@
 # Jev Semantic Context Gate
 
-Token Terminator 0.8.0 added the **optional** semantic context gate backed by TypeSafe Jev. v0.8.1 adds Hermes memory-provider awareness for fenced recalled context.
+Token Terminator 0.8.0 added the **optional** semantic context gate backed by TypeSafe Jev. v0.8.1 added Hermes memory-provider awareness; v0.8.2 supports both OpenRouter and direct TypeSafe transport.
 
 It is not a replacement mode. The normal Token Terminator pipeline still runs first.
 
@@ -70,7 +70,8 @@ No API key belongs in the repository. Token Terminator does not persist or print
 | Variable | Default |
 |---|---:|
 | `TOKEN_TERMINATOR_JEV` | `false` |
-| `TOKEN_TERMINATOR_JEV_MODEL` | `jev-latest` |
+| `TOKEN_TERMINATOR_JEV_PROVIDER` | `auto` |
+| `TOKEN_TERMINATOR_JEV_MODEL` | provider default |
 | `TOKEN_TERMINATOR_JEV_TIMEOUT_MS` | `1500` |
 | `TOKEN_TERMINATOR_JEV_RELEVANCE_THRESHOLD` | `0.15` |
 | `TOKEN_TERMINATOR_JEV_MIN_MESSAGE_CHARS` | `600` |
@@ -88,6 +89,6 @@ A timeout, HTTP error, malformed response, missing answer, vault failure, charac
 
 ## External-service boundary
 
-Enabling Jev explicitly permits the bounded current user request, selected prior plain-text user/assistant candidates, and separately fenced Hermes `<memory-context>` background to be sent to TypeSafe's API. Keep `TOKEN_TERMINATOR_JEV=false` when that external transfer is not appropriate.
+Enabling Jev explicitly permits the bounded current user request, selected prior plain-text user/assistant candidates, and separately fenced Hermes `<memory-context>` background to be sent either through OpenRouter's Decisions API (which routes Jev to TypeSafe) or directly to TypeSafe. Keep `TOKEN_TERMINATOR_JEV=false` when that external transfer is not appropriate.
 
 The exact removed content remains authoritative in Token Terminator's local vault. Jev supplies typed decisions; it never owns the evidence or the recovery path.
