@@ -14,7 +14,8 @@ from .storage import TokenTerminatorStore
 
 logger = logging.getLogger(__name__)
 
-_JEV_API_URL = "https://api.typesafe.ai/v1/systemone"
+_OPENROUTER_JEV_API_URL = "https://openrouter.ai/api/alpha/decisions"
+_TYPESAFE_JEV_API_URL = "https://api.typesafe.ai/v1/systemone"
 _MEMORY_BLOCK_RE = re.compile(
     r"<memory-context>\s*.*?</memory-context>",
     re.IGNORECASE | re.DOTALL,
@@ -103,12 +104,19 @@ class JevSemanticReducer:
         return {
             "enabled": self.enabled,
             "configured": bool(self.config.jev_api_key.strip()),
+            "provider": self.config.jev_provider,
             "model": self.config.jev_model,
             "threshold": self.config.jev_relevance_threshold,
             "min_message_chars": self.config.jev_min_message_chars,
             "max_candidates": self.config.jev_max_candidates,
             "max_state_chars": self.config.jev_max_state_chars,
-            "external_api": "api.typesafe.ai",
+            "external_api": (
+                "openrouter.ai"
+                if self.config.jev_provider == "openrouter"
+                else "api.typesafe.ai"
+                if self.config.jev_provider == "typesafe"
+                else ""
+            ),
         }
 
     @staticmethod
@@ -278,14 +286,22 @@ class JevSemanticReducer:
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode(
             "utf-8"
         )
+        api_url = (
+            _OPENROUTER_JEV_API_URL
+            if self.config.jev_provider == "openrouter"
+            else _TYPESAFE_JEV_API_URL
+        )
+        headers = {
+            "Authorization": f"Bearer {self.config.jev_api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "Token-Terminator/Jev",
+        }
+        if self.config.jev_provider == "openrouter":
+            headers["X-Title"] = "Token Terminator"
         request = Request(
-            _JEV_API_URL,
+            api_url,
             data=body,
-            headers={
-                "Authorization": f"Bearer {self.config.jev_api_key}",
-                "Content-Type": "application/json",
-                "User-Agent": "Token-Terminator/Jev",
-            },
+            headers=headers,
             method="POST",
         )
         timeout = self.config.jev_timeout_ms / 1000.0
