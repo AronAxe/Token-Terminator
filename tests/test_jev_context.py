@@ -229,7 +229,6 @@ def test_fenced_current_turn_memory_is_scored_without_touching_user_request(tmp_
     assert memory in recovered
 
 
-
 def test_jev_http_transport_uses_selected_provider_endpoint(tmp_path, monkeypatch):
     captured = []
 
