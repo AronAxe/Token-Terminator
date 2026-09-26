@@ -88,6 +88,11 @@ class Runtime:
             if self.store is not None and self.config.context_compaction_enabled
             else None
         )
+        self.jev_reducer = (
+            JevSemanticReducer(self.store, self.config)
+            if self.store is not None
+            else None
+        )
         self.ledger = ExperimentLedger(
             self.config.ledger_path,
             self.config.state_db_path,
@@ -232,6 +237,20 @@ class Runtime:
             if not compaction.failed_open and compaction.saved_chars > 0:
                 final_request = compaction.request
 
+        # Phase 3: Optional Jev semantic context gate. This is deliberately
+        # additive: deterministic compiler/compactor work has already happened.
+        # Jev may only remove remaining prior plain-text context after exact
+        # vaulting, and any failure leaves the existing TT result untouched.
+        jev_reduction: JevReductionResult | None = None
+        if self.jev_reducer is not None and not compiled.failed_open:
+            jev_reduction = self.jev_reducer.reduce(
+                final_request,
+                session_id=session_id,
+                model=str(request.get("model") or "") if isinstance(request, dict) else "",
+            )
+            if not jev_reduction.failed_open and jev_reduction.saved_chars > 0:
+                final_request = jev_reduction.request
+
         try:
             final_request = _strip_internal_metadata(final_request)
             final_chars = (
@@ -289,6 +308,7 @@ class Runtime:
                 "vaulted_results": compaction.vaulted_results if compaction else 0,
                 "collapsed_turns": compaction.collapsed_turns if compaction else 0,
                 "context_compaction": compaction.as_dict() if compaction else {},
+                "jev": jev_reduction.as_dict() if jev_reduction else {},
             },
         }
 
@@ -549,6 +569,10 @@ class Runtime:
             "vault_error": self.store_error,
             "journal_mode": self.store.journal_mode if self.store else "unavailable",
             "profile": self.profile_name,
+            "jev": self.jev_reducer.status() if self.jev_reducer is not None else {
+                "enabled": False,
+                "configured": False,
+            },
         }
 
     def command(self, raw_args: str = "") -> str:
