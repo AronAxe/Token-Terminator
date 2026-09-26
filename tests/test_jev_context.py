@@ -172,3 +172,59 @@ def test_exact_tokenizer_can_veto_jev_reduction(tmp_path):
     assert result.failed_open is False
     assert result.saved_chars == 0
     assert result.request == request
+
+
+def test_fenced_current_turn_memory_is_scored_without_touching_user_request(tmp_path):
+    config = _config(tmp_path, jev_min_message_chars=40)
+    store = TokenTerminatorStore(config.db_path)
+
+    def transport(payload):
+        # The real request must be separated from the injected memory block.
+        assert payload["state"]["current_request"] == "What should I do next?"
+        memory_ids = [
+            cid
+            for cid, item in payload["state"]["candidates"].items()
+            if item["kind"] == "memory"
+        ]
+        assert len(memory_ids) == 1
+        answers = {}
+        for key in payload["questions"]:
+            answers[key] = {"type": "noul", "noul": 0.01}
+        return {
+            "model": "jev-test",
+            "answers": answers,
+            "usage": {"input_tokens": 50, "output_tokens": len(answers)},
+        }
+
+    reducer = JevSemanticReducer(store, config, transport=transport)
+    memory = "HINDSIGHT FACT " + ("old unrelated detail " * 80)
+    request = {
+        "model": "example-model",
+        "messages": [
+            {"role": "system", "content": "Stable system prompt"},
+            {
+                "role": "user",
+                "content": (
+                    "What should I do next?\n\n"
+                    "<memory-context>\n"
+                    "[System note: recalled memory background]\n\n"
+                    f"{memory}\n"
+                    "</memory-context>"
+                ),
+            },
+        ],
+    }
+
+    result = reducer.reduce(request, session_id="s1")
+
+    assert result.saved_chars > 0
+    output = result.request["messages"][-1]["content"]
+    assert output.startswith("What should I do next?")
+    assert "<memory-context>" in output
+    assert "[Token Terminator artifact " in output
+    assert memory not in output
+
+    artifact_id = re.search(r"\ba_[0-9a-f]{32,64}\b", output).group(0)
+    recovered = store.get_artifact(artifact_id).content
+    assert recovered.startswith("<memory-context>")
+    assert memory in recovered
