@@ -18,19 +18,12 @@ jobs:
         with:
           python-version: "3.13"
       - run: python -m pip install -e '.[dev]'
-      - name: Preserve an offline tokenizer toolchain
-        env:
-          TIKTOKEN_CACHE_DIR: wheelhouse/tiktoken-cache
-        run: |
-          python -m pip download --only-binary=:all: 'tiktoken>=0.12' 'ruff>=0.16' -d wheelhouse
-          python -c "import tiktoken; tiktoken.get_encoding('o200k_base'); tiktoken.get_encoding('cl100k_base')"
-      - uses: actions/upload-artifact@v4
+      - name: Run offline three-arm regression benchmark
+        run: python scripts/benchmark_context_ir.py --repeats 3 --output context-ir-results.json
+      - name: Retain measured results
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: context-ir-tokenizer-toolchain
-          path: wheelhouse/
-          retention-days: 7
-      - name: Run Context IR regression benchmark
-        run: |
-          if [ -f scripts/benchmark_context_ir.py ]; then
-            python scripts/benchmark_context_ir.py --output benchmarks/context_ir/results.json
-          fi
+          name: context-ir-results
+          path: context-ir-results.json
+          retention-days: 14
