@@ -52,6 +52,7 @@ jobs:
               assert actual == digest, 'transfer mismatch: ' + name
           PY
       - run: python -m pip install -e '.[dev]'
+      - run: python -m ruff check --select RUF100 --fix scripts/benchmark_context_ir.py
       - run: python -m ruff format scripts/benchmark_context_ir.py tests/test_context_ir.py tests/test_context_ir_benchmark.py
       - run: python -m ruff check .
       - run: python -m ruff format --check .
