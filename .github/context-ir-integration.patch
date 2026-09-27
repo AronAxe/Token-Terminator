@@ -1,0 +1,272 @@
+diff --git a/.github/workflows/context-ir.yml b/.github/workflows/context-ir.yml
+index f6b1f7a..b01d470 100644
+--- a/.github/workflows/context-ir.yml
++++ b/.github/workflows/context-ir.yml
+@@ -18,19 +18,12 @@ jobs:
+         with:
+           python-version: "3.13"
+       - run: python -m pip install -e '.[dev]'
+-      - name: Preserve an offline tokenizer toolchain
+-        env:
+-          TIKTOKEN_CACHE_DIR: wheelhouse/tiktoken-cache
+-        run: |
+-          python -m pip download --only-binary=:all: 'tiktoken>=0.12' 'ruff>=0.16' -d wheelhouse
+-          python -c "import tiktoken; tiktoken.get_encoding('o200k_base'); tiktoken.get_encoding('cl100k_base')"
+-      - uses: actions/upload-artifact@v4
++      - name: Run offline three-arm regression benchmark
++        run: python scripts/benchmark_context_ir.py --repeats 3 --output context-ir-results.json
++      - name: Retain measured results
++        if: always()
++        uses: actions/upload-artifact@v4
+         with:
+-          name: context-ir-tokenizer-toolchain
+-          path: wheelhouse/
+-          retention-days: 7
+-      - name: Run Context IR regression benchmark
+-        run: |
+-          if [ -f scripts/benchmark_context_ir.py ]; then
+-            python scripts/benchmark_context_ir.py --output benchmarks/context_ir/results.json
+-          fi
++          name: context-ir-results
++          path: context-ir-results.json
++          retention-days: 14
+ diff --git a/Cargo.toml b/Cargo.toml
+index d6a48a4..104c794 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "token-terminator"
+-version = "0.8.2"
++version = "0.9.0"
+ edition = "2021"
+ rust-version = "1.78"
+ description = "Rust interoperability helpers for Token Terminator artifact identities and reduction invariants"
+diff --git a/MANIFEST.in b/MANIFEST.in
+index f41f8a0..3659178 100644
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -10,3 +10,5 @@ include scripts/smoke_hermes.py
+ include scripts/verify_release.py
+ include scripts/benchmark.py
+ include scripts/quality_ab.py
++include scripts/benchmark_context_ir.py
++recursive-include benchmarks/context_ir *.md *.json
+diff --git a/pyproject.toml b/pyproject.toml
+index 297a5df..d05078c 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
+ 
+ [project]
+ name = "token-terminator"
+-version = "0.8.2"
++version = "0.9.0"
+ description = "Fail-open token reduction, exact recovery, and request compilation for Hermes Agent"
+ readme = "README.md"
+ requires-python = ">=3.10"
+diff --git a/src/rtk_hermes_plus/_version.py b/src/rtk_hermes_plus/_version.py
+index deded32..3e2f46a 100644
+--- a/src/rtk_hermes_plus/_version.py
++++ b/src/rtk_hermes_plus/_version.py
+@@ -1 +1 @@
+-__version__ = "0.8.2"
++__version__ = "0.9.0"
+diff --git a/src/rtk_hermes_plus/config.py b/src/rtk_hermes_plus/config.py
+index 3f37111..e71cb91 100644
+--- a/src/rtk_hermes_plus/config.py
++++ b/src/rtk_hermes_plus/config.py
+@@ -155,6 +155,13 @@ class Config:
+     jev_max_candidate_chars: int = 12_000
+     jev_max_state_chars: int = 60_000
+ 
++    # Context IR is local, additive, and requires a measured target tokenizer.
++    context_ir_enabled: bool = False
++    context_ir_min_chars: int = 600
++    context_ir_max_chars: int = 64_000
++    context_ir_max_messages: int = 8
++    context_ir_max_evaluations: int = 24
++
+     # Disabled by default. This is a bounded working-state selector, not the
+     # principal's broader graph-reasoning architecture.
+     graph_context_chars: int = 0
+@@ -187,9 +194,23 @@ class Config:
+             "jev_max_candidates",
+             "jev_max_candidate_chars",
+             "jev_max_state_chars",
++            "context_ir_min_chars",
++            "context_ir_max_chars",
++            "context_ir_max_messages",
++            "context_ir_max_evaluations",
+         ):
+             if getattr(self, name) < 1:
+                 raise ValueError(f"{name} must be positive")
++        if self.context_ir_min_chars > self.context_ir_max_chars:
++            raise ValueError(
++                "context_ir_min_chars must not exceed context_ir_max_chars"
++            )
++        if (
++            self.context_ir_max_chars > 500_000
++            or self.context_ir_max_messages > 64
++            or self.context_ir_max_evaluations > 192
++        ):
++            raise ValueError("Context IR search bounds exceeded")
+         if self.min_artifact_chars > self.max_artifact_chars:
+             raise ValueError("min_artifact_chars must not exceed max_artifact_chars")
+         if not 0.0 <= self.jev_relevance_threshold <= 1.0:
+@@ -330,7 +351,22 @@ def load_config() -> Config:
+     if vault_low_water_pct >= vault_high_water_pct:
+         vault_low_water_pct = max(0, vault_high_water_pct - 10)
+ 
++    ir_max_chars = _integer(
++        "TOKEN_TERMINATOR_CONTEXT_IR_MAX_CHARS", 64_000, maximum=500_000
++    )
++    ir_min_chars = min(
++        _integer("TOKEN_TERMINATOR_CONTEXT_IR_MIN_CHARS", 600), ir_max_chars
++    )
+     config = Config(
++        context_ir_enabled=_boolean("TOKEN_TERMINATOR_CONTEXT_IR", False),
++        context_ir_min_chars=ir_min_chars,
++        context_ir_max_chars=ir_max_chars,
++        context_ir_max_messages=_integer(
++            "TOKEN_TERMINATOR_CONTEXT_IR_MAX_MESSAGES", 8, maximum=64
++        ),
++        context_ir_max_evaluations=_integer(
++            "TOKEN_TERMINATOR_CONTEXT_IR_MAX_EVALUATIONS", 24, maximum=192
++        ),
+         mode=mode,
+         enabled=_boolean("TOKEN_TERMINATOR_ENABLED", True),
+         timeout_ms=_integer(
+diff --git a/src/rtk_hermes_plus/enhancements.py b/src/rtk_hermes_plus/enhancements.py
+index 17562b0..c6682c8 100644
+--- a/src/rtk_hermes_plus/enhancements.py
++++ b/src/rtk_hermes_plus/enhancements.py
+@@ -135,6 +135,8 @@ class RuntimeV05(BaseRuntime):
+             )
+         if getattr(self, "jev_reducer", None) is not None:
+             self.jev_reducer.token_budget = self.token_budget
++        if getattr(self, "context_ir", None) is not None:
++            self.context_ir.token_budget = self.token_budget
+ 
+     def _sync_token_budget(self) -> None:
+         if isinstance(self.compiler, TokenAwareRequestCompiler):
+@@ -143,6 +145,8 @@ class RuntimeV05(BaseRuntime):
+             self.context_compactor.token_budget = self.token_budget
+         if getattr(self, "jev_reducer", None) is not None:
+             self.jev_reducer.token_budget = self.token_budget
++        if getattr(self, "context_ir", None) is not None:
++            self.context_ir.token_budget = self.token_budget
+ 
+     def _model_for(self, session_id: str = "", request: Any = None) -> str:
+         if isinstance(request, dict):
+diff --git a/src/rtk_hermes_plus/plugin.py b/src/rtk_hermes_plus/plugin.py
+index a608d2a..fa2f271 100644
+--- a/src/rtk_hermes_plus/plugin.py
++++ b/src/rtk_hermes_plus/plugin.py
+@@ -13,6 +13,7 @@ from .compiler import CompileResult, RequestCompiler, _serialized_chars
+ from .compress import NativeCompressor
+ from .config import MODES, Config, load_config
+ from .context_compactor import CompactionResult, ContextCompactor
++from .context_ir import ContextIRCompiler, ContextIRResult
+ from .graph import MAX_BATCH_OPERATIONS, WorkingStateGraph
+ from .jev_context import JevReductionResult, JevSemanticReducer
+ from .ledger import ExperimentLedger, dump_compare
+@@ -94,6 +95,11 @@ class Runtime:
+             if self.store is not None
+             else None
+         )
++        self.context_ir = (
++            ContextIRCompiler(self.store, self.config)
++            if self.store is not None
++            else None
++        )
+         self.ledger = ExperimentLedger(
+             self.config.ledger_path,
+             self.config.state_db_path,
+@@ -256,8 +262,25 @@ class Runtime:
+             if not jev_reduction.failed_open and jev_reduction.saved_chars > 0:
+                 final_request = jev_reduction.request
+ 
++        ir_reduction: ContextIRResult | None = None
+         try:
+             final_request = _strip_internal_metadata(final_request)
++            # Phase 4: optional local Context IR. Measure the exact provider-bound
++            # object after metadata stripping, including every decoder legend.
++            if self.context_ir is not None and not compiled.failed_open:
++                ir_reduction = self.context_ir.reduce(
++                    final_request,
++                    session_id=session_id,
++                    request_id=compiled.request_id,
++                    model=str(request.get("model") or ""),
++                    attention=jev_reduction.attention if jev_reduction else (),
++                    require_attention=bool(
++                        self.jev_reducer and self.jev_reducer.enabled
++                    ),
++                    semantic_failed=bool(jev_reduction and jev_reduction.failed_open),
++                )
++                if not ir_reduction.failed_open and ir_reduction.saved_chars > 0:
++                    final_request = ir_reduction.request
+             final_chars = (
+                 compiled.raw_chars
+                 if compiled.failed_open
+@@ -320,6 +343,7 @@ class Runtime:
+                 "collapsed_turns": compaction.collapsed_turns if compaction else 0,
+                 "context_compaction": compaction.as_dict() if compaction else {},
+                 "jev": jev_reduction.as_dict() if jev_reduction else {},
++                "context_ir": ir_reduction.as_dict() if ir_reduction else {},
+             },
+         }
+ 
+@@ -580,6 +604,7 @@ class Runtime:
+             "vault_error": self.store_error,
+             "journal_mode": self.store.journal_mode if self.store else "unavailable",
+             "profile": self.profile_name,
++            "context_ir": self.context_ir.status() if self.context_ir else {},
+             "jev": self.jev_reducer.status()
+             if self.jev_reducer is not None
+             else {
+diff --git a/src/rtk_hermes_plus/storage.py b/src/rtk_hermes_plus/storage.py
+index 60edf26..e435b60 100644
+--- a/src/rtk_hermes_plus/storage.py
++++ b/src/rtk_hermes_plus/storage.py
+@@ -513,6 +513,7 @@ class TokenTerminatorStore:
+         args: dict[str, Any] | None = None,
+         session_id: str = "",
+         tool_call_id: str = "",
++        pin_request_id: str = "",
+     ) -> ArtifactPut:
+         if not isinstance(content, str):
+             raise TypeError("artifact content must be a string")
+@@ -581,6 +582,14 @@ class TokenTerminatorStore:
+                     now,
+                 ),
+             )
++            if pin_request_id:
++                # Publishable recovery references must survive concurrent pruning.
++                # Same transaction as insertion: there is no unpinned interval.
++                conn.execute(
++                    "INSERT INTO artifact_exposures(session_id, artifact_id, request_id, inline, exposed_at) "
++                    "VALUES (?, ?, ?, 0, ?) ON CONFLICT(session_id, artifact_id, request_id) DO NOTHING",
++                    (str(session_id or ""), artifact_id, str(pin_request_id), now),
++                )
+         return ArtifactPut(artifact_id=artifact_id, created=created, sha256=sha256)
+ 
+     def get_artifact(self, artifact_id: str) -> Artifact:
+@@ -596,6 +605,17 @@ class TokenTerminatorStore:
+             ).fetchone()
+         if row is None:
+             raise KeyError(f"unknown artifact: {artifact_id}")
++        # Exact recovery must detect corruption too, not merely the IR compiler
++        # at dispatch time. All recovery views share this read boundary.
++        encoded = row["content"].encode("utf-8")
++        digest = hashlib.sha256(encoded).hexdigest()
++        if (
++            digest != row["sha256"]
++            or artifact_id not in {f"a_{digest[:32]}", f"a_{digest}"}
++            or len(encoded) != row["byte_count"]
++            or len(row["content"]) != row["char_count"]
++        ):
++            raise ValueError("artifact integrity check failed")
+         return Artifact(
+             artifact_id=row["artifact_id"],
+             sha256=row["sha256"],

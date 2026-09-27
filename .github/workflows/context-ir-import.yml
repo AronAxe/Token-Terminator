@@ -1,0 +1,68 @@
+name: Import tested Context IR changes
+
+on:
+  push:
+    branches: [feat/context-ir-v0.9.0]
+    paths:
+      - .github/workflows/context-ir-import.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    if: github.repository == 'AronAxe/Token-Terminator' && github.ref == 'refs/heads/feat/context-ir-v0.9.0'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/context-ir-v0.9.0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Apply inspected integration patch and documentation
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('.github/context-ir-integration.patch')
+          p.write_text(p.read_text().replace('\n diff --git ', '\ndiff --git '))
+          PY
+          git apply --check .github/context-ir-integration.patch
+          git apply .github/context-ir-integration.patch
+          python .github/context-ir-docs.py
+          rm .github/context-ir-integration.patch .github/context-ir-docs.py .github/workflows/context-ir-import.yml
+      - name: Verify transferred core matches locally tested source
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          expected = {
+              'context_safety.py': '684709049e72b77da78179e234b0056bf2462731e866fae4e112a5dfd7d2dfe2',
+              'storage.py': 'a196a178d130e96b6ca436a057ea470b7d09f84873f732e34158fd072cf7bc57',
+              'jev_context.py': '058762467050f2548124de61efb1f9eae86c4362a77bb3a474e57914ffd11690',
+              'context_ir.py': '15315ce2876be3a73cad47748a5623631854317bf1537c27e97ade3a6e43f3f7',
+              'enhancements.py': '31f28bb020e0e6ed281d2e1540f3ba0e08500bbdf6de251a85aba3ccbec8b74f',
+              'config.py': '6a3e708a7a2767d2efdb9453037d8df30bd037277699c1b8d66d4c8107e8021c',
+              'plugin.py': '5b19909f950ec45e3ebfa27f4f01f0fa8e29c1392e867d39e96c1cdbd2d5e141',
+          }
+          for name, digest in expected.items():
+              actual = hashlib.sha256((Path('src/rtk_hermes_plus') / name).read_bytes()).hexdigest()
+              print(name, actual)
+              assert actual == digest, 'transfer mismatch: ' + name
+          PY
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m ruff format scripts/benchmark_context_ir.py tests/test_context_ir.py tests/test_context_ir_benchmark.py
+      - run: python -m ruff check .
+      - run: python -m ruff format --check .
+      - run: python -m pytest
+      - run: python scripts/benchmark_context_ir.py --repeats 3 --output benchmarks/context_ir/results.json
+      - name: Commit integrated tested feature without import utilities
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'feat: integrate tested Context IR v0.9.0 and source-backed documentation'
+          git push origin HEAD:feat/context-ir-v0.9.0
