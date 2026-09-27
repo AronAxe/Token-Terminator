@@ -33,7 +33,8 @@ jobs:
           git apply --check .github/context-ir-integration.patch
           git apply .github/context-ir-integration.patch
           python .github/context-ir-docs.py
-          rm .github/context-ir-integration.patch .github/context-ir-docs.py .github/workflows/context-ir-import.yml
+          rm .github/context-ir-integration.patch .github/context-ir-docs.py
+          git restore --source=HEAD -- .github/workflows/context-ir.yml
       - name: Verify transferred core matches locally tested source
         run: |
           python - <<'PY'
@@ -59,7 +60,7 @@ jobs:
       - run: python -m ruff format --check .
       - run: python -m pytest
       - run: python scripts/benchmark_context_ir.py --repeats 3 --output benchmarks/context_ir/results.json
-      - name: Commit integrated tested feature without import utilities
+      - name: Commit integrated tested source and documentation
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
