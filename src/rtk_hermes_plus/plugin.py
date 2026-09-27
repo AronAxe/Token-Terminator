@@ -13,6 +13,7 @@ from .compiler import CompileResult, RequestCompiler, _serialized_chars
 from .compress import NativeCompressor
 from .config import MODES, Config, load_config
 from .context_compactor import CompactionResult, ContextCompactor
+from .context_ir import ContextIRCompiler, ContextIRResult
 from .graph import MAX_BATCH_OPERATIONS, WorkingStateGraph
 from .jev_context import JevReductionResult, JevSemanticReducer
 from .ledger import ExperimentLedger, dump_compare
@@ -91,6 +92,11 @@ class Runtime:
         )
         self.jev_reducer = (
             JevSemanticReducer(self.store, self.config)
+            if self.store is not None
+            else None
+        )
+        self.context_ir = (
+            ContextIRCompiler(self.store, self.config)
             if self.store is not None
             else None
         )
@@ -256,8 +262,25 @@ class Runtime:
             if not jev_reduction.failed_open and jev_reduction.saved_chars > 0:
                 final_request = jev_reduction.request
 
+        ir_reduction: ContextIRResult | None = None
         try:
             final_request = _strip_internal_metadata(final_request)
+            # Phase 4: optional local Context IR. Measure the exact provider-bound
+            # object after metadata stripping, including every decoder legend.
+            if self.context_ir is not None and not compiled.failed_open:
+                ir_reduction = self.context_ir.reduce(
+                    final_request,
+                    session_id=session_id,
+                    request_id=compiled.request_id,
+                    model=str(request.get("model") or ""),
+                    attention=jev_reduction.attention if jev_reduction else (),
+                    require_attention=bool(
+                        self.jev_reducer and self.jev_reducer.enabled
+                    ),
+                    semantic_failed=bool(jev_reduction and jev_reduction.failed_open),
+                )
+                if not ir_reduction.failed_open and ir_reduction.saved_chars > 0:
+                    final_request = ir_reduction.request
             final_chars = (
                 compiled.raw_chars
                 if compiled.failed_open
@@ -320,6 +343,7 @@ class Runtime:
                 "collapsed_turns": compaction.collapsed_turns if compaction else 0,
                 "context_compaction": compaction.as_dict() if compaction else {},
                 "jev": jev_reduction.as_dict() if jev_reduction else {},
+                "context_ir": ir_reduction.as_dict() if ir_reduction else {},
             },
         }
 
@@ -580,6 +604,7 @@ class Runtime:
             "vault_error": self.store_error,
             "journal_mode": self.store.journal_mode if self.store else "unavailable",
             "profile": self.profile_name,
+            "context_ir": self.context_ir.status() if self.context_ir else {},
             "jev": self.jev_reducer.status()
             if self.jev_reducer is not None
             else {

@@ -10,3 +10,5 @@ include scripts/smoke_hermes.py
 include scripts/verify_release.py
 include scripts/benchmark.py
 include scripts/quality_ab.py
+include scripts/benchmark_context_ir.py
+recursive-include benchmarks/context_ir *.md *.json

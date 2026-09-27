@@ -513,6 +513,7 @@ class TokenTerminatorStore:
         args: dict[str, Any] | None = None,
         session_id: str = "",
         tool_call_id: str = "",
+        pin_request_id: str = "",
     ) -> ArtifactPut:
         if not isinstance(content, str):
             raise TypeError("artifact content must be a string")
@@ -581,6 +582,14 @@ class TokenTerminatorStore:
                     now,
                 ),
             )
+            if pin_request_id:
+                # Publishable recovery references must survive concurrent pruning.
+                # Same transaction as insertion: there is no unpinned interval.
+                conn.execute(
+                    "INSERT INTO artifact_exposures(session_id, artifact_id, request_id, inline, exposed_at) "
+                    "VALUES (?, ?, ?, 0, ?) ON CONFLICT(session_id, artifact_id, request_id) DO NOTHING",
+                    (str(session_id or ""), artifact_id, str(pin_request_id), now),
+                )
         return ArtifactPut(artifact_id=artifact_id, created=created, sha256=sha256)
 
     def get_artifact(self, artifact_id: str) -> Artifact:
@@ -596,6 +605,17 @@ class TokenTerminatorStore:
             ).fetchone()
         if row is None:
             raise KeyError(f"unknown artifact: {artifact_id}")
+        # Exact recovery must detect corruption too, not merely the IR compiler
+        # at dispatch time. All recovery views share this read boundary.
+        encoded = row["content"].encode("utf-8")
+        digest = hashlib.sha256(encoded).hexdigest()
+        if (
+            digest != row["sha256"]
+            or artifact_id not in {f"a_{digest[:32]}", f"a_{digest}"}
+            or len(encoded) != row["byte_count"]
+            or len(row["content"]) != row["char_count"]
+        ):
+            raise ValueError("artifact integrity check failed")
         return Artifact(
             artifact_id=row["artifact_id"],
             sha256=row["sha256"],

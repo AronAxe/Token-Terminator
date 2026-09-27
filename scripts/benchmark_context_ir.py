@@ -82,7 +82,7 @@ def cases() -> list[Case]:
         'Constraint: NEVER round 0.0375. Quote exactly: "approved is not paid".\n'
         "```python\nrate = 0.0375\nassert rate != 0\n```\n"
     ) * 50
-    encode = lambda x: json.dumps(x, ensure_ascii=False, indent=2)  # noqa: E731
+    encode = lambda x: json.dumps(x, ensure_ascii=False, indent=2)
     return [
         Case(
             "temporal-confusable-entities",
@@ -137,7 +137,8 @@ def request_for(case: Case, model: str) -> dict[str, Any]:
             {"role": "user", "content": "Earlier we discussed a picnic."},
             {
                 "role": "assistant",
-                "content": "A past picnic discussion concerned sandwiches and gentle breezes near the meadow.\n" * 90,
+                "content": "A past picnic discussion concerned sandwiches and gentle breezes near the meadow.\n"
+                * 90,
             },
             {"role": "user", "content": "Here is the evidence for the next task."},
             {"role": "assistant", "name": "fixture_evidence", "content": case.source},
@@ -160,6 +161,7 @@ def fixture_transport(case: Case):
             )
             answers[key] = {"type": "noul", "noul": value}
         return {"answers": answers, "usage": {"cost": 0.0}}
+
     return transport
 
 
@@ -180,9 +182,14 @@ def visible_evidence(text: str) -> Any:
                 row[int(col)] = dictionary[row[int(col)]]
         return [dict(zip(value["keys"], row, strict=True)) for row in rows]
     if form == "template":
-        return "".join(value["prefix"] + item + value["suffix"] for item in value["items"])
+        return "".join(
+            value["prefix"] + item + value["suffix"] for item in value["items"]
+        )
     if form == "spans":
-        return "".join(value["dict"][part] if type(part) is int else part for part in value["parts"])
+        return "".join(
+            value["dict"][part] if type(part) is int else part
+            for part in value["parts"]
+        )
     raise ValueError("unknown visible IR")
 
 
@@ -196,7 +203,9 @@ def solve(case: Case, evidence: Any) -> Any:
                 latest[key] = row
         return {"newest": {key: row["release_channel"] for key, row in latest.items()}}
     if case.name == "dependency-path":
-        edges = {row["source_component"]: row["destination_component"] for row in evidence}
+        edges = {
+            row["source_component"]: row["destination_component"] for row in evidence
+        }
         current, hops = "service-0", 0
         while current in edges and hops <= len(edges):
             current, hops = edges[current], hops + 1
@@ -207,15 +216,25 @@ def solve(case: Case, evidence: Any) -> Any:
             key = row["project"]
             if key not in latest or row["revision"] > latest[key]["revision"]:
                 latest[key] = row
-        return {"latest": {k: {field: row[field] for field in ("amount", "approved")} for k, row in latest.items()}}
+        return {
+            "latest": {
+                k: {field: row[field] for field in ("amount", "approved")}
+                for k, row in latest.items()
+            }
+        }
     if case.name == "repeated-exact-spans":
-        return {state: evidence.count("reports " + state + ".\n") for state in ("healthy", "pending", "ready")}
-    if 'rate = 0.0375' not in evidence or '"approved is not paid"' not in evidence:
+        return {
+            state: evidence.count("reports " + state + ".\n")
+            for state in ("healthy", "pending", "ready")
+        }
+    if "rate = 0.0375" not in evidence or '"approved is not paid"' not in evidence:
         return None
     return {"rate": "0.0375", "quote": "approved is not paid"}
 
 
-def _live_answer(request: dict[str, Any], runtime: Runtime, *, max_calls: int) -> dict[str, Any]:
+def _live_answer(
+    request: dict[str, Any], runtime: Runtime, *, max_calls: int
+) -> dict[str, Any]:
     """Opt-in OpenRouter evaluation. Includes all recovery round trips in cost.
 
     Deliberately does not rerun TT between recovery turns: recovery content
@@ -225,7 +244,9 @@ def _live_answer(request: dict[str, Any], runtime: Runtime, *, max_calls: int) -
     if not key:
         raise ValueError("live target answers require OPENROUTER_API_KEY")
     working = copy.deepcopy(request)
-    source_ids = set(re.findall(r"\ba_[0-9a-f]{32}(?:[0-9a-f]{32})?\b", json.dumps(request)))
+    source_ids = set(
+        re.findall(r"\ba_[0-9a-f]{32}(?:[0-9a-f]{32})?\b", json.dumps(request))
+    )
     started = time.perf_counter()
     prompt_tokens, calls, recoveries = 0, 0, 0
     cost, cost_known = 0.0, True
@@ -234,8 +255,12 @@ def _live_answer(request: dict[str, Any], runtime: Runtime, *, max_calls: int) -
         for _ in range(max_calls):
             body = json.dumps(working, ensure_ascii=False).encode()
             http_request = Request(
-                "https://openrouter.ai/api/v1/chat/completions", data=body,
-                headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
+                "https://openrouter.ai/api/v1/chat/completions",
+                data=body,
+                headers={
+                    "Authorization": "Bearer " + key,
+                    "Content-Type": "application/json",
+                },
                 method="POST",
             )
             with urlopen(http_request, timeout=90) as response:
@@ -261,14 +286,17 @@ def _live_answer(request: dict[str, Any], runtime: Runtime, *, max_calls: int) -
                 args = json.loads(fn.get("arguments", "{}"))
                 if (
                     fn.get("name") != "token_terminator"
-                    or args.get("action") not in {"artifact_get", "artifact_peek", "artifact_find"}
+                    or args.get("action")
+                    not in {"artifact_get", "artifact_peek", "artifact_find"}
                     or args.get("artifact_id") not in source_ids
                     or set(args) - {"action", "artifact_id", "offset", "limit", "query"}
                 ):
                     raise ValueError("out-of-scope recovery request")
                 args["limit"] = min(8000, max(1, int(args.get("limit", 8000))))
                 text = runtime.tool(**args)
-                working["messages"].append({"role": "tool", "tool_call_id": call["id"], "content": text})
+                working["messages"].append(
+                    {"role": "tool", "tool_call_id": call["id"], "content": text}
+                )
                 recoveries += 1
         if value is None:
             error = "no-answer-within-call-budget"
@@ -280,16 +308,22 @@ def _live_answer(request: dict[str, Any], runtime: Runtime, *, max_calls: int) -
         "provider_input_tokens_including_recovery": prompt_tokens,
         "provider_cost_usd": round(cost, 8) if cost_known else None,
         "latency_ms": round((time.perf_counter() - started) * 1000, 3),
-        "provider_calls": calls, "recovery_calls": recoveries, "error": error,
+        "provider_calls": calls,
+        "recovery_calls": recoveries,
+        "error": error,
     }
 
 
-def run(*, models: list[str], repeats: int = 3, live: bool = False, max_calls: int = 4) -> dict[str, Any]:
+def run(
+    *, models: list[str], repeats: int = 3, live: bool = False, max_calls: int = 4
+) -> dict[str, Any]:
     report: dict[str, Any] = {
         "version": __version__,
         "mode": "live" if live else "offline-fixture-scores",
         "measurement": "complete canonical provider-request JSON; hidden provider framing excluded",
-        "quality_scope": "independent visible-data golden answers and exact recovery; not live LLM quality" if not live else "golden checks plus live model answers; small synthetic corpus, not general quality proof",
+        "quality_scope": "independent visible-data golden answers and exact recovery; not live LLM quality"
+        if not live
+        else "golden checks plus live model answers; small synthetic corpus, not general quality proof",
         "repeats": repeats,
         "cases": [],
     }
@@ -302,25 +336,49 @@ def run(*, models: list[str], repeats: int = 3, live: bool = False, max_calls: i
                     root = Path(directory)
                     base = load_config() if live else Config()
                     common = replace(
-                        base, mode="balanced", enabled=True,
-                        db_path=root / "vault.db", ledger_path=root / "ledger.db",
-                        state_db_path=root / "state.db", ledger_enabled=False,
-                        context_compaction_enabled=True, context_collapse_after_turns=6,
+                        base,
+                        mode="balanced",
+                        enabled=True,
+                        db_path=root / "vault.db",
+                        ledger_path=root / "ledger.db",
+                        state_db_path=root / "state.db",
+                        ledger_enabled=False,
+                        context_compaction_enabled=True,
+                        context_collapse_after_turns=6,
                         context_inline_recent_turns=5,
-                        jev_max_candidate_chars=64_000, jev_max_state_chars=200_000,
+                        jev_max_candidate_chars=64_000,
+                        jev_max_state_chars=200_000,
                     )
                     arms = []
-                    for arm, jev_on, ir_on in (("tt", False, False), ("tt_jev", True, False), ("tt_jev_ir", True, True)):
+                    for arm, jev_on, ir_on in (
+                        ("tt", False, False),
+                        ("tt_jev", True, False),
+                        ("tt_jev_ir", True, True),
+                    ):
                         # Isolated stores avoid exposures from one arm affecting another.
-                        cfg = replace(common, db_path=root / f"{arm}.db", jev_enabled=jev_on, context_ir_enabled=ir_on,
-                                      jev_api_key=base.jev_api_key if live else "offline-fixture-not-a-key")
+                        cfg = replace(
+                            common,
+                            db_path=root / f"{arm}.db",
+                            jev_enabled=jev_on,
+                            context_ir_enabled=ir_on,
+                            jev_api_key=base.jev_api_key
+                            if live
+                            else "offline-fixture-not-a-key",
+                        )
                         if live and jev_on and not cfg.jev_api_key:
-                            raise ValueError("live benchmark requires configured JEV provider key")
+                            raise ValueError(
+                                "live benchmark requires configured JEV provider key"
+                            )
                         runtime = Runtime(cfg)
                         captured_scores = []
                         original_reduce = runtime.jev_reducer.reduce
 
-                        def capture_scores(*args, _reduce=original_reduce, _scores=captured_scores, **kwargs):
+                        def capture_scores(
+                            *args,
+                            _reduce=original_reduce,
+                            _scores=captured_scores,
+                            **kwargs,
+                        ):
                             result = _reduce(*args, **kwargs)
                             _scores.append(result.as_dict())
                             return result
@@ -332,14 +390,26 @@ def run(*, models: list[str], repeats: int = 3, live: bool = False, max_calls: i
                         # Warm tokenizer load separately; no hidden network in timed run.
                         raw = runtime.token_budget.measure_request(request)
                         if not raw.available:
-                            raise ValueError("target tokenizer unavailable; configure the actual tokenizer")
+                            raise ValueError(
+                                "target tokenizer unavailable; configure the actual tokenizer"
+                            )
                         started = time.perf_counter()
-                        decision = runtime.llm_request_middleware(request=request, session_id="benchmark", request_id=f"{arm}-{repeat}")
+                        decision = runtime.llm_request_middleware(
+                            request=request,
+                            session_id="benchmark",
+                            request_id=f"{arm}-{repeat}",
+                        )
                         elapsed = (time.perf_counter() - started) * 1000
                         final = decision["request"] if decision else request
                         metrics = decision.get("metrics", {}) if decision else {}
-                        final_tokens = runtime.token_budget.measure_request(final).tokens
-                        evidence = next(m["content"] for m in final["messages"] if m.get("name") == "fixture_evidence")
+                        final_tokens = runtime.token_budget.measure_request(
+                            final
+                        ).tokens
+                        evidence = next(
+                            m["content"]
+                            for m in final["messages"]
+                            if m.get("name") == "fixture_evidence"
+                        )
                         try:
                             visible = visible_evidence(evidence)
                             golden = solve(case, visible) == case.expected
@@ -349,50 +419,100 @@ def run(*, models: list[str], repeats: int = 3, live: bool = False, max_calls: i
                         exact = True
                         if evidence.startswith("TTIR/1 "):
                             inspect_ir(evidence, runtime.store)
-                            recovered = "".join(expand_ir(evidence, runtime.store, offset=i, limit=3000) for i in range(0, len(case.source), 3000))
+                            recovered = "".join(
+                                expand_ir(evidence, runtime.store, offset=i, limit=3000)
+                                for i in range(0, len(case.source), 3000)
+                            )
                             exact = recovered == case.source
-                        protected = final["messages"][0] == request["messages"][0] and final["messages"][-1] == request["messages"][-1]
+                        protected = (
+                            final["messages"][0] == request["messages"][0]
+                            and final["messages"][-1] == request["messages"][-1]
+                        )
                         scores = captured_scores[-1] if captured_scores else {}
                         entry = {
-                            "arm": arm, "raw_tokens": raw.tokens, "final_input_tokens": final_tokens,
-                            "reduction_vs_raw_pct": round(100 * (raw.tokens - final_tokens) / raw.tokens, 3),
-                            "latency_ms": round(elapsed, 3), "jev_latency_ms": scores.get("elapsed_ms", 0.0),
-                            "jev_cost_usd": scores.get("cost_usd") if live and jev_on else 0.0,
-                            "jev_cost_source": "provider-reported-or-null" if live and jev_on else "offline-no-api-call",
+                            "arm": arm,
+                            "raw_tokens": raw.tokens,
+                            "final_input_tokens": final_tokens,
+                            "reduction_vs_raw_pct": round(
+                                100 * (raw.tokens - final_tokens) / raw.tokens, 3
+                            ),
+                            "latency_ms": round(elapsed, 3),
+                            "jev_latency_ms": scores.get("elapsed_ms", 0.0),
+                            "jev_cost_usd": scores.get("cost_usd")
+                            if live and jev_on
+                            else 0.0,
+                            "jev_cost_source": "provider-reported-or-null"
+                            if live and jev_on
+                            else "offline-no-api-call",
                             "jev_input_tokens": scores.get("input_tokens", 0),
                             "jev_output_tokens": scores.get("output_tokens", 0),
-                            "golden_answer_pass": golden, "visible_evidence_equal": source_match,
-                            "exact_recovery_pass": exact, "protected_context_pass": protected,
+                            "golden_answer_pass": golden,
+                            "visible_evidence_equal": source_match,
+                            "exact_recovery_pass": exact,
+                            "protected_context_pass": protected,
                             "ir": metrics.get("context_ir", {}),
                             "live_llm_quality": "not-run",
                         }
                         if live:
                             result = _live_answer(final, runtime, max_calls=max_calls)
-                            result["golden_answer_pass"] = result.pop("answer") == case.expected
+                            result["golden_answer_pass"] = (
+                                result.pop("answer") == case.expected
+                            )
                             entry["live_llm_quality"] = result
                         arms.append(entry)
                     base_tokens = arms[0]["final_input_tokens"]
                     for entry in arms:
-                        entry["reduction_vs_tt_pct"] = round(100 * (base_tokens - entry["final_input_tokens"]) / base_tokens, 3)
-                    no_enlargement = arms[2]["final_input_tokens"] <= arms[1]["final_input_tokens"]
-                    if not no_enlargement or not all(e[k] for e in arms for k in ("golden_answer_pass", "visible_evidence_equal", "exact_recovery_pass", "protected_context_pass")):
+                        entry["reduction_vs_tt_pct"] = round(
+                            100
+                            * (base_tokens - entry["final_input_tokens"])
+                            / base_tokens,
+                            3,
+                        )
+                    no_enlargement = (
+                        arms[2]["final_input_tokens"] <= arms[1]["final_input_tokens"]
+                    )
+                    if not no_enlargement or not all(
+                        e[k]
+                        for e in arms
+                        for k in (
+                            "golden_answer_pass",
+                            "visible_evidence_equal",
+                            "exact_recovery_pass",
+                            "protected_context_pass",
+                        )
+                    ):
                         failures.append(f"{model}:{case.name}:{repeat}")
-                    if live and not all(e["live_llm_quality"]["golden_answer_pass"] for e in arms):
+                    if live and not all(
+                        e["live_llm_quality"]["golden_answer_pass"] for e in arms
+                    ):
                         failures.append(f"live-answer:{model}:{case.name}:{repeat}")
                     trials.append({"arms": arms, "no_ir_enlargement": no_enlargement})
-            report["cases"].append({"case": case.name, "model": model, "trials": trials})
+            report["cases"].append(
+                {"case": case.name, "model": model, "trials": trials}
+            )
     report["summary"] = {
-        "failures": failures, "passed": not failures,
+        "failures": failures,
+        "passed": not failures,
         "model_case_pairs": len(report["cases"]),
-        "arms_evaluated": sum(len(t["arms"]) for c in report["cases"] for t in c["trials"]),
+        "arms_evaluated": sum(
+            len(t["arms"]) for c in report["cases"] for t in c["trials"]
+        ),
         "latency_statistic": "median of warmed-tokenizer local middleware, excluding tokenizer cold start",
     }
     for model in models:
-        entries = [t for c in report["cases"] if c["model"] == model for t in c["trials"]]
+        entries = [
+            t for c in report["cases"] if c["model"] == model for t in c["trials"]
+        ]
         report["summary"][model] = {
             arm: {
-                "sum_final_input_tokens": sum(t["arms"][index]["final_input_tokens"] for t in entries) // repeats,
-                "median_latency_ms": round(statistics.median(t["arms"][index]["latency_ms"] for t in entries), 3),
+                "sum_final_input_tokens": sum(
+                    t["arms"][index]["final_input_tokens"] for t in entries
+                )
+                // repeats,
+                "median_latency_ms": round(
+                    statistics.median(t["arms"][index]["latency_ms"] for t in entries),
+                    3,
+                ),
             }
             for index, arm in enumerate(("tt", "tt_jev", "tt_jev_ir"))
         }
@@ -401,19 +521,36 @@ def run(*, models: list[str], repeats: int = 3, live: bool = False, max_calls: i
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", action="append", help="Target model; repeat for multiple tokenizer targets")
+    parser.add_argument(
+        "--model",
+        action="append",
+        help="Target model; repeat for multiple tokenizer targets",
+    )
     parser.add_argument("--repeats", type=int, default=3)
-    parser.add_argument("--output", type=Path, default=Path("benchmarks/context_ir/results.json"))
-    parser.add_argument("--live", action="store_true", help="Explicitly spend API credit on real JEV and OpenRouter LLM answers")
+    parser.add_argument(
+        "--output", type=Path, default=Path("benchmarks/context_ir/results.json")
+    )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Explicitly spend API credit on real JEV and OpenRouter LLM answers",
+    )
     parser.add_argument("--max-answer-calls", type=int, default=4)
     args = parser.parse_args(argv)
     if not 1 <= args.repeats <= 20 or not 1 <= args.max_answer_calls <= 8:
         parser.error("repeats must be 1..20 and answer calls 1..8")
     if args.live and not args.model:
         parser.error("--live requires an explicit --model and its exact tokenizer")
-    report = run(models=args.model or ["gpt-4o", "gpt-4"], repeats=args.repeats, live=args.live, max_calls=args.max_answer_calls)
+    report = run(
+        models=args.model or ["gpt-4o", "gpt-4"],
+        repeats=args.repeats,
+        live=args.live,
+        max_calls=args.max_answer_calls,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    args.output.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(report["summary"], indent=2))
     return 0 if report["summary"]["passed"] else 1
 

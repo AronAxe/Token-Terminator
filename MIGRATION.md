@@ -1,6 +1,18 @@
-# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.x / 0.6.0 / 0.7.0 / 0.8.x → 0.8.2
+# Migration and rollback: 0.2.0 / 0.4.0 / 0.5.x / 0.6.0 / 0.7.0 / 0.8.x → 0.9.0
 
-Token Terminator 0.8.2 supersedes Token Terminator 0.8.1 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
+Token Terminator 0.9.0 supersedes Token Terminator 0.8.2 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
+
+## 0.8.2 → 0.9.0
+
+Context IR is an optional local stage after the existing deterministic pipeline and Jev. It is OFF by default. Set `TOKEN_TERMINATOR_CONTEXT_IR=true` to enable guarded format optimization with a measured tokenizer and provider-visible recovery tool, in the existing `balanced` or `aggressive` modes.
+
+No new API key or database schema is required. OpenRouter/direct TypeSafe configuration remains valid. Jev gains salience only when IR is on; no extra batch call is added. With IR on, the entire current user message, including memory fences, stays untouched. Missing scores cannot authorize compression.
+
+After the v0.9.0 release is published, install its immutable tag with `<hermes-python> -m pip install --upgrade 'git+https://github.com/AronAxe/Token-Terminator.git@v0.9.0'`.
+
+Disable only IR by unsetting its variable or setting it to `false`, then restarting the host. Roll back the package by reinstalling v0.8.2. Schema version 2 and ordinary artifact IDs/actions are retained. Do not delete the vault while transcripts reference it. Corrupted content now raises an error rather than being returned as exact evidence.
+
+See [Context IR](docs/CONTEXT_IR.md) for limits and the canonical-request measurement boundary. The offline benchmark is not a live-model non-inferiority result.
 
 ## 0.8.1 → 0.8.2
 

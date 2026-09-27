@@ -12,9 +12,9 @@
 
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.8.2"><img alt="Release v0.8.2" src="https://img.shields.io/badge/release-v0.8.2-ef2b25"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.9.0"><img alt="Release v0.9.0" src="https://img.shields.io/badge/release-v0.9.0-ef2b25"></a>
   <a href="https://github.com/AronAxe/Token-Terminator/wiki"><img alt="GitHub Wiki" src="https://img.shields.io/badge/docs-GitHub%20Wiki-181717?logo=github"></a>
-  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/badge/crates.io-v0.8.2-orange?logo=rust"></a>
+  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/badge/crates.io-v0.9.0-orange?logo=rust"></a>
   <a href="https://docs.rs/token-terminator"><img alt="docs.rs" src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>
   <img alt="Python 3.10–3.13" src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB?logo=python&logoColor=white">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22c55e.svg"></a>
@@ -26,7 +26,7 @@ Token Terminator is an agent-runtime optimization layer. It removes token bloat 
 
 Documentation: see the [GitHub Wiki](https://github.com/AronAxe/Token-Terminator/wiki) for quick start, architecture, configuration, recovery, security, troubleshooting, migration, and release notes.
 
-The engine has seven cooperating reduction paths:
+The engine has eight cooperating reduction paths:
 
 1. transparent terminal-command rewriting through [RTK](https://github.com/rtk-ai/rtk);
 2. temporal delta compression for repeated terminal observations, after the command has actually executed;
@@ -34,7 +34,8 @@ The engine has seven cooperating reduction paths:
 4. content-addressed vaulting, duplicate collapse, evidence leases, compact recovery receipts, and deterministic layered recovery views;
 5. runtime SkillGraph + SkillGate routing that models each installed skill as its own internal graph, follows only source-backed inter-skill relationships, and keeps only prompt-relevant skill index entries while preserving on-demand discovery;
 6. final provider-request compilation, with model-aware token acceptance when an exact tokenizer is available and optional bounded working-state injection only when the complete request is still smaller;
-7. an **optional Jev semantic context gate** that runs only after the normal compiler and deterministic compactor, batch-scores remaining prior plain-text dialogue against the current user request, vaults exact originals before replacement, and is accepted only when the complete request is still smaller.
+7. an **optional Jev semantic context gate** that runs only after the normal compiler and deterministic compactor, batch-scores remaining prior plain-text dialogue against the current user request, vaults exact originals before replacement, and is accepted only when the complete request is still smaller;
+8. an **optional Context IR compiler** after Jev that compacts exact tables, typed dictionaries and reversible text spans, pins source evidence, and requires a smaller complete tokenizer-measured request.
 
 The reduction core is not intrinsically tied to Hermes: it operates on Python dictionaries, strings, stable request/session identifiers, and a local SQLite vault. The repository includes a turnkey Hermes plugin because Hermes exposes the required lifecycle hooks. Other agent runtimes need a small adapter that presents the same boundaries; they do not need a fork of the reduction engine.
 
@@ -147,9 +148,9 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.8.2 supersedes 0.8.1 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.9.0 supersedes 0.8.2 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
-This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.8.2` release tag.
+This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.9.0` release tag.
 
 ### 1. Install RTK when using terminal rewriting
 
@@ -171,7 +172,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.9.0'
 ```
 
 Windows example:
@@ -180,7 +181,7 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.9.0"
 ```
 
 `tiktoken` now ships with Token Terminator and is used automatically for supported OpenAI-family models, including common provider-qualified model IDs. Hugging Face `tokenizers` remains optional when pointing Token Terminator at a local `tokenizer.json`:
@@ -234,7 +235,7 @@ Install the same distribution in the environment that owns your agent loop:
 
 ```bash
 python -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.9.0'
 ```
 
 Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.
@@ -389,6 +390,11 @@ All plugin-owned files default under `<HERMES_HOME>/token-terminator/`.
 | `TOKEN_TERMINATOR_JEV_MAX_CANDIDATES` | `12` | Maximum candidate messages evaluated in one batched Jev call |
 | `TOKEN_TERMINATOR_JEV_MAX_CANDIDATE_CHARS` | `12000` | Oversized messages are skipped rather than sampled unsafely |
 | `TOKEN_TERMINATOR_JEV_MAX_STATE_CHARS` | `60000` | Bound on current-request plus candidate characters sent to Jev |
+| `TOKEN_TERMINATOR_CONTEXT_IR` | `false` | Also requires compiler-enabled `balanced` or `aggressive` mode |
+| `TOKEN_TERMINATOR_CONTEXT_IR_MIN_CHARS` | `600` | Lower candidate size bound |
+| `TOKEN_TERMINATOR_CONTEXT_IR_MAX_CHARS` | `64000` | Maximum `500000`; larger sources are skipped, not truncated |
+| `TOKEN_TERMINATOR_CONTEXT_IR_MAX_MESSAGES` | `8` | Maximum `64` candidate compilations per request |
+| `TOKEN_TERMINATOR_CONTEXT_IR_MAX_EVALUATIONS` | `24` | Maximum `192` complete-request format evaluations |
 | `TOKEN_TERMINATOR_PREVIEW_MARKER` | `false` | Prefix rewritten terminal commands with the RTK preview marker |
 | `TOKEN_TERMINATOR_CONTEXT_LIMIT_TOKENS` | `0` | Optional model context limit; `0` disables budget reporting |
 | `TOKEN_TERMINATOR_OUTPUT_RESERVE_TOKENS` | `4096` | Tokens reserved for model output when a context limit is configured |
@@ -405,6 +411,26 @@ Jev is **off by default**. To use it, set `TOKEN_TERMINATOR_JEV=true`. In the de
 Because Jev is an external service, enabling it creates an explicit data boundary: Token Terminator sends the **current user request plus selected prior plain-text user/assistant candidates and, when present, separately fenced Hermes `<memory-context>` background** either to OpenRouter's Decisions API (which routes Jev to TypeSafe) or directly to TypeSafe, depending on the selected provider. System/developer messages, tool messages/results, structured multimodal content, and the user's actual current-turn words as a removal candidate are excluded. Keep Jev disabled when that external transfer is not appropriate.
 
 The `TOKEN_TERMINATOR_EQ_*` variables optionally attach a labelled API-equivalent rate card. Actual OAuth/subscription marginal cost remains distinct. Legacy `RTK_HERMES_PLUS_*` aliases are accepted for one migration release, but the new namespace takes precedence.
+
+## Context IR: optional, off by default (v0.9.0)
+
+```text
+raw context → existing deterministic TT + SkillGate
+            → optional JEV selection/attention → optional Context IR
+            → complete-request tokenizer gate → existing provider client
+```
+
+Enable with `TOKEN_TERMINATOR_CONTEXT_IR=true` in a compiler-enabled mode. Keep your existing optional `TOKEN_TERMINATOR_JEV=true` and selected OpenRouter or direct TypeSafe credential. **There is no IR API, model, or new key.** Without Jev, IR is a local lossless-format optimizer. With Jev configured, the same batch adds salience alongside relevance/guard; private source-hash-bound scores prioritize candidates. Missing scores skip candidates; Jev failure leaves the pre-IR request alone.
+
+IR v1 recognizes homogeneous flat JSON record arrays (schema once, positional rows, optional typed string dictionaries) and reversible repeated-line spans/templates. It does not turn arbitrary prose into guessed relations or drop additional facts. Unsupported prose stays as it is. Row order, scalar types, numeric lexemes and exact source evidence are preserved; original formatting remains recoverable.
+
+System/developer/tool authority and current user wording are not rewritten. With IR on, Jev also leaves the entire current user message, including memory fences, untouched. Conservative code/quote/value/constraint guards veto prose recoding; these are not a complete prompt-injection detector.
+
+Every emitted `TTIR/1` block has pinned, hash-verified evidence and recovery through the existing `artifact_get` action with `offset`/`limit`. No recovery tool, unknown tokenizer, failed storage, unsafe source or no measured improvement means no IR. The raw source is the input to the IR stage; earlier TT recovery references remain unchanged.
+
+**Measurement boundary:** the gate counts complete canonical provider-request JSON using the selected actual target tokenizer, including legends, real source IDs, roles, tools and other request fields. It requires strict token and character savings relative to TT + Jev immediately before IR. This is not a claim about hidden provider framing or billed prompt tokens. IR has no character-only fallback.
+
+See [Context IR design and configuration](docs/CONTEXT_IR.md) and the [three-arm benchmark](benchmarks/context_ir/README.md). The benchmark uses synthetic scores and independent visible-data golden answers; it is not live Jev accuracy or LLM non-inferiority evidence. A paid live evaluator is opt-in.
 
 ## Metrics and experiments
 
