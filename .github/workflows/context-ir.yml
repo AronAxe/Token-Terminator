@@ -1,0 +1,29 @@
+name: Context IR verification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  context-ir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -e '.[dev]'
+      - name: Run offline three-arm regression benchmark
+        run: python scripts/benchmark_context_ir.py --repeats 3 --output context-ir-results.json
+      - name: Retain measured results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: context-ir-results
+          path: context-ir-results.json
+          retention-days: 14

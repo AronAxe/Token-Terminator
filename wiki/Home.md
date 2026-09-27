@@ -6,7 +6,7 @@ Token Terminator is an agent-runtime optimization layer that reduces provider-vi
 
 ## Start here
 
-- [Quick Start](Quick-Start) — install v0.8.2 and verify it is active.
+- [Quick Start](Quick-Start) — install v0.9.0 and verify it is active.
 - [Architecture](Architecture) — understand the host/adapter/core boundary.
 - [Modes and Reduction Pipeline](Modes-and-Reduction-Pipeline) — see what each mode enables.
 - [Configuration](Configuration) — all important environment controls.
@@ -25,6 +25,10 @@ A transformation is accepted only when it is safer than passing the original thr
 5. any unsupported or unsafe condition fails open to the original request/result.
 
 Temporal terminal reduction adds one more rule: **the command still executes every time**. Only the representation shown to the model may become a smaller delta.
+
+## What v0.9.0 adds
+
+v0.9.0 adds the optional [Context IR](Context-IR) compiler after deterministic TT and Jev. It is OFF by default, compacts existing records or exact repeated spans without inventing relations, and requires strict complete-request tokenizer savings plus pinned source evidence. The three-arm offline benchmark checks visible-data answers and recovery, not live-model non-inferiority. See [Release 0.9.0](Release-0.9.0).
 
 ## What v0.8.2 changes
 
@@ -58,7 +62,7 @@ v0.5.1 is the post-0.5.0 hardening release. It adds bounded vault lifecycle mana
 
 ## Current release
 
-- Python package/release: **v0.8.2**
+- Python package/release: **v0.9.0**
 - Python support: **3.10–3.13**
-- Rust interoperability crate: **token-terminator 0.8.2**
+- Rust interoperability crate: **token-terminator 0.9.0**
 - First-party runtime adapter: **Hermes Agent**

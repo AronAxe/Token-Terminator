@@ -91,6 +91,31 @@ A candidate prior message is compacted only when both Jev's relevance and guard 
 
 The API key is read from environment only and is never returned by `/token-terminator status`. See [Jev Semantic Context Gate](Jev-Semantic-Context-Gate).
 
+## Context IR
+
+```bash
+export TOKEN_TERMINATOR_CONTEXT_IR=true
+# Optional; keep using ONE existing Jev route/key:
+export TOKEN_TERMINATOR_JEV=true
+# TOKEN_TERMINATOR_JEV_PROVIDER=auto|openrouter|typesafe
+```
+
+No new API key is needed. IR itself makes no network calls. With Jev disabled or unconfigured, IR still performs local guarded format optimization. With Jev enabled, IR requires valid scores for each candidate, reusing the same batched provider call. OpenRouter uses `OPENROUTER_API_KEY`; direct TypeSafe uses `TYPESAFE_API_KEY`. Provider/model selection is unchanged.
+
+| Setting | Default | Hard bound / behavior |
+|---|---:|---|
+| `TOKEN_TERMINATOR_CONTEXT_IR` | `false` | Also requires compiler-enabled `balanced` or `aggressive` mode |
+| `TOKEN_TERMINATOR_CONTEXT_IR_MIN_CHARS` | `600` | Lower candidate size bound |
+| `TOKEN_TERMINATOR_CONTEXT_IR_MAX_CHARS` | `64000` | Maximum `500000`; larger sources are skipped, not truncated |
+| `TOKEN_TERMINATOR_CONTEXT_IR_MAX_MESSAGES` | `8` | Maximum `64` candidate compilations per request |
+| `TOKEN_TERMINATOR_CONTEXT_IR_MAX_EVALUATIONS` | `24` | Maximum `192` complete-request format evaluations |
+
+Direct `Config(...)` construction rejects invalid limits; environment loading clamps limits safely. Sources are additionally bounded to 1,024 records/lines and 32 scalar fields per record. Existing Jev candidate/state limits still apply. With Jev enabled, a source too large to score is not silently given a guessed score; IR skips it.
+
+The existing `TOKEN_TERMINATOR_TOKENIZER_JSON` and `TOKEN_TERMINATOR_TIKTOKEN_ENCODING` settings remain available. Use the actual target tokenizer. An unrecognized model without a configured tokenizer, disabled token budget, or tokenizer failure leaves the request unchanged at the IR stage. There is **no character-only IR fallback**.
+
+See [Context IR](Context-IR) for formats, provenance and the strict whole-request acceptance gate.
+
 ## Token budgeting
 
 | Variable | Default |

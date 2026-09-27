@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0 - 2026-09-28
+
+- Added experimental **Context IR**, OFF by default: a local compiler after deterministic TT and optional Jev, without replacing native/temporal reduction, SkillGate, compaction, vaults or recovery.
+- Added schema-once positional records, typed repeated-string dictionaries and reversible exact-line templates/spans. No invented prose relations, lossy summarizer, new graph architecture or extra API key.
+- Reused one Jev batch for relevance/guard/salience; private scores bind to exact source hashes and positions. Missing/malformed probabilities skip candidates; high guard/salience retains explicit values. OpenRouter/direct TypeSafe routing is unchanged.
+- Added bounded complete-request format search. IR requires strict actual-tokenizer and character savings including legends, tool schemas and real vault IDs; no tokenizer means no IR. Counts cover canonical request JSON, not hidden provider billing framing.
+- Protected current user wording, system/developer/tool authority, code/quotations/values and constraints. With IR enabled, the entire current user message, including memory fences, stays untouched.
+- Added atomic source insertion/exposure pinning and source-hash/position/IR validation. Normal exact-recovery reads reject corrupted content; schema version 2 stays rollback-compatible.
+- Added content-free IR/Jev timing and provider-reported cost metrics, including Jev calls that do not remove context.
+- Added adversarial/regression tests and a reproducible three-arm benchmark with independent visible-data golden answers and exact recovery. Offline results use fixture scores; live Jev economics and LLM quality remain opt-in and unclaimed.
+- Updated README, configuration, migration, security, wiki sources and release metadata.
+
 ## 0.8.2 - 2026-09-26
 
 - Corrected Jev provider routing: Token Terminator now supports both OpenRouter's Decisions API and direct TypeSafe System One access.

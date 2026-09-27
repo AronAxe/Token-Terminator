@@ -155,6 +155,13 @@ class Config:
     jev_max_candidate_chars: int = 12_000
     jev_max_state_chars: int = 60_000
 
+    # Context IR is local, additive, and requires a measured target tokenizer.
+    context_ir_enabled: bool = False
+    context_ir_min_chars: int = 600
+    context_ir_max_chars: int = 64_000
+    context_ir_max_messages: int = 8
+    context_ir_max_evaluations: int = 24
+
     # Disabled by default. This is a bounded working-state selector, not the
     # principal's broader graph-reasoning architecture.
     graph_context_chars: int = 0
@@ -187,9 +194,23 @@ class Config:
             "jev_max_candidates",
             "jev_max_candidate_chars",
             "jev_max_state_chars",
+            "context_ir_min_chars",
+            "context_ir_max_chars",
+            "context_ir_max_messages",
+            "context_ir_max_evaluations",
         ):
             if getattr(self, name) < 1:
                 raise ValueError(f"{name} must be positive")
+        if self.context_ir_min_chars > self.context_ir_max_chars:
+            raise ValueError(
+                "context_ir_min_chars must not exceed context_ir_max_chars"
+            )
+        if (
+            self.context_ir_max_chars > 500_000
+            or self.context_ir_max_messages > 64
+            or self.context_ir_max_evaluations > 192
+        ):
+            raise ValueError("Context IR search bounds exceeded")
         if self.min_artifact_chars > self.max_artifact_chars:
             raise ValueError("min_artifact_chars must not exceed max_artifact_chars")
         if not 0.0 <= self.jev_relevance_threshold <= 1.0:
@@ -330,7 +351,22 @@ def load_config() -> Config:
     if vault_low_water_pct >= vault_high_water_pct:
         vault_low_water_pct = max(0, vault_high_water_pct - 10)
 
+    ir_max_chars = _integer(
+        "TOKEN_TERMINATOR_CONTEXT_IR_MAX_CHARS", 64_000, maximum=500_000
+    )
+    ir_min_chars = min(
+        _integer("TOKEN_TERMINATOR_CONTEXT_IR_MIN_CHARS", 600), ir_max_chars
+    )
     config = Config(
+        context_ir_enabled=_boolean("TOKEN_TERMINATOR_CONTEXT_IR", False),
+        context_ir_min_chars=ir_min_chars,
+        context_ir_max_chars=ir_max_chars,
+        context_ir_max_messages=_integer(
+            "TOKEN_TERMINATOR_CONTEXT_IR_MAX_MESSAGES", 8, maximum=64
+        ),
+        context_ir_max_evaluations=_integer(
+            "TOKEN_TERMINATOR_CONTEXT_IR_MAX_EVALUATIONS", 24, maximum=192
+        ),
         mode=mode,
         enabled=_boolean("TOKEN_TERMINATOR_ENABLED", True),
         timeout_ms=_integer(
