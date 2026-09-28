@@ -14,6 +14,7 @@ include scripts/benchmark_context_ir.py
 recursive-include benchmarks/context_ir *.md *.json
 
 include scripts/smoke_hermes_context_engine.py
+include scripts/hermes_call_scope_checks.py
 include scripts/benchmark_context_engine.py
 recursive-include benchmarks/context_engine *.md *.json
 recursive-include examples *.yaml

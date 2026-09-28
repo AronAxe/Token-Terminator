@@ -144,14 +144,21 @@ def main() -> int:
         assert (
             selected == request["messages"]
         )  # deferred, not a partial-request token gate
-        results = manager.invoke_middleware(
-            "llm_request",
-            request=request,
-            session_id="smoke",
-            api_request_id="smoke-engine",
-        )
-        assert len(results) == 1 and results[0]["request"] != request
-        final = results[0]["request"]
+        from hermes_cli.middleware import apply_llm_request_middleware
+
+        with patch("hermes_cli.plugins._delivery_manager", return_value=manager):
+            dispatched = apply_llm_request_middleware(
+                request,
+                session_id="smoke",
+                turn_id="smoke-turn",
+                api_request_id="smoke-engine",
+                api_call_count=1,
+                api_mode="chat_completions",
+                model="gpt-4o",
+                provider="openai",
+            )
+        assert dispatched.changed and dispatched.payload != request
+        final = dispatched.payload
         assert request == before
         assert final["messages"][-1] == before["messages"][-1]
         budget = TokenBudgetAdapter()
@@ -173,6 +180,9 @@ def main() -> int:
         )
         assert json.loads(recovered["content"]) == before["messages"][1]
         assert 1 <= len(batches) <= 2
+        from hermes_call_scope_checks import exercise_call_scope
+
+        call_scope = exercise_call_scope(manager, agent, request, engine)
         engine.on_turn_complete(history)
         clone = engine.clone_for_agent()
         assert clone is not engine and clone.session_id == ""
@@ -180,6 +190,7 @@ def main() -> int:
         print(
             json.dumps(
                 {
+                    "call_scope": call_scope,
                     "engine_discovered": True,
                     "cli_web_shared_options": menu_options,
                     "real_context_engine_abc": True,

@@ -32,6 +32,16 @@ The dashboard's `hermes_cli/web_server_dashboard.py::_merged_plugins_hub` uses
 that same context-option discovery helper. The backend option list is tested;
 no browser-click/end-to-end visual claim is made.
 
+## Call-scope safety
+
+The final request now requires conversational authorization before using a staged
+engine binding. Native auxiliary/delegated roles, service calls and TT-internal
+JEV/counting callbacks bypass without altering that binding. Generic adapters
+supply `request_purpose="conversation"`; the native Hermes main hook supplies
+its existing contract automatically. JEV as the final chat model preserves full
+supplied history by default, except measured reversible IR and minimally necessary
+budget-pressure selection. See [scope audit, tests and hard-limit limits](CALL_SCOPE_REVIEW.md).
+
 ## Install this review build and select it
 
 Use the Python interpreter of the Hermes environment, not an unrelated system

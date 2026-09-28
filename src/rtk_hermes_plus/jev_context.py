@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.request import Request, urlopen
 
+from .call_scope import internal_call
 from .config import Config
 from .context_safety import history_items, plain_message, protected_prose
 from .storage import TokenTerminatorStore
@@ -300,6 +301,7 @@ class JevSemanticReducer:
             "questions": questions,
         }
 
+    @internal_call()
     def _call(self, payload: dict[str, Any]) -> dict[str, Any]:
         if self.transport is not None:
             return self.transport(payload)

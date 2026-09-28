@@ -88,7 +88,10 @@ def run(runtime, engine, req, *, history=None, session="session"):
     )
     assert req == original
     decision = runtime.llm_request_middleware(
-        request=req, session_id=session, api_request_id="test-request"
+        request_purpose="conversation",
+        request=req,
+        session_id=session,
+        api_request_id="test-request",
     )
     assert req == original
     return decision["request"] if decision else req
@@ -393,13 +396,23 @@ def test_session_isolation_and_stale_binding(tmp_path):
     with pytest.raises(HistoryEvidenceError):
         engine._history().read("other", aid)
     engine.select_context(req["messages"])
-    assert runtime.llm_request_middleware(request=req, session_id="other") is None
+    assert (
+        runtime.llm_request_middleware(
+            request_purpose="conversation", request=req, session_id="other"
+        )
+        is None
+    )
     clone = engine.clone_for_agent()
     assert clone.session_id == "" and clone._catalog is None
     assert clone._lock is not engine._lock
     engine.select_context(req["messages"])
     engine.generation += 1
-    assert runtime.llm_request_middleware(request=req, session_id="session") is None
+    assert (
+        runtime.llm_request_middleware(
+            request_purpose="conversation", request=req, session_id="session"
+        )
+        is None
+    )
     engine.on_session_reset()
     assert engine.session_id == ""
     assert engine._history().read("session", aid) == req["messages"][1]
@@ -441,7 +454,9 @@ def test_existing_middleware_remains_independent(tmp_path):
             {"role": "user", "content": "Discuss robot calibration."},
         ],
     }
-    decision = runtime.llm_request_middleware(request=req, session_id="middleware-only")
+    decision = runtime.llm_request_middleware(
+        request_purpose="conversation", request=req, session_id="middleware-only"
+    )
     assert decision and "ContextEngine" not in decision["reason"]
     assert decision["request"]["messages"][0]["content"].startswith(
         "[Token Terminator artifact"
@@ -599,8 +614,12 @@ def test_provider_retry_keeps_engine_ownership_without_reselection(tmp_path):
     runtime, engine = setup(tmp_path)
     req = request(engine)
     engine.select_context(req["messages"])
-    first = runtime.llm_request_middleware(request=req, session_id="session")
-    second = runtime.llm_request_middleware(request=req, session_id="session")
+    first = runtime.llm_request_middleware(
+        request_purpose="conversation", request=req, session_id="session"
+    )
+    second = runtime.llm_request_middleware(
+        request_purpose="conversation", request=req, session_id="session"
+    )
     assert first and second
     assert "ContextEngine" in first["reason"] and "ContextEngine" in second["reason"]
     assert engine.get_status()["context_engine"]["jev_calls"] == 0
@@ -620,11 +639,11 @@ def test_async_facade_propagates_engine_binding(tmp_path):
     async def evaluate():
         engine.select_context(req["messages"])
         decision = await AsyncRuntime(runtime).llm_request_middleware(
-            request=req, session_id="session"
+            request_purpose="conversation", request=req, session_id="session"
         )
         assert decision and "ContextEngine" in decision["reason"]
         retry = await AsyncRuntime(runtime).llm_request_middleware(
-            request=req, session_id="session"
+            request_purpose="conversation", request=req, session_id="session"
         )
         assert retry and "ContextEngine" in retry["reason"]
         engine.on_turn_complete(req["messages"])

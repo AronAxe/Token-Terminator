@@ -9,6 +9,7 @@ import time
 import uuid
 from typing import Any
 
+from .call_scope import internal_operation
 from .config import Config, load_config
 from .context_history import HistoryCatalog, HistoryEvidenceError, encode, text_slot
 from .engine_bridge import bind, clear
@@ -68,6 +69,8 @@ class HistoryContextEngine:
         return self._catalog
 
     def _capture(self, messages: list[dict]) -> None:
+        if internal_operation():
+            return
         if not self.config.compiler_enabled:
             self._capture_failed = True
             self._last_status = {"state": "compiler_disabled"}
@@ -95,6 +98,8 @@ class HistoryContextEngine:
             }
 
     def on_session_end(self, session_id: str, messages: list[dict]) -> None:
+        if internal_operation():
+            return
         with self._lock:
             if session_id == self.session_id and self.session_id:
                 self._capture(messages)
@@ -167,6 +172,8 @@ class HistoryContextEngine:
         incoming_message=None,
         budget_tokens=0,
     ):
+        if internal_operation():
+            return
         with self._lock:
             self.generation += 1
             clear(self)
@@ -185,6 +192,8 @@ class HistoryContextEngine:
             return
 
     def on_turn_complete(self, messages: list[dict], usage=None, **kwargs) -> None:
+        if internal_operation():
+            return
         with self._lock:
             self._capture(messages)
             clear(self)
@@ -247,6 +256,19 @@ class HistoryContextEngine:
                 if raw.tokens is None:
                     status["state"] = "exact_tokenizer_unavailable"
                     return None
+                from .call_scope import conservative_chat_target
+
+                if conservative_chat_target(original, kwargs):
+                    from .chat_target import preserve_chat_request
+
+                    decision = preserve_chat_request(
+                        runtime, original, engine=self, **kwargs
+                    )
+                    status.update(runtime._last_chat_target)
+                    if decision is not None:
+                        self.compression_count += 1
+                        decision["metrics"]["context_engine"] = status
+                    return decision
                 catalog = self._history()
                 scorer = JevSemanticReducer(
                     catalog.store,

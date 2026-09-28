@@ -39,9 +39,34 @@ The engine has eight cooperating reduction paths:
 
 The reduction core is not intrinsically tied to Hermes: it operates on Python dictionaries, strings, stable request/session identifiers, and a local SQLite vault. The repository includes a turnkey Hermes plugin because Hermes exposes the required lifecycle hooks. Other agent runtimes need a small adapter that presents the same boundaries; they do not need a fork of the reduction engine.
 
-Async agent frameworks can use the included `AsyncRuntime` façade. It keeps provider loops responsive by moving compiler, vault, and telemetry work to an executor, propagates task or token cancellation, and uses native cancellable subprocess paths for RTK command rewriting and aggressive reads. The synchronous `Runtime` API remains unchanged.
+Async agent frameworks can use the included `AsyncRuntime` façade. It keeps provider loops responsive by moving compiler, vault, and telemetry work to an executor, propagates task or token cancellation, and uses native cancellable subprocess paths for RTK command rewriting and aggressive reads. The same `Runtime` facade is used; generic final-request adapters must explicitly identify conversational calls as shown below.
 
 In default middleware mode it does **not** replace the host context engine. In the explicitly selected v0.10.0 ContextEngine mode it replaces that context engine, but not the memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, token measurement, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
+
+## Call scope and JEV chat targets (v0.10.0 candidate)
+
+TT optimizes **authorized conversational generation**, not every model-shaped
+call. Native Hermes auxiliary clients, embeddings and memory reranking already
+use separate paths. The request boundary now also rejects internal/helper,
+classifier, rerank, embedding and tokenizer work accidentally sent through generic
+middleware. A pending engine binding alone is not permission to reduce a call.
+TT's own JEV transports and internal callbacks cannot recursively enter the
+conversational reducer or overwrite its staged history.
+
+When JEV is the **actual final chat model**, TT preserves supplied history by
+default: no automatic semantic pruning, age-collapse or SkillGate omission.
+Measured, reversible Context IR remains available. Only a known context-budget
+excess permits bounded, source-preserving JEV selection, stopping once it fits.
+Protected/unscored history is never force-cut; unresolved overflow is reported
+and left to host/provider enforcement. Unknown tokenizers preserve originals.
+
+Selection uses host purpose/role signals before target identity; exact TypeSafe
+model IDs are only a fallback for identifying the final model, not the call's
+purpose. Custom aliases can set `TOKEN_TERMINATOR_CHAT_TARGET_POLICY=preserve`
+(default `auto`). Existing JEV provider/API keys stay unchanged. Native Hermes
+main turns need no new scope configuration; generic adapters must pass
+`request_purpose="conversation"` **only** for actual generation.
+See [call-scope review and limits](docs/CALL_SCOPE_REVIEW.md).
 
 ## v0.10.0 review build: selectable Hermes ContextEngine
 
@@ -325,6 +350,7 @@ def reduce_provider_request(request, *, session_id, request_id):
     try:
         decision = terminator.llm_request_middleware(
             request=request,
+            request_purpose="conversation",  # only the host's main generation route
             session_id=session_id,
             request_id=request_id,
         )
@@ -333,7 +359,7 @@ def reduce_provider_request(request, *, session_id, request_id):
     return decision["request"] if decision is not None else request
 ```
 
-An adapter must preserve four contracts: stable request/session identity, original-object immutability, pass-through on `None` or error, and model access to `artifact_get`. The `Runtime` surface is usable today; framework-specific one-command adapters beyond Hermes are not yet shipped.
+An adapter must authorize only its actual conversational generation route; never label helper, embedding, ranking or counting work as conversation. Unscoped generic requests now bypass unchanged. It must also preserve four contracts: stable request/session identity, original-object immutability, pass-through on `None` or error, and model access to `artifact_get`. The `Runtime` surface is usable today; framework-specific one-command adapters beyond Hermes are not yet shipped.
 
 ### Async runtimes, cancellation, and concurrency
 
@@ -356,6 +382,7 @@ reduced = await terminator.transform_tool_result(
 
 compiled = await terminator.llm_request_middleware(
     request=provider_request,
+    request_purpose="conversation",
     session_id=session_id,
     request_id=request_id,
     cancellation=cancellation,

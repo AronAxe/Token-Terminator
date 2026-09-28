@@ -47,6 +47,7 @@ def test_async_runtime_compiles_without_mutating_caller_request(tmp_path):
 
     result = asyncio.run(
         async_runtime.llm_request_middleware(
+            request_purpose="conversation",
             request=request,
             session_id="session-1",
             request_id="request-1",

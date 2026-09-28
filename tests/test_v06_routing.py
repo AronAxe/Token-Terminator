@@ -101,6 +101,7 @@ def test_runtime_returns_skillgate_only_reduction(tmp_path):
     original = copy.deepcopy(request)
 
     decision = runtime.llm_request_middleware(
+        request_purpose="conversation",
         request=request,
         session_id="s1",
         api_request_id="r1",
@@ -121,6 +122,7 @@ def test_runtime_persists_original_to_final_attribution(tmp_path):
     raw_tokens = runtime.token_budget.measure_request(request).tokens
 
     decision = runtime.llm_request_middleware(
+        request_purpose="conversation",
         request=request,
         session_id="s-attribution",
         api_request_id="r-attribution",
@@ -168,6 +170,7 @@ def test_non_compiler_mode_does_not_route_provider_request(tmp_path):
     request = _request()
 
     decision = runtime.llm_request_middleware(
+        request_purpose="conversation",
         request=request,
         session_id="s-native",
         api_request_id="r-native",

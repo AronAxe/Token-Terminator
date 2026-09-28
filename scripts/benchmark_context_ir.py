@@ -395,6 +395,7 @@ def run(
                             )
                         started = time.perf_counter()
                         decision = runtime.llm_request_middleware(
+                            request_purpose="conversation",
                             request=request,
                             session_id="benchmark",
                             request_id=f"{arm}-{repeat}",

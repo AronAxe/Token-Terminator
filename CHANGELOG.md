@@ -2,6 +2,11 @@
 
 ## 0.10.0 - Unreleased (prepared for review)
 
+- Hardened call scope before engine/middleware dispatch: known main conversation only; explicit auxiliary/embedding/rerank/classifier/tokenizer/unknown purposes and service envelopes bypass without reduction. Native auxiliary/SDK isolation stays unchanged. Generic adapters now pass `request_purpose="conversation"` only for real generation; Hermes main-hook routing is automatic.
+- Added execution-local re-entry protection for TT work and both internal JEV transports, including async workers and lifecycle capture/bindings. Native Hermes auxiliary/delegated roles veto inherited main metadata.
+- Added a conservative JEV-as-final-chat-target policy, distinct from internal JEV: preserve supplied history by default, permit measured reversible IR, and allow only minimal guarded exact-vault omission under a known context-budget excess. Unknown tokenizers, scoring failures and unfit protected history preserve originals; unresolved limits remain host/provider-enforced.
+- Added scope/policy regressions and native main-builder/auxiliary/embedding/Mem0 rerank checks with fake endpoints, plus old/current pinned-Hermes CI. Ordinary non-JEV algorithms and benchmark token totals are unchanged; no live JEV tokenizer/quality/cost claim or paid tests.
+
 - Added a supported, explicitly selectable Hermes ContextEngine adapter and safe profile installer; no Hermes core patch or automatic activation.
 - Preserved ordinary middleware mode while letting TT own full available conversation history instead of a preceding LCM/built-in summarizer.
 - Added exact pinned message snapshots, a session-scoped source catalog, bounded lexical rediscovery and paginated history recovery. No invented relations or generative summaries.

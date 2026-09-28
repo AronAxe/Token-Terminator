@@ -235,6 +235,7 @@ def run(models, repeats):
                                 conversation_messages=request["messages"],
                             )
                         decision = runtime.llm_request_middleware(
+                            request_purpose="conversation",
                             request=request,
                             session_id="benchmark",
                             api_request_id=f"{arm}-{repeat}",
@@ -312,6 +313,7 @@ def run(models, repeats):
                                 conversation_messages=request["messages"],
                             )
                             runtime.llm_request_middleware(
+                                request_purpose="conversation",
                                 request=request,
                                 session_id="benchmark",
                                 api_request_id="retry",

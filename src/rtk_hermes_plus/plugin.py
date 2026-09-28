@@ -795,7 +795,7 @@ def register(ctx) -> None:
         and recovery_tool_registered
         and callable(register_middleware)
     ):
-        register_middleware("llm_request", runtime.llm_request_middleware)
+        register_middleware("llm_request", runtime.hermes_llm_request_middleware)
         ctx.register_hook("post_tool_call", runtime.post_tool_call)
 
     if runtime.config.native_enabled and recovery_tool_registered:

@@ -24,7 +24,7 @@ On POSIX, Token Terminator enforces `0700` on private parent directories and `06
 - The complete model-visible payload, including receipts and optional working state, must be strictly smaller.
 - Request compilation operates on deep copies and fails open if a request cannot be copied safely.
 - Malformed requests, unavailable storage, migration failures, vault-capacity failures, missing host APIs, and non-smaller output leave normal Hermes behavior unchanged.
-- Token Terminator does not register a Hermes context engine and does not modify LCM state.
+- Token Terminator registers a ContextEngine only through explicit installation/selection; it does not modify LCM state.
 - Receipt metadata is bounded and excludes raw tool arguments and content.
 - Artifact reads, searches, graph operations, identifiers, metadata, and replay batches are bounded in the domain layer.
 
@@ -114,3 +114,15 @@ unknown tokenizers and storage/measurement failures do not authorize compaction.
 The final invariant covers the complete request at TT's middleware output, not later
 third-party rewrites, hidden provider framing or pre-middleware host hard limits.
 The user transcript remains unchanged even when the provider cannot fit it.
+
+
+## Call-purpose boundary (v0.10.0 review)
+
+The public request entry point checks purpose before any engine/semantic/tokenizer
+work. Internal service envelopes and negative/unknown host role signals bypass;
+TT's own work has an execution-local re-entry guard. Prompt metadata cannot opt a
+request in. Native Hermes auxiliary clients already bypass this hook and remain
+unchanged. This is routing defense, not a sandbox against arbitrary trusted
+plugins forging all main-hook metadata. See [call-scope review](docs/CALL_SCOPE_REVIEW.md)
+for the exact authorization contract, executor propagation and unresolved context
+limit handling. No new external service or credential boundary is introduced.

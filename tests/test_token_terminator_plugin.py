@@ -84,10 +84,16 @@ def test_request_middleware_returns_only_a_strictly_smaller_copy(tmp_path):
     original = copy.deepcopy(request)
 
     first = runtime.llm_request_middleware(
-        request=request, session_id="s1", api_request_id="r1"
+        request_purpose="conversation",
+        request=request,
+        session_id="s1",
+        api_request_id="r1",
     )
     second = runtime.llm_request_middleware(
-        request=request, session_id="s1", api_request_id="r2"
+        request_purpose="conversation",
+        request=request,
+        session_id="s1",
+        api_request_id="r2",
     )
 
     assert first is None
@@ -136,10 +142,16 @@ def test_responses_payload_is_provider_safe_and_caller_immutable(tmp_path):
     original = copy.deepcopy(request)
 
     first = runtime.llm_request_middleware(
-        request=request, session_id="responses", api_request_id="r1"
+        request_purpose="conversation",
+        request=request,
+        session_id="responses",
+        api_request_id="r1",
     )
     second = runtime.llm_request_middleware(
-        request=request, session_id="responses", api_request_id="r2"
+        request_purpose="conversation",
+        request=request,
+        session_id="responses",
+        api_request_id="r2",
     )
 
     assert first is not None or second is not None
@@ -173,7 +185,10 @@ def test_compactor_failure_is_counted_and_keeps_the_usable_request(
 
     monkeypatch.setattr(runtime.context_compactor, "compact", fail_compaction)
     result = runtime.llm_request_middleware(
-        request=request, session_id="failure", api_request_id="r1"
+        request_purpose="conversation",
+        request=request,
+        session_id="failure",
+        api_request_id="r1",
     )
 
     assert result is None
@@ -189,7 +204,9 @@ def test_invalid_request_fails_open_without_creating_telemetry(tmp_path):
     runtime = Runtime(config(tmp_path))
 
     result = runtime.llm_request_middleware(
-        request="not-a-provider-request", session_id="failure"
+        request_purpose="conversation",
+        request="not-a-provider-request",
+        session_id="failure",
     )
 
     assert result is None
@@ -223,7 +240,10 @@ def test_off_mode_captures_nothing_and_changes_nothing(tmp_path):
 
     runtime.post_tool_call(tool_name="terminal", result="private evidence", args={})
 
-    assert runtime.llm_request_middleware(request=request) is None
+    assert (
+        runtime.llm_request_middleware(request_purpose="conversation", request=request)
+        is None
+    )
     assert (
         runtime.transform_tool_result(
             tool_name="search_files", args={}, result="match\n" * 3_000

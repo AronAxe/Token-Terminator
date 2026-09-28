@@ -1,5 +1,17 @@
 # v0.10.0 candidate migration
 
+## v0.10.0 call-scope safety update (review only)
+
+Native Hermes main turns are authorized by the registered adapter; installation
+and engine selection are unchanged. Generic Python/async adapters must now pass
+out-of-band `request_purpose="conversation"` for their actual generation route.
+Bare unscoped calls and explicit internal/service calls return `None` unchanged.
+Do not propagate conversation authorization into embedding/rerank/helper work.
+JEV final chat targets preserve history by default; custom aliases can set
+`TOKEN_TERMINATOR_CHAT_TARGET_POLICY=preserve`. See
+[the scoped behavior and hard-limit boundary](docs/CALL_SCOPE_REVIEW.md).
+
+
 Token Terminator 0.10.0 is prepared for review; v0.9.0 remains released and unchanged.
 Do not use the future `@v0.10.0` tag until publication is approved. Install the review
 branch and adapter using [the ContextEngine guide](docs/CONTEXT_ENGINE.md).
