@@ -1,0 +1,36 @@
+name: Learned policy verification
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  learning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install optional training dependencies
+        run: python -m pip install -e '.[dev,learning]'
+      - name: Lint and full suite including real CatBoost fitting
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+          python -m pytest --junitxml=learned-policy-tests.xml
+      - name: Bounded synthetic learning and engine regression
+        run: python scripts/benchmark_learned_policy.py --repeats 3 --output learned-policy-results.json
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: learned-policy-verification
+          path: |
+            learned-policy-tests.xml
+            learned-policy-results.json
+          retention-days: 14

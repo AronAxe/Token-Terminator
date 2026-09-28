@@ -1,4 +1,4 @@
-# Token Terminator ContextEngine (v0.10.0 candidate)
+# Token Terminator ContextEngine (v0.11.0 candidate)
 
 **Prepared for review; not released.** TT can be explicitly selected as the Hermes
 ContextEngine without a Hermes core patch. Ordinary middleware mode is unchanged.
@@ -42,3 +42,15 @@ and `status`. Existing artifact/IR recovery remains available. See the
 [benchmark](https://github.com/AronAxe/Token-Terminator/blob/feat/hermes-context-engine-v0.10.0/benchmarks/context_engine/README.md):
 five fifty-turn tasks, two tokenizers, four executable arms, 120 evaluations. LCM
 + TT was not reproduced; real JEV/model quality and service cost remain unmeasured.
+
+## Optional learned omission-risk layer
+
+The v0.11.0 candidate adds [an external learned policy](Learned-Policy) to this
+engine. Bounded offline or explicitly consented live feature discovery uses JEV
+probabilities and System-2 question proposals to train CatBoost omission-harm and
+recovery-cost predictors. JEV's weights remain unchanged. Deployment is off by
+default and requires an approved local artifact plus SHA-256; shadow mode audits
+without changing the fixed-gate request, and active mode can veto eligible omissions.
+It cannot overrule protected context, scope checks, exact recovery or the final
+tokenizer gate. The branch name still contains v0.10.0 to preserve PR #19; that
+unreleased milestone is included in the v0.11.0 candidate.

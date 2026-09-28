@@ -13,6 +13,8 @@
 - [Jev Semantic Context Gate](Jev-Semantic-Context-Gate)
 - [Context IR](Context-IR)
 - [Async & Adapter Integration](Async-and-Adapter-Integration)
+- [Context Engine (v0.11.0 candidate)](Context-Engine)
+- [Learned omission-risk policy](Learned-Policy)
 
 **Operations**
 - [Metrics & Experiments](Metrics-and-Experiments)
@@ -23,6 +25,7 @@
 **Development**
 - [Rust Interoperability](Rust-Interoperability)
 - [Developer Guide](Developer-Guide)
+- [v0.11.0 candidate](Release-0.11.0)
 - [Release 0.9.0](Release-0.9.0)
 - [Release 0.8.2](Release-0.8.2)
 - [Release 0.8.1](Release-0.8.1)
@@ -31,6 +34,3 @@
 - [Release 0.6.0](Release-0.6.0)
 - [Release 0.5.2](Release-0.5.2)
 - [Release 0.5.1](Release-0.5.1)
-
-- [Context Engine (v0.10.0 candidate)](Context-Engine)
-- [v0.10.0 candidate](Release-0.10.0)
