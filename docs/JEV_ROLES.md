@@ -24,6 +24,47 @@ generation modes or a separate System Two endpoint. JEV can help control an
 agent without generating that agent's prose. TypeSafe explicitly documents that
 JEV is not a drop-in chat/code-generation LLM.
 
+## Learning outside JEV is different from a fixed gate
+
+TypeSafe's AI primer distinguishes post-training objectives: RLHF targets human
+preferences, RLVR verifiable rewards, and RLCD calibrated decisions. These are
+training objectives, not three mutually exclusive application roles.
+
+Its autoresearch cookbook holds JEV fixed while an LLM proposes and revises
+questions. JEV evaluates each row with the round's questions batched together.
+Noul probabilities and Score-distribution statistics become CatBoost features;
+validation errors guide the next proposal. The question set and downstream
+predictor change, not JEV's weights. Cross-validation uses development data;
+final test labels do not guide feature discovery. A large dataset still costs
+many requests, even when questions share a request.
+
+This is an external learned system, not merely a single classifier score or a
+hand-written weighted sum. A fixed JEV model can supply the semantic features
+for an adaptive predictor/controller. That possibility is distinct both from
+training JEV itself and from applying one unchanging threshold at inference.
+
+**Current TT boundary:** relevance, guard and salience are Noul values consumed
+by fixed, conservative selection rules. Caching those values, exact vault
+storage, and regression tests do not train a policy. This candidate does not
+implement CatBoost training, a feature-discovery loop, automatic question
+revision, or a learned context-retention policy.
+
+For a future TT-specific learner, the proposed target is evidence/constraint
+preservation and recovery-adjusted cost, not prompt length alone. It would need
+versioned questions and model identities, exact source linkage, task/session
+separated evaluation, an untouched final holdout, explicit data-use consent,
+and bounded training and deployment. Learned decisions must never override
+call-scope authorization, exact-evidence integrity, protected-context rules or
+the final tokenizer gate. Those are requirements for a future integration,
+not features claimed to exist today. No training, data export, extra provider
+call, new credential, or runtime dependency is enabled by this clarification.
+
+Feature-extraction requests and LLM feature-proposal/evaluation helpers are
+internal service work: their dataset text, examples, rubrics and supplied
+probabilities must bypass conversational reduction. The existing scope check
+already enforces this; `tests/test_jev_learning_scope.py` adds explicit
+regressions, including intervening learning calls between main-request retries.
+
 ## What Token Terminator actually implements
 
 | Capability | Current integration |
@@ -33,7 +74,8 @@ JEV is not a drop-in chat/code-generation LLM.
 | SkillGate | Existing deterministic TT skill filtering; **not** an implementation of TypeSafe's two-stage JEV skill-suggestion cookbook. |
 | JEV workflow/tool/skill controller | Not implemented by this ContextEngine candidate. |
 | Post-answer claim/citation or requirements verification | Not implemented by this candidate. No automatic semantic accept/retry/escalate loop is claimed. |
-| Scope isolation for outside JEV controller/verifier calls | Implemented: these service calls bypass TT unchanged; the separately authorized answering LLM request can still use TT. |
+| External learned policy / autoresearch feature discovery | Not implemented. The current fixed context gate and its cache are not an externally trained model. |
+| Scope isolation for outside JEV controller/verifier/learning calls | Implemented: these service calls bypass TT unchanged; the separately authorized answering LLM request can still use TT. |
 
 The requested context engine is a useful **subset** of System 2 support. Its
 context guard question asks whether omitting a detail could change the answer;
@@ -80,6 +122,8 @@ ordinary-model semantics and JEV wrapper preservation behavior are not rewritten
 
 - [System One](https://docs.typesafe.ai/concepts/system-one)
 - [JEV with coding agents](https://docs.typesafe.ai/introduction/coding-agents)
+- [AI primer and training objectives](https://docs.typesafe.ai/introduction/machine-learning-primer)
+- [Autoresearch feature discovery](https://docs.typesafe.ai/cookbooks/autoresearch_feature_discovery)
 - [Hermes skill suggestion](https://docs.typesafe.ai/cookbooks/skill_suggestion)
 - [Intent routing](https://docs.typesafe.ai/patterns/intent-routing)
 - [Classifying RAG passages](https://docs.typesafe.ai/cookbooks/classifying_rag_passages)
