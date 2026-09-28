@@ -15,7 +15,7 @@ No change to the released v0.9.0, main, live wiki, registries, or running profil
 | TT internal JEV | Direct urllib Decisions/System One calls already bypassed Hermes by construction. Custom transports had no explicit re-entry guard. | Execution-local guard covers both direct and injected transports, including independent scorer invocation, exceptions and async propagation. |
 | Tokenizers | Local measurement adapters, not provider targets; no tokenizer monkeypatch. A custom callback could re-enter middleware. | Retain measurement behavior; recursive optimizer work and separately scoped counting calls bypass. |
 | Delegated agents/inherited auxiliary turns | Main-shaped metadata/ambient binding alone could authorize reductions. | Existing Hermes auxiliary-task ContextVar and delegated parent lease veto. Internal lifecycle hooks do not capture or replace a main binding. |
-| JEV as final chat target | Same semantic pruning/age-collapse path as ordinary expensive targets. | Preservation policy below, separately from internal JEV's role. |
+| Explicit JEV-backed conversational wrapper | Same semantic pruning/age-collapse path as ordinary expensive targets. | Preservation policy below, separately from internal JEV's role. |
 
 “Unchanged” here means **TT does not rewrite the service input**. A host/backend
 can apply its own preprocessing (for example, Mem0's sync-length limit); this
@@ -68,7 +68,14 @@ Hermes hook/role contracts are tested when pinned, not assumed compatible foreve
 TT's async facade carries ContextVars; custom executors must also propagate their
 host context. A bare call without that context bypasses rather than guessing.
 
-## Conservative JEV final-target policy
+## Conservative policy for an explicit JEV-backed conversational wrapper
+
+**Architecture clarification:** native JEV returns typed decisions, not
+conversational prose. This defensive policy does not add a native JEV chat
+API or implement a controller/wrapper. Typed control and verification calls
+bypass before it is considered. TT currently implements context-selection
+support, not a general workflow router or post-answer citation verifier.
+See [JEV roles and the primary documentation](JEV_ROLES.md).
 
 Purpose is established first. Within an authorized conversation, a host-provided
 `target_model_family="jev"` has priority. Hermes currently supplies no such field,

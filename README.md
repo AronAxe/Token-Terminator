@@ -43,7 +43,7 @@ Async agent frameworks can use the included `AsyncRuntime` façade. It keeps pro
 
 In default middleware mode it does **not** replace the host context engine. In the explicitly selected v0.10.0 ContextEngine mode it replaces that context engine, but not the memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, token measurement, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
 
-## Call scope and JEV chat targets (v0.10.0 candidate)
+## Call scope and JEV decision roles (v0.10.0 candidate)
 
 TT optimizes **authorized conversational generation**, not every model-shaped
 call. Native Hermes auxiliary clients, embeddings and memory reranking already
@@ -53,8 +53,19 @@ middleware. A pending engine binding alone is not permission to reduce a call.
 TT's own JEV transports and internal callbacks cannot recursively enter the
 conversational reducer or overwrite its staged history.
 
-When JEV is the **actual final chat model**, TT preserves supplied history by
+JEV makes typed decisions; it is not a drop-in chat/code-generation LLM.
+It can control workflows, tools/skills, handlers, priorities and escalation,
+or support an LLM through context selection and input/output verification.
+TT currently implements the context-selection part, not a general JEV
+controller or post-answer verifier. Existing SkillGate is deterministic,
+not TypeSafe's separate two-stage skill-suggestion integration.
+Typed JEV control/verification requests bypass TT unchanged; the answering
+LLM's separately authorized conversation request can still use TT.
+
+For an **explicitly integrated conversational wrapper** identified as
+JEV-backed, the defensive target policy preserves supplied history by
 default: no automatic semantic pruning, age-collapse or SkillGate omission.
+This policy does not supply a wrapper or native JEV chat capability.
 Measured, reversible Context IR remains available. Only a known context-budget
 excess permits bounded, source-preserving JEV selection, stopping once it fits.
 Protected/unscored history is never force-cut; unresolved overflow is reported
@@ -66,7 +77,8 @@ purpose. Custom aliases can set `TOKEN_TERMINATOR_CHAT_TARGET_POLICY=preserve`
 (default `auto`). Existing JEV provider/API keys stay unchanged. Native Hermes
 main turns need no new scope configuration; generic adapters must pass
 `request_purpose="conversation"` **only** for actual generation.
-See [call-scope review and limits](docs/CALL_SCOPE_REVIEW.md).
+See [JEV roles and implemented scope](docs/JEV_ROLES.md) and
+[call-scope review and limits](docs/CALL_SCOPE_REVIEW.md).
 
 ## v0.10.0 review build: selectable Hermes ContextEngine
 
