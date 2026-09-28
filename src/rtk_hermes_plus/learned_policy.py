@@ -42,14 +42,14 @@ def write_private_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if path.exists() or path.is_symlink():
         raise ValueError("output already exists; choose a new versioned path")
-    text = (
+    raw = (
         json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False)
         + "\n"
-    )
+    ).encode("utf-8")
     fd, tmp = tempfile.mkstemp(prefix=".tt-policy-", dir=path.parent)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write(text)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(raw)
             handle.flush()
             os.fsync(handle.fileno())
         # Link is create-only and atomic. Windows may not allow links: use O_EXCL.
@@ -57,11 +57,11 @@ def write_private_json(path, value):
             os.link(tmp, path)
         except (NotImplementedError, OSError):
             out = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(out, "w", encoding="utf-8") as handle:
-                handle.write(text)
+            with os.fdopen(out, "wb") as handle:
+                handle.write(raw)
     finally:
         Path(tmp).unlink(missing_ok=True)
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return hashlib.sha256(raw).hexdigest()
 
 
 class TreeHead:
