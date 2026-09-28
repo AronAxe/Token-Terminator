@@ -155,6 +155,11 @@ class Config:
     jev_max_candidate_chars: int = 12_000
     jev_max_state_chars: int = 60_000
 
+    # Optional learned omission-risk veto; offline training and explicit activation.
+    learned_policy_mode: str = "off"
+    learned_policy_path: str = ""
+    learned_policy_sha256: str = ""
+
     # Context IR is local, additive, and requires a measured target tokenizer.
     context_ir_enabled: bool = False
     context_ir_min_chars: int = 600
@@ -169,6 +174,8 @@ class Config:
     max_search_results: int = 50
 
     def __post_init__(self) -> None:
+        if self.learned_policy_mode not in {"off", "shadow", "active"}:
+            raise ValueError("learned_policy_mode must be off, shadow, or active")
         if self.mode not in MODES:
             raise ValueError(f"mode must be one of: {', '.join(sorted(MODES))}")
         for name in ("ledger_path", "state_db_path", "db_path"):
@@ -489,6 +496,16 @@ def load_config() -> Config:
         ),
         context_collapse_after_turns=context_collapse_after_turns,
         context_inline_recent_turns=context_inline_recent_turns,
+        learned_policy_mode=(_env("TOKEN_TERMINATOR_LEARNED_POLICY_MODE") or "off")
+        .strip()
+        .lower()
+        if (_env("TOKEN_TERMINATOR_LEARNED_POLICY_MODE") or "off").strip().lower()
+        in {"off", "shadow", "active"}
+        else "off",
+        learned_policy_path=_env("TOKEN_TERMINATOR_LEARNED_POLICY_PATH") or "",
+        learned_policy_sha256=(_env("TOKEN_TERMINATOR_LEARNED_POLICY_SHA256") or "")
+        .strip()
+        .lower(),
         jev_enabled=_boolean("TOKEN_TERMINATOR_JEV", False),
         jev_provider=jev_provider,
         jev_api_key=jev_api_key,

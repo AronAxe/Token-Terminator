@@ -41,9 +41,38 @@ The reduction core is not intrinsically tied to Hermes: it operates on Python di
 
 Async agent frameworks can use the included `AsyncRuntime` façade. It keeps provider loops responsive by moving compiler, vault, and telemetry work to an executor, propagates task or token cancellation, and uses native cancellable subprocess paths for RTK command rewriting and aggressive reads. The same `Runtime` facade is used; generic final-request adapters must explicitly identify conversational calls as shown below.
 
-In default middleware mode it does **not** replace the host context engine. In the explicitly selected v0.10.0 ContextEngine mode it replaces that context engine, but not the memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, token measurement, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
+In default middleware mode it does **not** replace the host context engine. In the explicitly selected v0.11.0 ContextEngine mode it replaces that context engine, but not the memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, token measurement, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
 
-## Call scope and JEV decision roles (v0.10.0 candidate)
+## v0.11.0: optional learned omission-risk policy
+
+The new ContextEngine extension can **learn an outer policy without fine-tuning
+JEV**: a System-2 model proposes/revises semantic questions from development errors,
+JEV supplies batched probability/distribution features, and CatBoost learns omission
+harm and recovery-token cost. Whole task/session/source groups separate development
+folds and holdout. Questions, weights and thresholds freeze before holdout evaluation.
+
+It is **OFF by default**, with separate `shadow` and explicitly approved `active`
+modes. The first deployment is an additional omission veto, not permission to break
+the fixed safety envelope. Exact backing/recovery, call-scope authorization,
+protected evidence, JEV-wrapper preservation and final tokenizer gates stay intact.
+CatBoost is an optional training dependency only; runtime reads bounded numeric JSON
+with a pinned SHA-256, no pickle or executable model. Policies bind to the evaluated
+JEV scorer and generation targets. Invalid/missing features or models retain history.
+
+Training is a separate `token-terminator policy-train` command over explicitly labelled
+experiments, never an automatic chat-time job or vault export. Replay needs no API
+key. Live extraction uses the existing JEV route/key, plus your existing generative
+model service for proposal work; the built-in proposer uses OpenRouter. No new key
+scheme or paid default behavior is introduced. Nothing is deployed by training.
+
+[Training, data format, activation, budgets and limits](docs/LEARNED_POLICY.md) ·
+[Real-fitting synthetic benchmark](benchmarks/learned_policy/README.md).
+
+This expands the same PR #19 to v0.11.0; v0.10.0 was not published separately. The
+branch retains its existing `feat/hermes-context-engine-v0.10.0` name. No production
+policy or claim of live-model quality/economic improvement ships with the demo.
+
+## Call scope and JEV decision roles (v0.11.0 candidate)
 
 TT optimizes **authorized conversational generation**, not every model-shaped
 call. Native Hermes auxiliary clients, embeddings and memory reranking already
@@ -80,10 +109,10 @@ main turns need no new scope configuration; generic adapters must pass
 See [JEV roles and implemented scope](docs/JEV_ROLES.md) and
 [call-scope review and limits](docs/CALL_SCOPE_REVIEW.md).
 
-## v0.10.0 review build: selectable Hermes ContextEngine
+## v0.11.0 review build: selectable Hermes ContextEngine
 
 **Not yet merged or published. The latest released version remains v0.9.0.**
-Versioned v0.10.0 installation commands later in this document apply only after
+Versioned v0.11.0 installation commands later in this document apply only after
 owner-approved publication; use the feature branch for this review build:
 
 ```bash
@@ -236,7 +265,7 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.10.0 supersedes 0.8.2 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.11.0 is a candidate built on released v0.9.0 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
 This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.9.0` release tag.
 
@@ -260,7 +289,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.10.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.0'
 ```
 
 Windows example:
@@ -269,7 +298,7 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.10.0"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.11.0"
 ```
 
 `tiktoken` now ships with Token Terminator and is used automatically for supported OpenAI-family models, including common provider-qualified model IDs. Hugging Face `tokenizers` remains optional when pointing Token Terminator at a local `tokenizer.json`:
@@ -323,7 +352,7 @@ Install the same distribution in the environment that owns your agent loop:
 
 ```bash
 python -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.10.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.0'
 ```
 
 Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.

@@ -273,6 +273,7 @@ class HistoryContextEngine:
                 scorer = JevSemanticReducer(
                     catalog.store,
                     self.config,
+                    token_budget=runtime.token_budget,
                     transport=self.transport
                     or (runtime.jev_reducer.transport if runtime.jev_reducer else None),
                 )

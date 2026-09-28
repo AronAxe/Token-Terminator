@@ -1,0 +1,201 @@
+{
+  "checks": {
+    "all_non_enlarging": true,
+    "all_protected": true,
+    "all_recovery_exact": true,
+    "retry_additional_calls": 0,
+    "trials": 18
+  },
+  "fixture_only": true,
+  "learning": {
+    "budget": {
+      "budgeted_request_chars": 1032122,
+      "calls": 38,
+      "elapsed_ms": 1269.937,
+      "jev_calls": 36,
+      "proposal_calls": 2,
+      "reported_cost_usd": 0.0
+    },
+    "cache_hits": 0,
+    "evaluation": {
+      "activation_eligible": true,
+      "dataset_sha256": "b3b6681fa8e935654d79196bbb012a7579b0279c280791c8d13813cc7cc4422c",
+      "dev_groups": 16,
+      "development": {
+        "brier": 0.0003271445676881899,
+        "gross_saved_tokens": 24000.0,
+        "harmful_omissions": 0,
+        "label_preservation_rate": 1.0,
+        "omitted": 96,
+        "recovery_adjusted_saved_tokens": 24000.0,
+        "recovery_tokens": 0.0,
+        "rows": 128,
+        "utility": 24000.0
+      },
+      "frozen_before_holdout_sha256": "8652ee6ed1afd50b94fc2e1a80d033239def0e688691c07433a3cbe7165cbcdd",
+      "holdout": {
+        "brier": 0.0001651622300626945,
+        "gross_saved_tokens": 6000.0,
+        "harmful_omissions": 0,
+        "label_preservation_rate": 1.0,
+        "omitted": 24,
+        "recovery_adjusted_saved_tokens": 6000.0,
+        "recovery_tokens": 0.0,
+        "rows": 32,
+        "utility": 6000.0
+      },
+      "holdout_by_target": {
+        "gpt-4": {
+          "brier": null,
+          "gross_saved_tokens": 3000.0,
+          "harmful_omissions": 0,
+          "label_preservation_rate": 1.0,
+          "omitted": 12,
+          "recovery_adjusted_saved_tokens": 3000.0,
+          "recovery_tokens": 0.0,
+          "rows": 16,
+          "utility": 3000.0
+        },
+        "gpt-4o": {
+          "brier": null,
+          "gross_saved_tokens": 3000.0,
+          "harmful_omissions": 0,
+          "label_preservation_rate": 1.0,
+          "omitted": 12,
+          "recovery_adjusted_saved_tokens": 3000.0,
+          "recovery_tokens": 0.0,
+          "rows": 16,
+          "utility": 3000.0
+        }
+      },
+      "holdout_fixed_gate": {
+        "brier": null,
+        "gross_saved_tokens": 8000.0,
+        "harmful_omissions": 8,
+        "label_preservation_rate": 0.0,
+        "omitted": 32,
+        "recovery_adjusted_saved_tokens": -1600.0,
+        "recovery_tokens": 9600.0,
+        "rows": 32,
+        "utility": -161600.0
+      },
+      "holdout_groups": 4,
+      "label_origins": [
+        "synthetic"
+      ],
+      "limitations": "Omission-label evaluation, not live LLM answer validation. Reused holdouts across separate runs are not automatically detectable. No learned policy may override the fixed safety envelope.",
+      "transport_mode": "synthetic-offline"
+    },
+    "initial_development": {
+      "brier": 0.1875085037562574,
+      "gross_saved_tokens": 0,
+      "harmful_omissions": 0,
+      "label_preservation_rate": 1.0,
+      "omitted": 0,
+      "recovery_adjusted_saved_tokens": 0,
+      "recovery_tokens": 0,
+      "rows": 128,
+      "utility": 0
+    },
+    "rounds": [
+      {
+        "accepted": false,
+        "development": {
+          "brier": 0.1875085037562574,
+          "gross_saved_tokens": 0,
+          "harmful_omissions": 0,
+          "label_preservation_rate": 1.0,
+          "omitted": 0,
+          "recovery_adjusted_saved_tokens": 0,
+          "recovery_tokens": 0,
+          "rows": 128,
+          "utility": 0
+        },
+        "features": 1,
+        "round": 1,
+        "schema_sha256": "a5e242c3ed738bb8e463c31b3397212c63724438727ff459f8c1e7e9c33be259"
+      },
+      {
+        "accepted": true,
+        "development": {
+          "brier": 0.0003271445676881899,
+          "gross_saved_tokens": 24000.0,
+          "harmful_omissions": 0,
+          "label_preservation_rate": 1.0,
+          "omitted": 96,
+          "recovery_adjusted_saved_tokens": 24000.0,
+          "recovery_tokens": 0.0,
+          "rows": 128,
+          "utility": 24000.0
+        },
+        "features": 1,
+        "round": 2,
+        "schema_sha256": "3d0bacda69f19f38c2814257b51df185dd8f62c31e13789d7c18fa40d833fd0f"
+      }
+    ]
+  },
+  "limitations": "Synthetic weak-gate regression, not representative live JEV quality or calibrated omission risk. Learned layer may only retain more evidence. Saved-token labels in training are fixture costs; final token counts above use actual target tokenizers. No LCM or live-service comparison.",
+  "paid_calls": 0,
+  "summary": [
+    {
+      "final_tokens": 1716,
+      "jev_fixture_calls": 3,
+      "median_ms": 115.442,
+      "mode": "off",
+      "model": "gpt-4o",
+      "preserved_exact_spans": 0,
+      "raw_tokens": 8150,
+      "required_exact_spans": 8
+    },
+    {
+      "final_tokens": 1716,
+      "jev_fixture_calls": 6,
+      "median_ms": 218.422,
+      "mode": "shadow",
+      "model": "gpt-4o",
+      "preserved_exact_spans": 0,
+      "raw_tokens": 8150,
+      "required_exact_spans": 8
+    },
+    {
+      "final_tokens": 3325,
+      "jev_fixture_calls": 3,
+      "median_ms": 203.154,
+      "mode": "active",
+      "model": "gpt-4o",
+      "preserved_exact_spans": 8,
+      "raw_tokens": 8150,
+      "required_exact_spans": 8
+    },
+    {
+      "final_tokens": 1696,
+      "jev_fixture_calls": 3,
+      "median_ms": 149.159,
+      "mode": "off",
+      "model": "gpt-4",
+      "preserved_exact_spans": 0,
+      "raw_tokens": 8147,
+      "required_exact_spans": 8
+    },
+    {
+      "final_tokens": 1696,
+      "jev_fixture_calls": 6,
+      "median_ms": 256.958,
+      "mode": "shadow",
+      "model": "gpt-4",
+      "preserved_exact_spans": 0,
+      "raw_tokens": 8147,
+      "required_exact_spans": 8
+    },
+    {
+      "final_tokens": 3309,
+      "jev_fixture_calls": 3,
+      "median_ms": 249.049,
+      "mode": "active",
+      "model": "gpt-4",
+      "preserved_exact_spans": 8,
+      "raw_tokens": 8147,
+      "required_exact_spans": 8
+    }
+  ]
+}

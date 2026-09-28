@@ -18,3 +18,6 @@ include scripts/hermes_call_scope_checks.py
 include scripts/benchmark_context_engine.py
 recursive-include benchmarks/context_engine *.md *.json
 recursive-include examples *.yaml
+
+include scripts/benchmark_learned_policy.py
+recursive-include benchmarks/learned_policy *.md *.json

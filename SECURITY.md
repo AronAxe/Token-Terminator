@@ -126,3 +126,36 @@ unchanged. This is routing defense, not a sandbox against arbitrary trusted
 plugins forging all main-hook metadata. See [call-scope review](docs/CALL_SCOPE_REVIEW.md)
 for the exact authorization contract, executor propagation and unresolved context
 limit handling. No new external service or credential boundary is introduced.
+
+## v0.11.0 learned-policy boundary
+
+The learner is an opt-in ContextEngine omission veto, not a source of facts or
+instruction authority. It cannot relax existing guards, exact source/recovery
+verification or the final tokenizer gate. Invalid deployment artifacts/features
+retain evidence. Policy loading occurs only after conversational scope approval;
+feature/proposal/evaluation callbacks run under internal-call protection.
+
+Deployment accepts only bounded numeric JSON trees with an explicitly pinned
+SHA-256, matching feature/scorer/generation-target identities and an eligible
+held-out assessment. No pickle, eval, arbitrary imports or native CatBoost model
+loader runs in Hermes. A checksum is not a signature or proof of label quality.
+
+Training reads only an explicitly supplied labelled file; it does not mine or
+export the live vault. Live mode requires explicit data-transfer consent. Current
+query/source data goes to the configured JEV provider, and up to six development
+error examples per round go to the chosen System-2 proposer. Holdout labels never
+guide discovery or fitting. Connected session/task/exact-source groups prevent
+exact split leakage, not all semantic duplication or reuse across separate runs.
+
+Treat generated question rubrics, numeric models, replay and reports as private:
+questions can reproduce training information even when reports omit raw source
+fields. Outputs are local/create-only, mode 0600 with new directories 0700 on
+Unix; secure parents and platform ACLs remain the operator's responsibility. No
+training data, policy or outcome telemetry is uploaded or enabled automatically.
+Request/body/round budgets and HTTP timeouts bound built-in service work but are
+not a hard spending ceiling or preemptive sandbox for arbitrary custom callbacks.
+Use trusted callbacks and bounded synthetic/recorded tests before live operation.
+
+See [LEARNED_POLICY.md](docs/LEARNED_POLICY.md) for exact limits, deployment
+approval, finite-sample quality qualifications and the existing unresolved
+context-limit enforcement boundary.

@@ -97,8 +97,67 @@ def select_history(
     limits: EngineLimits,
     reducer: JevSemanticReducer,
     cache: dict | None = None,
+    _learned_shadow_pass: bool = False,
 ) -> SelectionPlan:
+    if config.learned_policy_mode == "shadow" and not _learned_shadow_pass:
+        baseline = select_history(
+            request,
+            catalog=catalog,
+            session_id=session_id,
+            config=replace(config, learned_policy_mode="off"),
+            limits=limits,
+            reducer=reducer,
+            cache=cache,
+        )
+        try:
+            shadow = select_history(
+                request,
+                catalog=catalog,
+                session_id=session_id,
+                config=config,
+                limits=limits,
+                reducer=reducer,
+                cache=cache,
+                _learned_shadow_pass=True,
+            )
+            baseline.metrics["learned_policy_shadow"] = {
+                k: v
+                for k, v in shadow.metrics.items()
+                if k.startswith("learned_") or k == "omitted_messages"
+            }
+            for name in (
+                "jev_calls",
+                "jev_cache_hits",
+                "jev_input_tokens",
+                "jev_output_tokens",
+            ):
+                baseline.metrics[name] += shadow.metrics[name]
+            costs = [baseline.metrics["jev_cost_usd"], shadow.metrics["jev_cost_usd"]]
+            baseline.metrics["jev_cost_usd"] = (
+                sum(costs) if all(c is not None for c in costs) else None
+            )
+        except Exception:  # noqa: BLE001 - shadow evaluation cannot change the baseline
+            baseline.metrics["learned_policy_shadow"] = {"learned_state": "failed_open"}
+        return baseline
     plan = SelectionPlan(copy.deepcopy(request))
+    policy = None
+    if config.learned_policy_mode != "off":
+        from .learned_policy import load_policy
+
+        policy, policy_state = load_policy(config)
+        plan.metrics.update(
+            learned_state=policy_state,
+            learned_evaluated_regions=0,
+            learned_retained_regions=0,
+            learned_retained_messages=0,
+            learned_abstentions=0,
+        )
+        if policy is not None and request.get("model") not in policy.target_models:
+            policy = None
+            plan.metrics["learned_state"] = "target_model_mismatch"
+        if policy is None:
+            plan.semantic_failed = True
+            return plan  # missing/broken opt-in policy never silently falls back to pruning
     key = "messages" if isinstance(request.get("messages"), list) else "input"
     messages = plan.request.get(key)
     if (
@@ -175,6 +234,8 @@ def select_history(
         catalog.store,
         replace(config, context_ir_enabled=True),
         transport=reducer.transport,
+        token_budget=reducer.token_budget,
+        feature_specs=policy.specs if policy is not None else None,
     )
     candidates = []
     for n, region in enumerate(regions):
@@ -212,6 +273,8 @@ def select_history(
             if not batch:
                 break
             cache_key = digest(encode(scorer._payload(scoring_query, batch)))
+            if policy is not None:
+                cache_key = digest(cache_key + policy.schema_sha256)
             if cache is not None and cache_key in cache:
                 result = replace(
                     cache[cache_key], input_tokens=0, output_tokens=0, cost_usd=0.0
@@ -224,6 +287,7 @@ def select_history(
                     cache is not None
                     and not result.failed_open
                     and len(result.attention) == len(batch)
+                    and (policy is None or len(result.features) == len(batch))
                 ):
                     if len(cache) >= 32:
                         cache.pop(next(iter(cache)))
@@ -237,11 +301,65 @@ def select_history(
                 plan.request = copy.deepcopy(request)
                 return plan
             by_ordinal = {score.ordinal: score for score in result.attention}
+            feature_vectors = {v.ordinal: v for v in result.features}
             for candidate in batch:
                 score = by_ordinal.get(candidate.ordinal)
                 if score is None:
                     continue
                 plan.metrics["scored_regions"] += 1
+                permitted = True
+                if policy is not None:
+                    try:
+                        trial = copy.deepcopy(plan.request)
+                        for index in regions[candidate.ordinal]:
+                            source = text_slot(messages[index])[0]
+                            if (
+                                max(score.relevance, score.guard, score.salience)
+                                < config.jev_relevance_threshold
+                                and not protected_prose(source)
+                                and not (terms(source) & query_terms)
+                            ):
+                                replace_text(
+                                    trial[key][index],
+                                    f"[TT history {ids[index]}; recover: token_terminator_history action=get]",
+                                )
+                        adapter = reducer.token_budget
+                        before = (
+                            adapter.measure_request(
+                                plan.request, model=request.get("model", "")
+                            ).tokens
+                            if adapter
+                            else None
+                        )
+                        after = (
+                            adapter.measure_request(
+                                trial, model=request.get("model", "")
+                            ).tokens
+                            if adapter
+                            else None
+                        )
+                        saving = (
+                            before - after
+                            if before is not None and after is not None
+                            else None
+                        )
+                        permitted, reason = policy.assess(
+                            feature_vectors.get(candidate.ordinal),
+                            digest(candidate.content),
+                            saving,
+                        )
+                    except Exception:  # noqa: BLE001 - inference/measurement failure retains evidence
+                        permitted, reason = False, "prediction_failed"
+                    plan.metrics["learned_evaluated_regions"] += 1
+                    if not permitted:
+                        plan.metrics["learned_retained_regions"] += 1
+                        plan.metrics["learned_abstentions"] += int(
+                            reason
+                            not in {
+                                "predicted_omission_harm",
+                                "predicted_recovery_cost",
+                            }
+                        )
                 for i in regions[candidate.ordinal]:
                     scored.add(i)
                     source = text_slot(messages[i])[0]
@@ -261,6 +379,9 @@ def select_history(
                         and not protected_prose(source)
                         and not (terms(source) & query_terms)
                     ):
+                        if not permitted:
+                            plan.metrics["learned_retained_messages"] += 1
+                            continue
                         # Every omitted message retains its role and exact evidence reference.
                         replace_text(
                             messages[i],

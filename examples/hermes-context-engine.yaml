@@ -1,5 +1,5 @@
 # Merge into the target profile; preserve existing enabled plugins/toolsets.
-# Install the v0.10.0 review build and run `token-terminator install-context-engine` first.
+# Install the v0.11.0 review build and run `token-terminator install-context-engine` first.
 plugins:
   enabled:
     - token-terminator
@@ -16,3 +16,10 @@ context:
 # TOKEN_TERMINATOR_ENGINE_RECALL_SOURCES=3
 # TOKEN_TERMINATOR_ENGINE_SEARCH_SOURCES=10000
 # Reuse OPENROUTER_API_KEY or TYPESAFE_API_KEY; do not put credentials here.
+
+# Optional learned omission policy: OFF until separately trained and reviewed.
+# TOKEN_TERMINATOR_LEARNED_POLICY_MODE=off
+# TOKEN_TERMINATOR_LEARNED_POLICY_PATH=
+# TOKEN_TERMINATOR_LEARNED_POLICY_SHA256=
+# Modes: off / shadow / active. Shadow can double bounded JEV batches.
+# A pinned, evaluated artifact is mandatory; training does not activate it.

@@ -46,6 +46,9 @@ def build_parser() -> argparse.ArgumentParser:
         description="Token Terminator artifact vault, working state, and request compiler.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
+    from .policy_cli import add_parser
+
+    add_parser(sub)
 
     install = sub.add_parser(
         "install-context-engine",
@@ -94,6 +97,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run(args: argparse.Namespace) -> int:
+    if args.command == "policy-train":
+        from .policy_cli import run as train_policy
+
+        return train_policy(args)
     if args.command == "install-context-engine":
         from .engine_install import install_context_engine
 

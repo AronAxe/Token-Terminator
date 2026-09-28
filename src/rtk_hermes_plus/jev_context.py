@@ -60,6 +60,7 @@ class JevReductionResult:
     cost_usd: float | None = None
     elapsed_ms: float = 0.0
     attention: tuple[JevAttention, ...] = field(default=(), repr=False)
+    features: tuple = field(default=(), repr=False)
 
     def as_dict(self) -> dict[str, Any]:
         # Provider/request content must never leak into metrics or status.
@@ -114,11 +115,17 @@ class JevSemanticReducer:
         *,
         transport: Transport | None = None,
         token_budget: Any = None,
+        feature_specs=None,
     ) -> None:
         self.store = store
         self.config = config
         self.transport = transport
         self.token_budget = token_budget
+        from .policy_features import validate_specs
+
+        self.feature_specs = (
+            None if feature_specs is None else validate_specs(feature_specs)
+        )
 
     @property
     def enabled(self) -> bool:
@@ -292,6 +299,13 @@ class JevSemanticReducer:
                     ),
                 }
 
+        if self.feature_specs is not None:
+            for candidate in candidates:
+                for feature in self.feature_specs:
+                    questions[f"{candidate.candidate_id}_learned_{feature.name}"] = (
+                        feature.wire_question(candidate.candidate_id)
+                    )
+
         return {
             "state": {
                 "current_request": current_user,
@@ -380,6 +394,36 @@ class JevSemanticReducer:
                     )
                 )
             result.attention = tuple(scores)
+            if self.feature_specs is not None:
+                from .policy_features import vector_from_answers
+
+                valid = {s.ordinal for s in scores}
+                returned_model = response.get("model")
+                configured_model = self.config.jev_model.lstrip("~").removeprefix(
+                    "typesafe/"
+                )
+                if returned_model is not None and (
+                    not isinstance(returned_model, str)
+                    or (
+                        "latest" not in configured_model.lower()
+                        and returned_model.lstrip("~").removeprefix("typesafe/")
+                        != configured_model
+                    )
+                ):
+                    valid = (
+                        set()
+                    )  # declared scorer drift invalidates learned feature vectors
+                vectors = []
+                for candidate in candidates:
+                    if candidate.ordinal not in valid:
+                        continue
+                    try:
+                        vectors.append(
+                            vector_from_answers(candidate, answers, self.feature_specs)
+                        )
+                    except (ValueError, TypeError, AttributeError):
+                        pass  # missing semantic features are abstentions, never negatives
+                result.features = tuple(vectors)
             result.candidates = len(candidates)
         except Exception as exc:  # noqa: BLE001 - retain original evidence on any scorer failure
             result.failed_open = True

@@ -1,6 +1,20 @@
-# v0.10.0 candidate migration
+# v0.11.0 candidate migration
 
-## v0.10.0 call-scope safety update (review only)
+## Optional learned policy
+
+v0.10.0 was not published; its engine/scope changes are included in this v0.11.0
+candidate on the same PR/branch. Learned mode defaults to off and does not require
+a database migration. Install `[learning]` only where fitting models, not on every
+Hermes runtime. See [the data/training/approval workflow](docs/LEARNED_POLICY.md).
+To activate, select TT as ContextEngine, review an evaluated policy, pin its local
+path and SHA-256, start with shadow, then explicitly select active and restart.
+Scorer and generation targets must match the evaluated identities. Training never
+changes the running policy, exports the vault or overwrites previous artifacts.
+Set `TOKEN_TERMINATOR_LEARNED_POLICY_MODE=off` and restart to disable this layer;
+keep the vault and referenced originals. A corrupt approved active policy preserves
+history rather than falling back silently to semantic pruning.
+
+## Inherited call-scope safety update (review only)
 
 Native Hermes main turns are authorized by the registered adapter; installation
 and engine selection are unchanged. Generic Python/async adapters must now pass
@@ -12,8 +26,8 @@ JEV final chat targets preserve history by default; custom aliases can set
 [the scoped behavior and hard-limit boundary](docs/CALL_SCOPE_REVIEW.md).
 
 
-Token Terminator 0.10.0 is prepared for review; v0.9.0 remains released and unchanged.
-Do not use the future `@v0.10.0` tag until publication is approved. Install the review
+Token Terminator 0.11.0 is prepared for review; v0.9.0 remains released and unchanged.
+Do not use the future `@v0.11.0` tag until publication is approved. Install the review
 branch and adapter using [the ContextEngine guide](docs/CONTEXT_ENGINE.md).
 
 Explicitly select `context.engine: token-terminator` and enable the generic TT

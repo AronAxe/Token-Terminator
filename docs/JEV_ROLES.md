@@ -1,6 +1,6 @@
 # JEV: agentic control and support for an LLM
 
-Scope: v0.10.0 review candidate, PR #19. Documentation checked September 28,
+Scope: v0.11.0 review candidate, PR #19. Documentation checked September 28,
 2026. This clarification does not add a new runtime mode or API integration.
 
 ## Two architectural roles, the same decision primitives
@@ -43,26 +43,24 @@ hand-written weighted sum. A fixed JEV model can supply the semantic features
 for an adaptive predictor/controller. That possibility is distinct both from
 training JEV itself and from applying one unchanging threshold at inference.
 
-**Current TT boundary:** relevance, guard and salience are Noul values consumed
-by fixed, conservative selection rules. Caching those values, exact vault
-storage, and regression tests do not train a policy. This candidate does not
-implement CatBoost training, a feature-discovery loop, automatic question
-revision, or a learned context-retention policy.
+**Current TT boundary:** the default gate still consumes fixed relevance/guard/
+salience rules. The optional v0.11.0 learner now implements a bounded external
+feature-discovery loop, actual CatBoost fitting, grouped development evaluation,
+and frozen-before-holdout assessment. It learns omission harm and recovery cost;
+its first deployment can veto unsafe/uneconomic omissions, not relax fixed guards.
+This is not a general JEV workflow controller or post-answer verifier.
 
-For a future TT-specific learner, the proposed target is evidence/constraint
-preservation and recovery-adjusted cost, not prompt length alone. It would need
-versioned questions and model identities, exact source linkage, task/session
-separated evaluation, an untouched final holdout, explicit data-use consent,
-and bounded training and deployment. Learned decisions must never override
-call-scope authorization, exact-evidence integrity, protected-context rules or
-the final tokenizer gate. Those are requirements for a future integration,
-not features claimed to exist today. No training, data export, extra provider
-call, new credential, or runtime dependency is enabled by this clarification.
+Learning is explicitly invoked on labelled experiments. Off/shadow/active runtime
+modes, schema/scorer/target identities, exact sources and pinned numeric artifacts
+separate fitting from deployment. Live data transfer needs consent; no automatic
+training, policy promotion, or data export is enabled. The existing keys are reused
+and CatBoost is an optional training dependency, absent from inference.
+See [the implementation, data contract and evaluation limits](LEARNED_POLICY.md).
 
 Feature-extraction requests and LLM feature-proposal/evaluation helpers are
 internal service work: their dataset text, examples, rubrics and supplied
 probabilities must bypass conversational reduction. The existing scope check
-already enforces this; `tests/test_jev_learning_scope.py` adds explicit
+already enforces this; `tests/test_jev_learning_scope.py` retains explicit
 regressions, including intervening learning calls between main-request retries.
 
 ## What Token Terminator actually implements
@@ -74,7 +72,7 @@ regressions, including intervening learning calls between main-request retries.
 | SkillGate | Existing deterministic TT skill filtering; **not** an implementation of TypeSafe's two-stage JEV skill-suggestion cookbook. |
 | JEV workflow/tool/skill controller | Not implemented by this ContextEngine candidate. |
 | Post-answer claim/citation or requirements verification | Not implemented by this candidate. No automatic semantic accept/retry/escalate loop is claimed. |
-| External learned policy / autoresearch feature discovery | Not implemented. The current fixed context gate and its cache are not an externally trained model. |
+| External learned policy / autoresearch feature discovery | Implemented as an optional bounded omission-risk learner: System-2 proposals, JEV semantic features, CatBoost fitting and held-out evaluation. Separate explicit deployment; default fixed gate/cache alone still do not learn. |
 | Scope isolation for outside JEV controller/verifier/learning calls | Implemented: these service calls bypass TT unchanged; the separately authorized answering LLM request can still use TT. |
 
 The requested context engine is a useful **subset** of System 2 support. Its

@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.10.0 - Unreleased (prepared for review)
+## 0.11.0 - Unreleased (PR #19; supersedes the unshipped 0.10.0 milestone)
+
+- Includes the selectable Hermes ContextEngine and call-scope safeguards developed under the unreleased 0.10.0 milestone below. Released v0.9.0 is unchanged; no separate 0.10.0 release is implied.
+- Added real, opt-in external learning: a bounded System-2 feature-proposal/error-feedback loop, existing JEV Noul/Score probability measurements, and optional CatBoost fitting for omission harm and recovery-token cost. JEV weights stay fixed; this is not another fixed weighted score.
+- Added grouped development cross-validation and frozen-before-holdout evaluation, exact source hashes, generation-target/scorer/schema binding, and a versioned private numeric-tree artifact. Observed outcome labels must come from explicit human/deterministic experiments, not JEV self-labels; synthetic demos are marked.
+- Added off/default, shadow and active engine modes. The learned policy only vetoes omissions already permitted by fixed guards; it never relaxes authority/protected-evidence/recovery/call-scope/tokenizer invariants. Malformed, incompatible, unapproved or out-of-domain models/features retain evidence. Ordinary middleware remains unchanged.
+- Reused batched OpenRouter/direct TypeSafe JEV transport and keys. Extra questions share bounded batches; shadow uses a separate baseline and may double batches. Internal feature/proposal/training work cannot recursively enter conversational reduction. Identical provider retries reuse source/schema-bound scoring.
+- Added explicit `policy-train` replay/live commands with consent, request/body/row/round/model bounds, private create-only outputs and no automatic activation. CatBoost is training-only; deployed numeric JSON needs no CatBoost, pickle, external model loading or new credential.
+- Added learned inference/training/leakage/budget/privacy/scope/retry tests and a real-fitting synthetic engine benchmark. No paid API calls were made; live model quality, calibration and economics remain unvalidated. The demo's active context intentionally retains evidence a weak fixed gate loses, not merely fewer tokens.
+- Updated README, wiki sources, configuration, security, migration, package metadata and release documentation for the candidate. Do not publish/merge until owner approval.
+
+## 0.10.0 - Unreleased development milestone (folded into 0.11.0)
 
 - Hardened call scope before engine/middleware dispatch: known main conversation only; explicit auxiliary/embedding/rerank/classifier/tokenizer/unknown purposes and service envelopes bypass without reduction. Native auxiliary/SDK isolation stays unchanged. Generic adapters now pass `request_purpose="conversation"` only for real generation; Hermes main-hook routing is automatic.
 - Added execution-local re-entry protection for TT work and both internal JEV transports, including async workers and lifecycle capture/bindings. Native Hermes auxiliary/delegated roles veto inherited main metadata.

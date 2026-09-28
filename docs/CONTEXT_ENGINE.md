@@ -1,4 +1,4 @@
-# Token Terminator ContextEngine — v0.10.0 candidate
+# Token Terminator ContextEngine — v0.11.0 candidate
 
 **Unreleased, experimental, explicit selection only.** The v0.9.0 release remains
 unchanged. No Hermes core files, live profiles, LCM database, main branch, release
@@ -45,7 +45,7 @@ budget-pressure selection. See [scope audit, tests and hard-limit limits](CALL_S
 ## Install this review build and select it
 
 Use the Python interpreter of the Hermes environment, not an unrelated system
-Python. The tag `v0.10.0` does not exist until the owner approves publication.
+Python. The tag `v0.11.0` does not exist until the owner approves publication.
 
 ```bash
 git clone --single-branch --branch feat/hermes-context-engine-v0.10.0 \
