@@ -11,37 +11,21 @@ permissions:
 jobs:
   bundle:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/checkout@v6
-        with:
-          repository: NousResearch/hermes-agent
-          ref: 801a9022a742562a3c4578c0d8dd12cfd393fc47
-          path: upstream-hermes
-          persist-credentials: false
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
-      - name: Prepare public source and offline test dependencies
+      - name: Export baseline
         shell: bash
-        env:
-          TIKTOKEN_CACHE_DIR: ${{ github.workspace }}/dev-bundle/tiktoken-cache
         run: |
           set -euo pipefail
-          mkdir -p dev-bundle/wheels
-          python -m pip download --dest dev-bundle/wheels 'tiktoken>=0.12' 'ruff>=0.16' 'build>=1.2' 'setuptools>=77' wheel 'tokenizers>=0.21' 'openai>=2.24' python-dotenv rich fire tenacity pyyaml truststore croniter snowballstemmer tomli-w 'ruamel.yaml==0.18.16'
-          python -m pip install --no-index --find-links dev-bundle/wheels tiktoken
-          python -c "import tiktoken; tiktoken.get_encoding('cl100k_base'); tiktoken.get_encoding('o200k_base')"
+          mkdir -p dev-bundle
           git archive b87969b42e02fcdd119fe8d3dce12e8ede3fac6b | gzip > dev-bundle/baseline.tar.gz
-          tar tzf dev-bundle/baseline.tar.gz | grep -q '^pyproject.toml$'
-          git -C upstream-hermes archive HEAD | gzip > dev-bundle/hermes.tar.gz
-          git -C upstream-hermes rev-parse HEAD > dev-bundle/hermes-commit.txt
+          python -c "import tarfile; t=tarfile.open('dev-bundle/baseline.tar.gz'); assert 'pyproject.toml' in t.getnames()"
       - uses: actions/upload-artifact@v6
         with:
-          name: context-engine-dev-bundle
+          name: context-engine-source-bundle
           path: dev-bundle/
           retention-days: 1
