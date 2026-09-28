@@ -86,3 +86,17 @@ Legacy recovery files are not automatically copied into the content-addressed va
 Package uninstall does not erase the private Token Terminator data directory. Back it up or remove it separately if that is your intent.
 
 For the detailed pre-change checklist, rollback commands, and compatibility boundary, use the repository's `MIGRATION.md` as the authoritative operational document.
+
+## v0.9.0 -> v0.10.0 candidate
+
+Install the review build and supported user-directory adapter; explicitly enable
+TT middleware and select `context.engine: token-terminator`. Do not retain LCM
+upstream. Existing JEV keys and opt-in IR settings remain valid. No live profile
+is edited by the installer. The additive source catalog uses existing schema-2
+artifacts and pins. Back up the vault; resets do not unpin evidence.
+
+To revert, select `lcm` or `compressor` and restart. Keep TT enabled for middleware.
+Before rolling the package back to v0.9.0, remove its two managed directory-adapter
+files so the old package is not asked to import a v0.10.0-only class. Preserve the
+vault. External LCM archives are not imported or reconstructed automatically.
+[Detailed guide](Context-Engine).

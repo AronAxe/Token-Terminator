@@ -1,3 +1,30 @@
+# v0.10.0 candidate migration
+
+Token Terminator 0.10.0 is prepared for review; v0.9.0 remains released and unchanged.
+Do not use the future `@v0.10.0` tag until publication is approved. Install the review
+branch and adapter using [the ContextEngine guide](docs/CONTEXT_ENGINE.md).
+
+Explicitly select `context.engine: token-terminator` and enable the generic TT
+middleware plugin. Do not leave LCM selected upstream. The existing JEV provider
+and keys remain valid; IR and JEV retain their own opt-in flags. Restart the host.
+The installer does not edit config, touch LCM, or change Hermes core files.
+
+The additive `tt_context_sources` table and pinned ordinary artifacts share the
+existing vault. Back it up before changing packages. Session reset intentionally
+does not delete backing evidence. Retention is manual and capacity failures pass
+through rather than pruning pinned history. No import of an external LCM archive
+is implemented; previously unavailable originals cannot be reconstructed.
+
+Rollback: select the installed `lcm` engine or `compressor`, restart, and keep the
+generic TT plugin enabled for middleware-only operation. For package rollback,
+remove the two **managed** directory-adapter files before reinstalling v0.9.0:
+that old package does not export the new adapter class. Do not delete the vault.
+Use `TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS=0` when exact old dialogue is
+required in legacy middleware mode. Existing schema version 2 remains readable;
+the new catalog does not change ordinary artifact identifiers or recovery actions.
+
+---
+
 # Migration and rollback: 0.2.0 / 0.4.0 / 0.5.x / 0.6.0 / 0.7.0 / 0.8.x → 0.9.0
 
 Token Terminator 0.9.0 supersedes Token Terminator 0.8.2 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.

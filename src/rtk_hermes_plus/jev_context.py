@@ -333,6 +333,61 @@ class JevSemanticReducer:
             raise TypeError("Jev response must be an object")
         return decoded
 
+    def score_batch(
+        self, current_user: str, candidates: list[_Candidate]
+    ) -> JevReductionResult:
+        """Score one bounded batch without rewriting or vaulting any source.
+
+        The ContextEngine reuses the same provider transport and exact answer
+        schema as middleware mode. Invalid/missing scores are never negatives.
+        """
+        started = time.perf_counter()
+        result = JevReductionResult(
+            request=None, raw_chars=0, final_chars=0, saved_chars=0
+        )
+        try:
+            if not self.enabled or not candidates:
+                return result
+            response = self._call(self._payload(current_user, candidates))
+            answers = response.get("answers") if isinstance(response, dict) else None
+            if not isinstance(answers, dict):
+                raise TypeError("missing JEV answers object")
+            usage = response.get("usage") or {}
+            if isinstance(usage, dict):
+                for key in ("input_tokens", "output_tokens"):
+                    value = usage.get(key, 0)
+                    if type(value) is int and value >= 0:
+                        setattr(result, key, value)
+                cost = usage.get("cost", usage.get("cost_usd"))
+                if type(cost) in (int, float) and math.isfinite(cost) and cost >= 0:
+                    result.cost_usd = float(cost)
+            scores = []
+            for candidate in candidates:
+                values = [
+                    self._noul(answers.get(f"{candidate.candidate_id}_{name}"))
+                    for name in ("relevance", "guard", "salience")
+                ]
+                if any(value is None for value in values):
+                    continue
+                scores.append(
+                    JevAttention(
+                        candidate.ordinal,
+                        candidate.role,
+                        hashlib.sha256(candidate.content.encode("utf-8")).hexdigest(),
+                        *values,
+                    )
+                )
+            result.attention = tuple(scores)
+            result.candidates = len(candidates)
+        except Exception as exc:  # noqa: BLE001 - retain original evidence on any scorer failure
+            result.failed_open = True
+            result.error = type(
+                exc
+            ).__name__  # never copy provider bodies or source text to telemetry
+        finally:
+            result.elapsed_ms = (time.perf_counter() - started) * 1000
+        return result
+
     @staticmethod
     def _receipt(artifact_id: str, char_count: int) -> str:
         return (

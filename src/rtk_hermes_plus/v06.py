@@ -72,6 +72,16 @@ class RuntimeV06(RuntimeV05):
         self.skill_gate.set_scorer(scorer)
 
     def llm_request_middleware(self, *, request: dict, **kwargs: Any):
+        from .engine_bridge import current
+
+        binding = current()
+        if binding is not None:
+            return binding.engine.reduce_request(
+                self, request, _tt_bound_generation=binding.generation, **kwargs
+            )
+        return self._middleware_pipeline(request=request, **kwargs)
+
+    def _middleware_pipeline(self, *, request: dict, **kwargs: Any):
         if not isinstance(request, dict):
             return super().llm_request_middleware(request=request, **kwargs)
 

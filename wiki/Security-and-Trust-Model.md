@@ -58,3 +58,16 @@ This distinction is essential: disk management must not silently break the model
 ## Reporting vulnerabilities
 
 Use a private GitHub security advisory rather than a public issue.
+
+## v0.10.0 history-engine boundary
+
+The explicitly selected engine persists full available message snapshots, including
+sensitive source content, in the existing private vault. Pinned evidence survives
+reset and pruning; plan retention, do not delete referenced artifacts. The new
+history tool enforces session membership and hash verification; the general vault
+tool's existing access scope is unchanged. With JEV enabled, bounded historical
+regions plus query/recent referents cross the existing configured provider boundary.
+Invalid scores cannot authorize omission. Source identity is not a truth verdict.
+Unknown tokenizers/missing tools/stale bindings/capacity faults fail open. Hard host
+limits before middleware and later third-party rewrites are outside the final gate.
+See [Context Engine](Context-Engine) for complete limits.

@@ -42,3 +42,13 @@ No provider-visible optimization is attempted.
 A mode only makes a path *eligible*. It does not force a reduction. Every candidate can still be rejected because it is not smaller, expands under the exact tokenizer, cannot be recovered safely, is malformed, violates backend constraints, or hits another fail-open condition.
 
 This is why a healthy Token Terminator session can contain many untouched results.
+
+## Engine ownership versus reduction mode
+
+The v0.10.0 candidate adds an independent choice: ordinary TT middleware after
+another host engine, or selected TT ContextEngine over full available history.
+Selection does not change the existing `balanced`/`aggressive` requirement for
+request compilation. `off`/native-only/terminal-only modes do not capture/score
+ContextEngine history. In engine mode, JEV owns semantic omission, legacy lossy
+age-collapse is excluded, and the existing vault/tool/IR stages remain active.
+[Context Engine](Context-Engine) details setup and limitations.

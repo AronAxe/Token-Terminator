@@ -41,7 +41,58 @@ The reduction core is not intrinsically tied to Hermes: it operates on Python di
 
 Async agent frameworks can use the included `AsyncRuntime` façade. It keeps provider loops responsive by moving compiler, vault, and telemetry work to an executor, propagates task or token cancellation, and uses native cancellable subprocess paths for RTK command rewriting and aggressive reads. The synchronous `Runtime` API remains unchanged.
 
-It does **not** replace the host's context engine, memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, token measurement, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
+In default middleware mode it does **not** replace the host context engine. In the explicitly selected v0.10.0 ContextEngine mode it replaces that context engine, but not the memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, token measurement, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
+
+## v0.10.0 review build: selectable Hermes ContextEngine
+
+**Not yet merged or published. The latest released version remains v0.9.0.**
+Versioned v0.10.0 installation commands later in this document apply only after
+owner-approved publication; use the feature branch for this review build:
+
+```bash
+git clone --single-branch --branch feat/hermes-context-engine-v0.10.0 \
+  https://github.com/AronAxe/Token-Terminator.git
+cd Token-Terminator
+<hermes-python> -m pip install --upgrade .
+<hermes-python> -m rtk_hermes_plus.cli install-context-engine
+```
+
+Enable the general `token-terminator` plugin, then choose **Token Terminator**
+(slug `token-terminator`) in **hermes plugins -> Provider Plugins -> Context Engine**.
+The inspected Hermes dashboard uses the same provider-option discovery. Equivalent
+YAML is `context: {engine: token-terminator}` with TT also in `plugins.enabled`.
+For restricted toolsets, allow `context_engine`. Restart Hermes after selection.
+
+The engine archives full available history, batches exact regions through the
+existing OpenRouter/direct TypeSafe JEV relevance/guard/salience service, retains
+protected or uncertain context, and reuses Context IR and the complete-request
+token gate. Old omitted facts can reappear; the archive offers exact paginated
+recovery and bounded lexical rediscovery. No generative summarizer or inferred
+prose graph is added. Keep existing keys and enable the existing optional
+`TOKEN_TERMINATOR_JEV=true` and `TOKEN_TERMINATOR_CONTEXT_IR=true` settings.
+
+Only one engine owns the lifecycle: TT selection excludes LCM/built-in compression.
+Normal middleware remains available. Selection commits at TT's final middleware
+boundary because Hermes' earlier engine hook cannot see the complete provider
+payload. The host transcript is not destructively shortened, including by manual
+`/compress`; protected/unscored history can still exceed a model window. Hard
+pre-middleware limits/stateful native compaction routes are not certified by this
+release. Unknown tokenizers fail open, without calling JEV.
+
+**Benchmark:** on five fifty-turn synthetic tasks and two tokenizers, the engine
+preserved all tested answers and used 54.74–56.77% fewer final tokens than the
+quality-preserving middleware control, but used two fixture JEV batches rather
+than one and more local processing time. The shorter legacy age-collapse arms
+failed those old-evidence goldens; shortness alone is not success. These are
+fixture tests, not measured live JEV economics or real-model quality.
+
+[Installation, selection, limits and recovery](docs/CONTEXT_ENGINE.md) ·
+[Full methodology and measurements](benchmarks/context_engine/README.md).
+
+**Legacy middleware caution:** deterministic old-turn age-collapse emits previews.
+For exact-history workloads set `TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS=0`;
+the new engine already excludes this path. No other existing reduction mechanism
+is removed.
 
 ## What it does
 
@@ -148,7 +199,7 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.9.0 supersedes 0.8.2 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.10.0 supersedes 0.8.2 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
 This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.9.0` release tag.
 
@@ -172,7 +223,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.9.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.10.0'
 ```
 
 Windows example:
@@ -181,7 +232,7 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.9.0"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.10.0"
 ```
 
 `tiktoken` now ships with Token Terminator and is used automatically for supported OpenAI-family models, including common provider-qualified model IDs. Hugging Face `tokenizers` remains optional when pointing Token Terminator at a local `tokenizer.json`:
@@ -235,7 +286,7 @@ Install the same distribution in the environment that owns your agent loop:
 
 ```bash
 python -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.9.0'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.10.0'
 ```
 
 Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.

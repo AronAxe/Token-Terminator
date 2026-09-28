@@ -56,3 +56,12 @@ A custom adapter needs four things:
 4. a recovery tool exposed to the model.
 
 The adapter must interpret `None` or an exception as **pass through unchanged**. See [Async and Adapter Integration](Async-and-Adapter-Integration) for the API shape.
+
+## Optional ContextEngine ownership (v0.10.0 candidate)
+
+Middleware mode keeps another host engine upstream. Selecting `token-terminator`
+makes TT the sole context engine and excludes built-in/LCM selection. The supported
+early hook stages exact full history; a turn-scoped context binding carries ownership
+to the final provider-envelope middleware. That stage batches JEV and runs the
+existing IR/gates. It does not accept message-only token estimates or invent facts.
+The host transcript remains intact. See [Context Engine](Context-Engine).

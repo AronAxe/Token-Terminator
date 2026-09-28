@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.0 - Unreleased (prepared for review)
+
+- Added a supported, explicitly selectable Hermes ContextEngine adapter and safe profile installer; no Hermes core patch or automatic activation.
+- Preserved ordinary middleware mode while letting TT own full available conversation history instead of a preceding LCM/built-in summarizer.
+- Added exact pinned message snapshots, a session-scoped source catalog, bounded lexical rediscovery and paginated history recovery. No invented relations or generative summaries.
+- Added bounded batched JEV relevance/guard/salience over exact regions and exact-payload retry caching using existing OpenRouter/direct TypeSafe configuration.
+- Deferred acceptance to the full provider-envelope boundary; exact token and character decreases are mandatory, and uncertainty/storage/scoring failures preserve originals.
+- Kept engine ownership across provider retries and propagated it through the async facade. Existing tool/native/temporal/SkillGate/IR paths remain active; engine mode excludes legacy lossy turn-age collapse.
+- Added real pinned-Hermes factory/loader/menu/middleware/tool tests, adversarial history tests, four executable benchmark arms and an explicitly unreproduced LCM arm.
+- Documented full-history memory/retention costs, pre-middleware provider limits, unknown-tokenizer pass-through, archive migration limits, and unmeasured live quality/cost.
+- Prepared README, wiki sources, configuration, security, migration and release notes. No merge, tag or publication is performed by this change.
+
 ## 0.9.0 - 2026-09-28
 
 - Added experimental **Context IR**, OFF by default: a local compiler after deterministic TT and optional Jev, without replacing native/temporal reduction, SkillGate, compaction, vaults or recovery.

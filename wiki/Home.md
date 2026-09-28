@@ -66,3 +66,10 @@ v0.5.1 is the post-0.5.0 hardening release. It adds bounded vault lifecycle mana
 - Python support: **3.10–3.13**
 - Rust interoperability crate: **token-terminator 0.9.0**
 - First-party runtime adapter: **Hermes Agent**
+
+## v0.10.0 development candidate
+
+[Selectable ContextEngine](Context-Engine) is prepared on a review branch, not
+published. It lets TT replace LCM/built-in context selection through the supported
+Hermes plugin API while preserving ordinary middleware mode. See
+[release candidate notes](Release-0.10.0). v0.9.0 remains the released baseline.

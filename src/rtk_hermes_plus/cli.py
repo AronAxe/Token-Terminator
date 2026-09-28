@@ -47,6 +47,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
+    install = sub.add_parser(
+        "install-context-engine",
+        help="Install the selectable Hermes ContextEngine adapter (does not select it).",
+    )
+    install.add_argument("--hermes-home", type=Path)
+    install.add_argument("--json", action="store_true")
+
     status = sub.add_parser("status", help="Show structural counts and configuration.")
     status.add_argument("--json", action="store_true")
 
@@ -87,6 +94,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run(args: argparse.Namespace) -> int:
+    if args.command == "install-context-engine":
+        from .engine_install import install_context_engine
+
+        _emit(install_context_engine(args.hermes_home), as_json=args.json)
+        return 0
     config, store, graph, compiler = _runtime()
     if args.command == "status":
         payload = {

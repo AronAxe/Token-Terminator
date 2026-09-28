@@ -144,3 +144,26 @@ Use `/token-terminator status` after changing configuration and start a fresh ho
 ### Jev provider selection
 
 `TOKEN_TERMINATOR_JEV_PROVIDER` accepts `auto`, `openrouter`, or `typesafe`. Auto mode prefers `OPENROUTER_API_KEY` when present and otherwise uses `TYPESAFE_API_KEY`. If both keys exist, OpenRouter is selected. You never need both keys for one Jev call.
+
+## v0.10.0 selectable ContextEngine (candidate)
+
+Explicit selection: `context.engine: token-terminator`; also enable the general
+`token-terminator` plugin for final middleware. Run the candidate's
+`token-terminator install-context-engine` first, preserve other plugin selections,
+allow the `context_engine` toolset where restricted, then restart. Existing
+OpenRouter/TypeSafe keys and JEV/IR flags are unchanged.
+
+| Variable | Default | Range |
+|---|---:|---:|
+| `TOKEN_TERMINATOR_ENGINE_MAX_BATCHES` | 2 | 1–8 |
+| `TOKEN_TERMINATOR_ENGINE_PROTECT_LAST` | 6 messages | 1–64 |
+| `TOKEN_TERMINATOR_ENGINE_REGION_CHARS` | 8000 | 256–64000 |
+| `TOKEN_TERMINATOR_ENGINE_RECALL_SOURCES` | 3 | 0–16 |
+| `TOKEN_TERMINATOR_ENGINE_SEARCH_SOURCES` | 10000 | 1–100000 |
+
+The existing JEV candidate/body/time limits also apply; the complete outbound body
+is bounded. Missing/uncertain scores leave evidence inline. Search-bound/capacity
+failures are explicit, not newest-only truncation. ContextEngine acceptance always
+requires an exact target tokenizer; character fallback is not sufficient.
+
+See [Context Engine](Context-Engine) for installation, retention and provider limits.

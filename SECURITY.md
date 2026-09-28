@@ -78,3 +78,39 @@ The existing adapter's canonical JSON measurement is exact for that string under
 Status exposes version/limits. Per-decision `metrics.context_ir` contains format counts, evaluations, raw/final tokens/chars, elapsed time, failure reason and `measurement_scope=canonical-request-json`. Source text, source IDs and raw exceptions are excluded from those metrics.
 
 The optional live benchmark explicitly calls configured Jev and OpenRouter and validates read-only recovery calls against source IDs already in the request. Raw answers and keys are not persisted. CI never runs the live benchmark.
+
+
+## v0.10.0 selected ContextEngine boundary
+
+Selection is explicit; installing its user-directory adapter does not select it,
+change Hermes core/config, or migrate LCM. Full available conversation messages
+(including sensitive content) are persisted locally as exact message JSON in the
+existing private vault. Hashes prove integrity, not truth. Persistent history pins
+survive reset and normal pruning; vault capacity and bounded-search failures retain
+original requests and return explicit recovery errors. This release has no automatic
+history deletion/unpin policy. Back up and secure the vault; deleting it invalidates
+references. File-system protection is not encryption or multi-tenant isolation.
+
+Enabling existing JEV sends bounded exact older user/assistant regions, the current
+query and recent plain conversation to the configured OpenRouter/TypeSafe service.
+This is an expanded historical-data boundary, not a local-only classifier. It adds
+no API key model. The complete body, batches and timeout are bounded; caps are not
+a verified dollar budget. Scores may be wrong or missing and are not factual claims.
+Malformed global results undo all semantic edits; individual invalid probabilities
+never authorize omission. Only complete valid score batches are cached in process,
+bound to the full payload hash; session/model resets clear the cache.
+
+The new history tool checks session membership and source hashes before returning
+exact pages. Historical recall is labeled data and cannot regain system/developer
+or tool authority. Existing generic artifact recovery retains its original scope;
+this addition is not an authorization retrofit for unrelated tools. Regex guards
+are conservative vetoes, not a universal multilingual instruction detector or
+prompt-injection defense. Source text is never converted into invented graph facts.
+
+A turn-scoped execution-context binding prevents cross-session plan reuse and keeps
+provider retries out of legacy age-collapse. The async adapter copies this binding
+to executor work. Missing tools, stale bindings, unsupported stateful requests,
+unknown tokenizers and storage/measurement failures do not authorize compaction.
+The final invariant covers the complete request at TT's middleware output, not later
+third-party rewrites, hidden provider framing or pre-middleware host hard limits.
+The user transcript remains unchanged even when the provider cannot fit it.

@@ -31,3 +31,6 @@
 - [Release 0.6.0](Release-0.6.0)
 - [Release 0.5.2](Release-0.5.2)
 - [Release 0.5.1](Release-0.5.1)
+
+- [Context Engine (v0.10.0 candidate)](Context-Engine)
+- [v0.10.0 candidate](Release-0.10.0)

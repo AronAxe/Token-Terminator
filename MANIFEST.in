@@ -12,3 +12,8 @@ include scripts/benchmark.py
 include scripts/quality_ab.py
 include scripts/benchmark_context_ir.py
 recursive-include benchmarks/context_ir *.md *.json
+
+include scripts/smoke_hermes_context_engine.py
+include scripts/benchmark_context_engine.py
+recursive-include benchmarks/context_engine *.md *.json
+recursive-include examples *.yaml
