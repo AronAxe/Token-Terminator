@@ -35,10 +35,12 @@ jobs:
           pathlib.Path('/tmp/tt-release-polish.py').write_bytes(script)
           PY
           python /tmp/tt-release-polish.py
+          # Workflow updates require the owner's authorized connector, not this job token.
+          git restore --source=HEAD -- .github/workflows/publish-release.yml .github/workflows/publish-crate.yml
           git diff --check
           git diff --exit-code bf861413728957be6925202fae0e0e6b559c2e64 -- src tests scripts benchmarks pyproject.toml Cargo.toml docs/assets/hero.webp docs/assets/judgement-day.webp docs/assets/mark.svg
           git rm -r .github/tt-release-polish
-          git add README.md CHANGELOG.md MIGRATION.md SECURITY.md docs wiki .github/workflows/publish-release.yml .github/workflows/publish-crate.yml
+          git add README.md CHANGELOG.md MIGRATION.md SECURITY.md docs wiki
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'docs: launch v0.11.0 with refreshed architecture, learning and Observatory guides'
