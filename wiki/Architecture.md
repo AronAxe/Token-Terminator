@@ -1,67 +1,74 @@
 # Architecture
 
-Token Terminator is designed as an **optimization layer**, not a replacement runtime.
+**Two integration modes. One context owner. Purpose before reduction.**
+
+![v0.11.0 context architecture](https://raw.githubusercontent.com/AronAxe/Token-Terminator/v0.11.0/docs/assets/architecture.svg)
 
 ## Ownership boundary
 
-### The host runtime owns
+The host owns transcript persistence, memory, provider clients/streaming and tool
+execution. In middleware mode its selected context engine stays upstream. In
+ContextEngine mode, **TT owns context selection instead of LCM or the built-in
+compressor**, but does not take over those other host responsibilities.
 
-- conversation/transcript persistence;
-- memory and context-engine lifecycle;
-- provider client and response streaming;
-- tool execution;
-- authoritative session/request identity.
+TT owns its private exact-evidence vault, source/exposure catalog, temporal baselines,
+request metrics and experiment ledger. History omissions are request representations,
+not deletion of the host transcript. An old source can become relevant again.
 
-### Token Terminator owns
+## Two paths
 
-- its private SQLite artifact vault;
-- content-addressed evidence and observations;
-- exposure/receipt accounting;
-- temporal terminal baselines;
-- request-reduction metrics and experiment ledger;
-- middleware transformations at adapter-defined boundaries.
+```text
+Middleware:
+  host context engine → conversational scope check
+  → TT compiler / deterministic compaction / SkillGate
+  → optional JEV gate → optional Context IR → final gate → provider
 
-That separation is deliberate. Token Terminator can disappear or fail and the host should still behave normally.
+Selected ContextEngine:
+  full available history → staged exact session sources
+  → conversational scope check at the complete-request boundary
+  → bounded JEV relevance / guard / salience + optional learned omission veto
+  → exact active evidence / recovery references
+  → existing compiler / SkillGate / exact tool evidence → optional Context IR
+  → strict complete-request tokenizer AND character gate → provider
+```
 
-## Pipeline
+The early Hermes hook stages full history without rewriting the host transcript.
+The supported final-request middleware makes the acceptance decision only after
+real tool schemas and recovery references exist. Engine mode does not repeat the
+legacy middleware JEV gate or perform lossy old-turn age-collapse. Unscoped generic
+adapters and internal embeddings/rerank/helpers/counting/JEV calls bypass.
 
-A typical request cycle can touch six reduction paths:
+Existing RTK command rewriting, post-execution temporal deltas and native tool-result
+compression remain separate supported paths. A command still executes before a
+new exact observation can become a smaller delta. Returning compressed evidence to
+a subsequent main conversation is not rewriting an internal service's own input.
 
-1. **Terminal rewrite** — eligible terminal commands can be rewritten through RTK before execution.
-2. **Temporal delta** — after a repeated terminal command actually executes, the new exact output may be represented as a smaller diff/no-change receipt.
-3. **Native tool-result compression** — supported large tool outputs can be compacted after exact evidence is vaulted.
-4. **Evidence vault / receipts** — duplicate or previously exposed evidence can be represented by bounded recovery receipts.
-5. **Final request compiler + deterministic context compactor** — the fully assembled provider request is deep-copied, deduplicated, old tool evidence can be vaulted, and old completed turns can be deterministically collapsed.
-6. **Optional Jev semantic gate** — after normal TT reduction, bounded remaining prior plain-text user/assistant messages can be batch-scored against the current user request. Only low-relevance/low-guard candidates are exact-vaulted and replaced with recovery receipts.
+## Learned policy: outside JEV, inside hard safety boundaries
 
-Optional tokenizer-aware measurement adds a second acceptance gate after character reduction, including Jev candidates when Jev is enabled.
+![External learning loop](https://raw.githubusercontent.com/AronAxe/Token-Terminator/v0.11.0/docs/assets/learning-loop.svg)
 
-## Hermes adapter seams
+A separately invoked training command uses explicit outcome-labelled experiments,
+System-2 question revision, JEV probabilities and real CatBoost fitting. Development
+selection precedes frozen holdout assessment. An operator approves a bounded numeric
+JSON artifact before deployment; JEV weights do not change. The policy may retain
+more otherwise removable evidence but never override scope/provenance/protection.
+[Learned Policy](Learned-Policy) details `off`, `shadow` and `active`.
 
-The first-party Hermes adapter connects the core through:
+## Observatory is read-only
 
-- `tool_request` middleware for terminal rewrites;
-- `transform_tool_result` for native and temporal result reduction;
-- observational lifecycle and `post_tool_call` hooks;
-- `llm_request` middleware for provider-bound request compilation, deterministic compaction, and optional Jev semantic reduction;
-- the compact `token_terminator` recovery/status tool.
+Existing content-free accounting feeds [localhost:7474 and Desktop](Dashboard).
+Neither view reads conversation/artifact bodies or performs inference. The native
+popover follows the authenticated connection's active profile; the standalone view
+can aggregate explicitly mapped local bots. Missing or ambiguous values remain unknown.
 
-## Porting to another runtime
+## Porting and limitations
 
-A custom adapter needs four things:
+Other runtimes need stable session/request IDs, supported tool/result seams, an
+explicitly authorized main-request hook and model-visible recovery. See
+[Async and Adapter Integration](Async-and-Adapter-Integration). `None` or failure
+means pass through. ContextEngine and IR require the real target tokenizer; no
+character-only substitution is accepted. The guarantee ends at TT's output boundary.
 
-1. stable session/request/tool-call identifiers;
-2. a tool-result transformation seam;
-3. a final provider-request seam;
-4. a recovery tool exposed to the model.
-
-The adapter must interpret `None` or an exception as **pass through unchanged**. See [Async and Adapter Integration](Async-and-Adapter-Integration) for the API shape.
-
-## Optional ContextEngine ownership (v0.10.0 candidate)
-
-Middleware mode keeps another host engine upstream. Selecting `token-terminator`
-makes TT the sole context engine and excludes built-in/LCM selection. The supported
-early hook stages exact full history; a turn-scoped context binding carries ownership
-to the final provider-envelope middleware. That stage batches JEV and runs the
-existing IR/gates. It does not accept message-only token estimates or invent facts.
-The host transcript remains intact. See [Context Engine](Context-Engine).
+See the [complete ContextEngine contract](https://github.com/AronAxe/Token-Terminator/blob/v0.11.0/docs/CONTEXT_ENGINE.md)
+for exact hook order, supported provider envelopes, retries, archive-only lexical
+recall, persistent-pin capacity and unresolved protected-history overflow.

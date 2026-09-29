@@ -1,91 +1,82 @@
-# Quick Start
+# Quick Start · v0.11.0
 
-This page gets a Hermes Agent installation onto Token Terminator **v0.8.2** with the fewest moving parts.
+Install into the Python environment that runs Hermes. Replace `python` below with
+that interpreter when needed; a system-wide install in another environment will
+not make the plugin visible to Hermes.
 
-## 1. Optional: install RTK
+## 1. Install the release
 
-RTK is only required for terminal-command rewriting. Native compression, vaulting, recovery, request compilation, and token-aware acceptance work without it.
-
-```bash
-brew install rtk
-```
-
-For security-sensitive deployments, prefer an explicit executable path later with `TOKEN_TERMINATOR_RTK_PATH`.
-
-## 2. Replace any older distribution
-
-`token-terminator` and the old `rtk-hermes-plus` package both own the `rtk_hermes_plus` Python import package. Do not install them together.
+Back up the TT evidence vault before changing packages. The older `rtk-hermes-plus`
+distribution must not coexist with `token-terminator`: both own the same import
+package. Disable/remove that legacy distribution first if installed.
 
 ```bash
-HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
-
-hermes plugins disable rtk-plus
-hermes plugins disable token-terminator
-
-"$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
-"$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2'
-
+python -m pip install --upgrade \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.0'
+python -m rtk_hermes_plus.cli install-context-engine
 hermes plugins enable token-terminator --no-allow-tool-override
 ```
 
-On Windows, use the Hermes virtual-environment Python under `%LOCALAPPDATA%\hermes\hermes-agent\venv\Scripts\python.exe`.
+The managed installer also includes the optional Desktop/backend files. It does
+not edit `config.yaml`, select an engine, enable Desktop, or start a server.
+Do not enable a duplicate RTK rewrite adapter. The optional `rtk` binary is only
+needed for terminal-command rewriting, not native compression, recovery or IR.
 
-## 3. Optional: exact tokenizer alignment
+## 2. Choose middleware or ContextEngine
 
-```bash
-"$HERMES_PY" -m pip install tiktoken tokenizers
+**Keep another engine:** leave your existing Context Engine selection unchanged;
+TT runs as middleware. For exact old-dialogue workloads in legacy middleware,
+set `TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS=0`.
+
+**Replace LCM/compressor:** in `hermes plugins`, choose
+**Provider Plugins → Context Engine → Token Terminator**. Equivalent YAML,
+while preserving your other enabled plugins:
+
+```yaml
+plugins:
+  enabled:
+    - token-terminator
+context:
+  engine: token-terminator
 ```
 
-Use a Hugging Face `tokenizer.json` or a supported tiktoken encoding through the configuration variables described in [Configuration](Configuration). If no exact tokenizer is available, the strict character-reduction invariant remains active.
+Allow `context_engine` in restricted toolsets. Only one context engine owns the
+lifecycle. Restart Hermes/gateway, then verify `token_terminator_history` with
+`{"action":"status"}` in the running session.
 
-## 4. Optional: enable Jev semantic context reduction
-
-Jev is not required. The existing Token Terminator pipeline works without it.
-
-OpenRouter (preferred automatically when its key exists):
+## 3. Enable optional semantic attention and IR
 
 ```bash
+export TOKEN_TERMINATOR_MODE=balanced
 export TOKEN_TERMINATOR_JEV=true
-export OPENROUTER_API_KEY="..."
+export TOKEN_TERMINATOR_CONTEXT_IR=true
 ```
 
-Or direct TypeSafe:
+Reuse your existing **OpenRouter OR direct TypeSafe** key and provider setting.
+Never commit keys. JEV uploads bounded semantic state only after explicit opt-in;
+IR itself is local. ContextEngine and IR require the actual target tokenizer.
+Supported tiktoken models are automatic; other models need a matching configured
+counter/tokenizer, not an unrelated model's tokenizer.
+
+## 4. Open the dashboard
 
 ```bash
-export TOKEN_TERMINATOR_JEV=true
-export TOKEN_TERMINATOR_JEV_PROVIDER=typesafe
-export TYPESAFE_API_KEY="..."
+token-terminator dashboard
 ```
 
-Never commit either key. You need only one provider key. Enabling Jev sends the bounded Jev state either through OpenRouter's Decisions API or directly to TypeSafe; see [Jev Semantic Context Gate](Jev-Semantic-Context-Gate) and [Security and Trust Model](Security-and-Trust-Model).
+Open **http://localhost:7474**. For dashboard-only managed installation,
+`token-terminator install-dashboard` does not select a context engine. Enable the
+Desktop half under **Capabilities → Plugins**, restart the gateway as needed, and
+click **TT ↓ …** in the bottom status bar. The popover does not need the standalone
+server. Install the adapter in each intended Hermes profile home.
 
-## 5. Start a fresh Hermes session
+## 5. Keep learning off until a policy is reviewed
 
-Then check:
+The learned layer is off by default. Training needs explicit labelled experiments,
+optional `[learning]` dependencies and either replay or consented live collection.
+A private artifact and approved SHA-256 are required before `shadow` or `active`.
+Nothing trains or activates merely because it is installed.
 
-```text
-/token-terminator status
-/token-terminator stats
-```
-
-You want to see the plugin enabled, the expected mode, and a usable vault. If temporal delta or token budgeting is configured, their status is shown here too.
-
-## 6. First recovery smoke test
-
-After a large supported tool result is compressed, its receipt contains an artifact ID. Recover the exact content with the model tool:
-
-```json
-{
-  "action": "artifact_get",
-  "artifact_id": "a_<content-address>",
-  "offset": 0,
-  "limit": 8000
-}
-```
-
-If exact write/read-back verification fails, Token Terminator must leave the original result untouched.
-
-## Recommended starting mode
-
-Use `balanced` unless you have a specific reason not to. It enables terminal rewriting, temporal terminal deltas, native compression for large search/process results, and final request compilation without aggressive large-file rewriting.
+[ContextEngine guide](https://github.com/AronAxe/Token-Terminator/blob/v0.11.0/docs/CONTEXT_ENGINE.md) ·
+[Dashboard](Dashboard) · [Learning](Learned-Policy) ·
+[Configuration](Configuration) · [Migration](Migration-and-Rollback)

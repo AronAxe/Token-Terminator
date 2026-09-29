@@ -80,7 +80,7 @@ Status exposes version/limits. Per-decision `metrics.context_ir` contains format
 The optional live benchmark explicitly calls configured Jev and OpenRouter and validates read-only recovery calls against source IDs already in the request. Raw answers and keys are not persisted. CI never runs the live benchmark.
 
 
-## v0.10.0 selected ContextEngine boundary
+## v0.11.0 selected ContextEngine boundary
 
 Selection is explicit; installing its user-directory adapter does not select it,
 change Hermes core/config, or migrate LCM. Full available conversation messages
@@ -116,7 +116,7 @@ third-party rewrites, hidden provider framing or pre-middleware host hard limits
 The user transcript remains unchanged even when the provider cannot fit it.
 
 
-## Call-purpose boundary (v0.10.0 review)
+## Call-purpose boundary (v0.11.0)
 
 The public request entry point checks purpose before any engine/semantic/tokenizer
 work. Internal service envelopes and negative/unknown host role signals bypass;

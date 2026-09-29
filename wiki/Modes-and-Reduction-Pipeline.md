@@ -11,7 +11,7 @@ Token Terminator uses one runtime mode to control which reduction paths are acti
 | `suggest` | measure only | — | — | — | — | — |
 | `off` | — | — | — | — | — | — |
 
-*Jev still requires `TOKEN_TERMINATOR_JEV=true` plus an API key. It is off by default even in `balanced` and `aggressive` modes. When enabled, it runs after the normal deterministic request-reduction phases; it never disables them.*
+*Jev still requires `TOKEN_TERMINATOR_JEV=true` plus an API key. It is off by default even in `balanced` and `aggressive` modes. In middleware mode it runs after deterministic request reduction; selected ContextEngine mode scores full-history regions before the final compiler/IR path. Neither mode removes the existing tool/vault mechanisms.*
 
 ## Balanced
 
@@ -45,10 +45,17 @@ This is why a healthy Token Terminator session can contain many untouched result
 
 ## Engine ownership versus reduction mode
 
-The v0.10.0 candidate adds an independent choice: ordinary TT middleware after
+The v0.11.0 release adds an independent choice: ordinary TT middleware after
 another host engine, or selected TT ContextEngine over full available history.
 Selection does not change the existing `balanced`/`aggressive` requirement for
 request compilation. `off`/native-only/terminal-only modes do not capture/score
 ContextEngine history. In engine mode, JEV owns semantic omission, legacy lossy
 age-collapse is excluded, and the existing vault/tool/IR stages remain active.
 [Context Engine](Context-Engine) details setup and limitations.
+
+
+The learned-policy mode is a separate switch: `off` / `shadow` / approved `active`.
+It does not replace the runtime mode or permit bypassing protected content.
+The dashboard is read-only and can display existing accounting in any mode.
+[Architecture](Architecture) shows both provider-request paths and the separate
+training/observability boundaries.

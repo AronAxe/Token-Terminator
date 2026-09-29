@@ -1,6 +1,6 @@
 # Token Terminator Observatory
 
-**v0.11.0 review candidate · PR #19 · read-only and opt-in.**
+**v0.11.0 · read-only and opt-in.**
 
 A local dashboard at `http://localhost:7474` shows per-profile/bot input savings,
 input/output usage, rate-card equivalents and a fourteen-day savings trend.
@@ -10,7 +10,7 @@ No server or window starts automatically when an agent imports TT.
 
 ## Start the main dashboard
 
-Install this candidate in the environment that already runs TT, then:
+Install v0.11.0 in the environment that already runs TT, then:
 
 ```bash
 token-terminator dashboard

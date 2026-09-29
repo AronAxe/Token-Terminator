@@ -87,7 +87,7 @@ Package uninstall does not erase the private Token Terminator data directory. Ba
 
 For the detailed pre-change checklist, rollback commands, and compatibility boundary, use the repository's `MIGRATION.md` as the authoritative operational document.
 
-## v0.9.0 -> v0.10.0 candidate
+## v0.9.0 -> v0.11.0 release
 
 Install the review build and supported user-directory adapter; explicitly enable
 TT middleware and select `context.engine: token-terminator`. Do not retain LCM

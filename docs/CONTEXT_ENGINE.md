@@ -1,8 +1,9 @@
-# Token Terminator ContextEngine — v0.11.0 candidate
+# Token Terminator ContextEngine — v0.11.0
 
-**Unreleased, experimental, explicit selection only.** The v0.9.0 release remains
-unchanged. No Hermes core files, live profiles, LCM database, main branch, release
-tag or registry publication is modified by installation of this adapter.
+**Experimental and explicitly selected.** Available in v0.11.0; ordinary
+middleware mode remains the default. Installing the managed adapter does not
+change Hermes core, select a context engine, enable plugins, alter LCM data or
+activate a learned policy. Existing released tags are unchanged.
 
 ## Two modes, one context owner
 
@@ -42,22 +43,23 @@ its existing contract automatically. JEV as the final chat model preserves full
 supplied history by default, except measured reversible IR and minimally necessary
 budget-pressure selection. See [scope audit, tests and hard-limit limits](CALL_SCOPE_REVIEW.md).
 
-## Install this review build and select it
+## Install v0.11.0 and select it
 
 Use the Python interpreter of the Hermes environment, not an unrelated system
-Python. The tag `v0.11.0` does not exist until the owner approves publication.
+Python. Replace `python` with that interpreter when necessary. Remove the legacy
+`rtk-hermes-plus` distribution first if installed; do not install both together.
 
 ```bash
-git clone --single-branch --branch feat/hermes-context-engine-v0.10.0 \
-  https://github.com/AronAxe/Token-Terminator.git
-cd Token-Terminator
-<hermes-python> -m pip install --upgrade .
-<hermes-python> -m rtk_hermes_plus.cli install-context-engine
+python -m pip install --upgrade \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.0'
+python -m rtk_hermes_plus.cli install-context-engine
 ```
 
-The installer creates only `$HERMES_HOME/plugins/token-terminator/__init__.py` and
-`plugin.yaml`. It is idempotent for its managed files and refuses unmanaged-file
-or symlink replacement. It does not enable anything or edit `config.yaml`.
+The installer creates its managed adapter under
+`$HERMES_HOME/plugins/token-terminator/`: `__init__.py`, `plugin.yaml`,
+`dashboard/plugin_api.py`, `dashboard/manifest.json`, `dashboard/noop.js`, and
+`desktop/plugin.js`. The same bundle supports the optional Desktop counter.
+It is idempotent for its managed files and refuses unmanaged-file or symlink replacement. It does not enable anything or edit `config.yaml`.
 `--hermes-home PATH` selects another profile explicitly.
 
 In `hermes plugins`, enable the **token-terminator** general plugin (required for

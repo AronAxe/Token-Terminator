@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="820" viewBox="0 0 1120 820" role="img" aria-labelledby="title desc">
+<title id="title">Token Terminator — learning outside JEV</title><desc id="desc">Explicit labelled omission experiments are grouped to prevent overlap. A System-2 model proposes feature questions, JEV supplies probabilities, and CatBoost fits omission-harm and recovery-cost predictors. Development validation feeds question revision. Questions, models and threshold freeze before separate holdout evaluation and operator approval. Off is default, shadow audits, active may veto omissions. No automatic training or activation.</desc>
+<defs>
+  <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#080f1b"/><stop offset="1" stop-color="#111b2c"/></linearGradient>
+  <linearGradient id="accent"><stop stop-color="#64dedc"/><stop offset="1" stop-color="#a38df6"/></linearGradient>
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="none" stroke="#64dedc" stroke-width="1.6"/></marker>
+  <style>
+    text{font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif}
+    .title{fill:#f4f7fd;font-size:34px;font-weight:750}.subtitle{fill:#b0bfd5;font-size:18px}
+    .label{fill:#64dedc;font-size:15px;font-weight:700;letter-spacing:1.4px}
+    .name{fill:#f4f7fd;font-size:22px;font-weight:650}.body{fill:#b0bfd5;font-size:17px}
+    .small{fill:#b0bfd5;font-size:15px}.pill{fill:#e1d8fe;font-size:16px;font-weight:650}
+    .box{fill:#121e30;stroke:#344560;stroke-width:1.5}.key{fill:#122536;stroke:#64dedc;stroke-width:1.7}
+    .optional{fill:#211e38;stroke:#a38df6;stroke-width:1.5}.bypass{fill:#20252d;stroke:#8190a4;stroke-width:1.5}
+    .flow{fill:none;stroke:#64dedc;stroke-width:2;marker-end:url(#arrow)}
+    .dashed{fill:none;stroke:#8f9eb4;stroke-width:1.5;stroke-dasharray:5 5}
+  </style>
+</defs>
+<rect width="1120" height="820" rx="24" fill="url(#bg)"/>
+<rect x="40" y="34" width="48" height="4" rx="2" fill="url(#accent)"/>
+<text x="40" y="83" class="title">Learning outside JEV.</text>
+<text x="40" y="115" class="subtitle">Questions and outer predictors learn. JEV weights stay fixed.</text>
+<text x="40" y="158" class="label">OFFLINE TRAINING / EXPLICITLY CONSENTED LIVE FEATURE COLLECTION</text>
+<rect x="40" y="178" width="320" height="106" rx="13" class="box"/>
+<text x="60" y="211" class="name">Observed experiments</text>
+<text x="60" y="238" class="body">Exact sources + outcome labels</text>
+<text x="60" y="262" class="body">Grouped development / holdout</text>
+<rect x="398" y="178" width="320" height="106" rx="13" class="optional"/>
+<text x="418" y="211" class="name">System-2 proposals</text>
+<text x="418" y="238" class="body">Propose / revise questions</text>
+<text x="418" y="262" class="body">Use development errors only</text>
+<rect x="756" y="178" width="324" height="106" rx="13" class="optional"/>
+<text x="776" y="211" class="name">JEV semantic features</text>
+<text x="776" y="238" class="body">Batched Noul / Score features</text>
+<text x="776" y="262" class="body">Existing provider and key</text>
+<path d="M360 231 H386" class="flow"/>
+<path d="M718 231 H744" class="flow"/>
+<path d="M918 284 V312 H570 C565 300 551 300 546 312 H200 V331" class="flow"/>
+<rect x="40" y="344" width="320" height="106" rx="13" class="box"/>
+<text x="60" y="377" class="name">CatBoost fitting</text>
+<text x="60" y="404" class="body">Omission-harm predictor</text>
+<text x="60" y="428" class="body">Recovery-token predictor</text>
+<rect x="398" y="344" width="320" height="106" rx="13" class="optional"/>
+<text x="418" y="377" class="name">Development validation</text>
+<text x="418" y="404" class="body">Select questions and threshold</text>
+<text x="418" y="428" class="body">Bounded revision rounds</text>
+<rect x="756" y="344" width="324" height="106" rx="13" class="key"/>
+<text x="776" y="377" class="name">Freeze &gt; final holdout</text>
+<text x="776" y="404" class="body">Questions / models / threshold</text>
+<text x="776" y="428" class="body">No holdout-driven tuning</text>
+<path d="M360 397 H386" class="flow"/>
+<path d="M718 397 H744" class="flow"/>
+<path d="M558 344 V284" class="flow"/>
+<text x="570" y="338" class="small">revision</text>
+<path d="M918 450 V486 H560 V510" class="flow"/>
+<rect x="254" y="522" width="612" height="106" rx="13" class="key"/>
+<text x="274" y="555" class="name">Operator-reviewed policy artifact</text>
+<text x="274" y="582" class="body">Private numeric JSON + approved SHA-256</text>
+<text x="274" y="606" class="body">Bound to feature schema, scorer and generation targets</text>
+<text x="40" y="675" class="label">RUNTIME  /  STANDARD-LIBRARY INFERENCE · CATBOOST IS TRAINING-ONLY</text>
+<rect x="40" y="694" width="320" height="92" rx="13" class="box"/>
+<text x="60" y="727" class="name">OFF · default</text>
+<text x="60" y="754" class="body">No policy work or extra features</text>
+<rect x="398" y="694" width="320" height="92" rx="13" class="optional"/>
+<text x="418" y="727" class="name">SHADOW · audit</text>
+<text x="418" y="754" class="body">Return the fixed-gate request</text>
+<rect x="756" y="694" width="324" height="92" rx="13" class="key"/>
+<text x="776" y="727" class="name">ACTIVE · omission veto</text>
+<text x="776" y="754" class="body">May retain; cannot relax guards</text>
+</svg>

@@ -1,7 +1,8 @@
-# Learned omission-risk policy — v0.11.0 review candidate
+# Learned omission-risk policy — v0.11.0
 
-PR #19 remains on `feat/hermes-context-engine-v0.10.0`. The released baseline is
-v0.9.0; v0.10.0 was an unreleased development milestone, folded into this candidate.
+Available in v0.11.0, alongside the selectable ContextEngine and call-scope work
+first developed under the unshipped 0.10.0 milestone. The layer is experimental
+and off by default; no pretrained production policy is included.
 No training or activation happens merely by installing the package.
 
 ## What actually learns

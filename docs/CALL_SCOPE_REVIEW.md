@@ -1,6 +1,6 @@
-# v0.10.0 call-scope review
+# Call-scope audit — shipped in v0.11.0
 
-Candidate under review: PR #19, `feat/hermes-context-engine-v0.10.0`.
+Historical audit of PR #19 (`feat/hermes-context-engine-v0.10.0`); the fixes ship in v0.11.0. The pinned audit commits and reproduction results below remain unchanged.
 Baseline reviewed: `0cfe572506fc87df4ccf54fcc9ed34757ac05b5f`.
 No change to the released v0.9.0, main, live wiki, registries, or running profiles.
 

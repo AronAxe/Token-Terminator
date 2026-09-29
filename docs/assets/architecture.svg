@@ -1,99 +1,77 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
-  <title id="title">Token Terminator architecture</title>
-  <desc id="desc">Token Terminator is a portable agent-runtime reduction core with a first-party Hermes adapter. It reduces terminal commands, native tool results, and final provider requests while preserving exact artifacts in one private vault.</desc>
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#07111f"/>
-      <stop offset="1" stop-color="#11152c"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#23d5ff"/>
-      <stop offset="1" stop-color="#7868ff"/>
-    </linearGradient>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#42d7ff"/>
-    </marker>
-    <style>
-      .heading { font: 700 28px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #f5f7ff; }
-      .subheading { font: 500 14px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #aab4d0; }
-      .lane { font: 700 15px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #7ee8ff; letter-spacing: 1px; }
-      .box-title { font: 700 16px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #f4f6ff; }
-      .box-sub { font: 400 12px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #aab4d0; }
-      .small { font: 600 12px ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; fill: #9aa8c8; }
-      .box { fill: #111c31; stroke: #334262; stroke-width: 1.4; }
-      .key { fill: #121f38; stroke: url(#accent); stroke-width: 2; }
-      .gate { fill: #16243a; stroke: #42d7ff; stroke-width: 1.8; stroke-dasharray: 6 4; }
-      .flow { fill: none; stroke: #42d7ff; stroke-width: 2.2; marker-end: url(#arrow); }
-      .private { fill: none; stroke: #8a7cff; stroke-width: 1.8; marker-end: url(#arrow); }
-    </style>
-  </defs>
-
-  <rect width="1200" height="700" rx="24" fill="url(#bg)"/>
-  <path d="M0 94 H1200" stroke="#27334d"/>
-  <text x="48" y="48" class="heading">Token Terminator</text>
-  <text x="48" y="73" class="subheading">Agent-agnostic core · first-party Hermes adapter · exact recovery · fail open</text>
-  <text x="1150" y="52" text-anchor="end" class="small">Host context and transcripts stay host-owned</text>
-
-  <text x="48" y="130" class="lane">1 · TERMINAL COMMAND PATH</text>
-  <rect x="48" y="148" width="210" height="86" rx="14" class="box"/>
-  <text x="68" y="181" class="box-title">Runtime terminal call</text>
-  <text x="68" y="204" class="box-sub">caller arguments preserved</text>
-  <path d="M258 191 H318" class="flow"/>
-  <rect x="320" y="148" width="210" height="86" rx="14" class="key"/>
-  <text x="340" y="181" class="box-title">RTK rewrite gate</text>
-  <text x="340" y="204" class="box-sub">backend · cache · timeout · guard</text>
-  <path d="M530 191 H590" class="flow"/>
-  <rect x="592" y="148" width="210" height="86" rx="14" class="box"/>
-  <text x="612" y="181" class="box-title">Host executes</text>
-  <text x="612" y="204" class="box-sub">safe equivalent or original command</text>
-  <path d="M802 191 H862" class="flow"/>
-  <rect x="864" y="148" width="288" height="86" rx="14" class="key"/>
-  <text x="884" y="181" class="box-title">Smaller terminal result</text>
-  <text x="884" y="204" class="box-sub">no extra provider turn</text>
-
-  <text x="48" y="286" class="lane">2 · NATIVE EVIDENCE PATH</text>
-  <rect x="48" y="304" width="210" height="98" rx="14" class="box"/>
-  <text x="68" y="339" class="box-title">Large native result</text>
-  <text x="68" y="362" class="box-sub">search_files · process</text>
-  <text x="68" y="381" class="box-sub">read_file in aggressive mode</text>
-  <path d="M258 353 H318" class="flow"/>
-  <rect x="320" y="304" width="210" height="98" rx="14" class="key"/>
-  <text x="340" y="339" class="box-title">Exact artifact vault</text>
-  <text x="340" y="362" class="box-sub">content address + read-back check</text>
-  <text x="340" y="381" class="box-sub">private SQLite provenance</text>
-  <path d="M530 353 H590" class="flow"/>
-  <rect x="592" y="304" width="210" height="98" rx="14" class="box"/>
-  <text x="612" y="339" class="box-title">Deterministic compact</text>
-  <text x="612" y="362" class="box-sub">collapse repeats · retain signal</text>
-  <text x="612" y="381" class="box-sub">reject unless strictly smaller</text>
-  <path d="M802 353 H862" class="flow"/>
-  <rect x="864" y="304" width="288" height="98" rx="14" class="key"/>
-  <text x="884" y="339" class="box-title">Compact result + receipt</text>
-  <text x="884" y="362" class="box-sub">token_terminator recovers exact pages</text>
-  <text x="884" y="381" class="box-sub">failure → original result</text>
-
-  <text x="48" y="454" class="lane">3 · FINAL PROVIDER REQUEST PATH</text>
-  <rect x="48" y="472" width="210" height="98" rx="14" class="box"/>
-  <text x="68" y="507" class="box-title">Host provider request</text>
-  <text x="68" y="530" class="box-sub">normal context already assembled</text>
-  <text x="68" y="549" class="box-sub">Hermes adapter included</text>
-  <path d="M258 521 H318" class="flow"/>
-  <rect x="320" y="472" width="210" height="98" rx="14" class="key"/>
-  <text x="340" y="507" class="box-title">Request compiler</text>
-  <text x="340" y="530" class="box-sub">deep copy · evidence leases</text>
-  <text x="340" y="549" class="box-sub">duplicate receipts</text>
-  <path d="M530 521 H590" class="flow"/>
-  <rect x="592" y="472" width="210" height="98" rx="14" class="box"/>
-  <text x="612" y="507" class="box-title">Optional working state</text>
-  <text x="612" y="530" class="box-sub">bounded · disabled by default</text>
-  <text x="612" y="549" class="box-sub">never replaces host memory</text>
-  <path d="M802 521 H862" class="flow"/>
-  <rect x="864" y="472" width="288" height="98" rx="14" class="gate"/>
-  <text x="884" y="507" class="box-title">Complete-size acceptance gate</text>
-  <text x="884" y="530" class="box-sub">count receipts + working state</text>
-  <text x="884" y="549" class="box-sub">smaller → provider · else pass through</text>
-
-  <rect x="48" y="612" width="1104" height="50" rx="13" fill="#0e1a2c" stroke="#5f53a8" stroke-width="1.5"/>
-  <text x="70" y="642" class="box-title">Private boundary</text>
-  <text x="212" y="642" class="box-sub">artifacts · provenance · exposure leases · request metrics · optional working state · experiment ledger</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1100" viewBox="0 0 1120 1100" role="img" aria-labelledby="title desc">
+<title id="title">Token Terminator v0.11.0 — two modes, one context owner</title><desc id="desc">Scope authorization precedes conversational reduction. Middleware mode retains the host engine. ContextEngine mode starts from full available history, uses exact vault backing, bounded JEV attention and an optional learned omission veto. Context IR and full-request acceptance precede the provider. Internal services bypass. Read-only accounting feeds localhost and Desktop. This is a logical overview, not literal hook execution order.</desc>
+<defs>
+  <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#080f1b"/><stop offset="1" stop-color="#111b2c"/></linearGradient>
+  <linearGradient id="accent"><stop stop-color="#64dedc"/><stop offset="1" stop-color="#a38df6"/></linearGradient>
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="none" stroke="#64dedc" stroke-width="1.6"/></marker>
+  <style>
+    text{font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif}
+    .title{fill:#f4f7fd;font-size:34px;font-weight:750}.subtitle{fill:#b0bfd5;font-size:18px}
+    .label{fill:#64dedc;font-size:15px;font-weight:700;letter-spacing:1.4px}
+    .name{fill:#f4f7fd;font-size:22px;font-weight:650}.body{fill:#b0bfd5;font-size:17px}
+    .small{fill:#b0bfd5;font-size:15px}.pill{fill:#e1d8fe;font-size:16px;font-weight:650}
+    .box{fill:#121e30;stroke:#344560;stroke-width:1.5}.key{fill:#122536;stroke:#64dedc;stroke-width:1.7}
+    .optional{fill:#211e38;stroke:#a38df6;stroke-width:1.5}.bypass{fill:#20252d;stroke:#8190a4;stroke-width:1.5}
+    .flow{fill:none;stroke:#64dedc;stroke-width:2;marker-end:url(#arrow)}
+    .dashed{fill:none;stroke:#8f9eb4;stroke-width:1.5;stroke-dasharray:5 5}
+  </style>
+</defs>
+<rect width="1120" height="1100" rx="24" fill="url(#bg)"/>
+<rect x="40" y="34" width="48" height="4" rx="2" fill="url(#accent)"/>
+<text x="40" y="83" class="title">Context, without the excess.</text>
+<text x="40" y="115" class="subtitle">v0.11.0  /  Two integration modes. Exact evidence. Purpose before reduction.</text>
+<text x="40" y="159" class="label">01  AUTHORIZE THE CALL</text>
+<rect x="40" y="178" width="492" height="98" rx="13" class="key"/>
+<text x="60" y="211" class="name">Main conversational generation</text>
+<text x="60" y="238" class="body">Host purpose / role + supported hook contract</text>
+<rect x="576" y="178" width="504" height="98" rx="13" class="bypass"/>
+<text x="596" y="211" class="name">Internal services bypass TT</text>
+<text x="596" y="238" class="body">Embeddings · reranking · helpers · internal JEV</text>
+<text x="596" y="264" class="small">Tokenizers measure; they are not generation targets.</text>
+<path d="M532 227 H551 V318 H286 M551 318 H828" fill="none" stroke="#64dedc" stroke-width="2"/>
+<text x="40" y="310" class="label">02  SELECT EXACTLY ONE CONTEXT OWNER</text>
+<rect x="40" y="330" width="492" height="94" rx="13" class="box"/>
+<text x="60" y="363" class="name">Middleware mode</text>
+<text x="60" y="390" class="body">Host context engine &gt; assembled context</text>
+<rect x="576" y="330" width="504" height="94" rx="13" class="key"/>
+<text x="596" y="363" class="name">Token Terminator ContextEngine</text>
+<text x="596" y="390" class="body">Full available history &gt; exact pinned vault</text>
+<path d="M286 318 V326" class="flow"/>
+<path d="M828 318 V326" class="flow"/>
+<path d="M286 424 V450" class="flow"/>
+<path d="M828 424 V450" class="flow"/>
+<rect x="40" y="462" width="492" height="123" rx="13" class="box"/>
+<text x="60" y="495" class="name">Existing TT reduction</text>
+<text x="60" y="522" class="body">Compiler / deterministic compaction / SkillGate</text>
+<text x="60" y="546" class="body">Optional JEV gate follows local reduction</text>
+<rect x="576" y="462" width="504" height="123" rx="13" class="optional"/>
+<text x="596" y="495" class="name">JEV attention + safe retention</text>
+<text x="596" y="522" class="body">Batched relevance / guard / salience</text>
+<text x="596" y="546" class="body">Optional learned veto can keep more evidence</text>
+<path d="M286 585 V619" class="flow"/>
+<path d="M828 585 V619" class="flow"/>
+<rect x="40" y="630" width="492" height="106" rx="13" class="optional"/>
+<text x="60" y="663" class="name">Context IR · optional</text>
+<text x="60" y="690" class="body">Compact exact records or reversible spans</text>
+<text x="60" y="714" class="body">No invented relations; source-linked recovery</text>
+<rect x="576" y="630" width="504" height="106" rx="13" class="box"/>
+<text x="596" y="663" class="name">Existing TT mechanisms + IR</text>
+<text x="596" y="690" class="body">Compiler / SkillGate / exact tool evidence</text>
+<text x="596" y="714" class="body">No duplicate JEV gate or lossy age-collapse</text>
+<text x="40" y="773" class="label">03  ACCEPT ONLY A SMALLER COMPLETE REQUEST</text>
+<path d="M286 736 V747 H557 M828 736 V747 H557" fill="none" stroke="#64dedc" stroke-width="2"/>
+<path d="M557 747 V791" class="flow"/>
+<rect x="40" y="801" width="740" height="110" rx="13" class="key"/>
+<text x="60" y="834" class="name">Full-request gate &gt; existing provider client</text>
+<text x="60" y="861" class="body">Measure tools, receipts and IR against the actual target tokenizer.</text>
+<text x="60" y="885" class="body">Unsafe or unsupported &gt; original request. Caller objects stay intact.</text>
+<rect x="804" y="801" width="276" height="110" rx="13" class="box"/>
+<text x="824" y="834" class="name">Exact recovery</text>
+<text x="824" y="861" class="body">Pinned evidence / hashes</text>
+<text x="824" y="885" class="body">Session find / get</text>
+<text x="40" y="941" class="small">IR + ContextEngine require exact token AND character savings; legacy middleware can use its character gate.</text>
+<text x="40" y="965" class="small">Counts are canonical request JSON, not provider billing. Protected-history overflow still needs host enforcement.</text>
+<rect x="40" y="993" width="1040" height="77" rx="13" class="box"/>
+<text x="60" y="1024" class="label">READ-ONLY OBSERVABILITY</text>
+<text x="60" y="1050" class="body">Per-profile input / output ledger &gt; localhost:7474 dashboard + Hermes Desktop status-bar popover</text>
 </svg>

@@ -1,56 +1,40 @@
-# Token Terminator ContextEngine (v0.11.0 candidate)
+# Token Terminator ContextEngine · v0.11.0
 
-**Prepared for review; not released.** TT can be explicitly selected as the Hermes
-ContextEngine without a Hermes core patch. Ordinary middleware mode is unchanged.
-The full [installation and design guide](https://github.com/AronAxe/Token-Terminator/blob/feat/hermes-context-engine-v0.10.0/docs/CONTEXT_ENGINE.md)
-includes the pinned upstream API, caveats, recovery and all configuration bounds.
+**Experimental, explicitly selected.** TT can replace the selected LCM/built-in
+context engine through supported Hermes plugin discovery, without modifying Hermes
+core. Middleware mode remains available. [Quick Start](Quick-Start) contains the
+release installation and selector steps.
 
-Install the review checkout into the Hermes Python environment, then run
-`token-terminator install-context-engine`. Enable the generic `token-terminator`
-plugin for its final request middleware. In **hermes plugins -> Provider Plugins
--> Context Engine**, choose **Token Terminator** (slug `token-terminator`). The
-inspected web dashboard uses the same provider-options discovery.
-
-```yaml
-plugins:
-  enabled: [token-terminator]
-context:
-  engine: token-terminator
+```text
+Full available history → exact session backing → bounded JEV attention
+→ optional learned omission veto → active evidence / recovery references
+→ existing TT mechanisms + Context IR → exact full-request gate → provider
 ```
 
-Preserve other enabled plugins and allow the `context_engine` toolset in restricted
-profiles. Keep existing OpenRouter/direct TypeSafe keys; enable the existing
-`TOKEN_TERMINATOR_JEV=true` and `TOKEN_TERMINATOR_CONTEXT_IR=true` flags. Restart
-Hermes and check `token_terminator_history` with `action=status` in the actual session.
+The early engine hook stages history; the final middleware decides after the
+complete provider payload exists. No lossy generative history summaries or guessed
+graph triples are created. `token_terminator_history` provides session-scoped
+`find`, exact paginated `get` and `status`. Existing artifact/IR expansion remains.
+Retries and async calls retain engine ownership; old omissions do not erase sources.
 
-The engine archives full available messages in TT's pinned exact vault, batches
-JEV relevance/guard/salience over exact regions and preserves guarded/unscored
-material. It revisits old context and can rediscover archived literal matches.
-There are no generative summaries or guessed graph relations. The supported early
-engine hook stages history; the final TT middleware commits only a complete-request
-exact-token **and** character decrease after IR. Provider retries and async
-execution preserve engine ownership. No second context engine runs upstream.
+JEV uses the existing OpenRouter/direct TypeSafe route and key. Optional JEV and
+IR retain their flags; learned-policy deployment is independently off by default.
+Selecting the engine excludes upstream LCM, not the exact vault or ordinary tool
+reduction mechanisms. Internal service calls bypass conversational reduction.
 
-The transcript is not destructively shortened. Protected history can still exceed
-the context window; pre-middleware hard-limit routes and stateful native compaction
-are not certified. Unknown tokenizers, missing recovery, malformed scoring, corrupt
-sources and capacity failures preserve originals. Pins survive reset/pruning, so
-retention needs planning. An external LCM archive is not automatically imported.
+The managed installer now includes the ContextEngine adapter **and** Desktop/backend
+files. Enabling the plugin, choosing the engine and enabling Desktop are separate
+steps. It does not change `config.yaml` or start the localhost server.
 
-`token_terminator_history` provides session-scoped `find`, exact paginated `get`,
-and `status`. Existing artifact/IR recovery remains available. See the
-[benchmark](https://github.com/AronAxe/Token-Terminator/blob/feat/hermes-context-engine-v0.10.0/benchmarks/context_engine/README.md):
-five fifty-turn tasks, two tokenizers, four executable arms, 120 evaluations. LCM
-+ TT was not reproduced; real JEV/model quality and service cost remain unmeasured.
+## Limits
 
-## Optional learned omission-risk layer
+Full host history stays intact and in memory. Manual `/compress` archives rather
+than destructively truncates it. Protected/unscored history may exceed a model
+window; unresolved overflow needs host/provider enforcement. Stateful provider
+compaction and pre-middleware hard-limit paths are not universally supported.
+Archive-only automatic recall is bounded lexical search; external LCM archive
+import is not implemented. Pins survive ordinary pruning, so plan vault capacity.
 
-The v0.11.0 candidate adds [an external learned policy](Learned-Policy) to this
-engine. Bounded offline or explicitly consented live feature discovery uses JEV
-probabilities and System-2 question proposals to train CatBoost omission-harm and
-recovery-cost predictors. JEV's weights remain unchanged. Deployment is off by
-default and requires an approved local artifact plus SHA-256; shadow mode audits
-without changing the fixed-gate request, and active mode can veto eligible omissions.
-It cannot overrule protected context, scope checks, exact recovery or the final
-tokenizer gate. The branch name still contains v0.10.0 to preserve PR #19; that
-unreleased milestone is included in the v0.11.0 candidate.
+[Complete installation, configuration and recovery contract](https://github.com/AronAxe/Token-Terminator/blob/v0.11.0/docs/CONTEXT_ENGINE.md) ·
+[Architecture](Architecture) · [Learned Policy](Learned-Policy) ·
+[Benchmark methodology](https://github.com/AronAxe/Token-Terminator/blob/v0.11.0/benchmarks/context_engine/README.md)

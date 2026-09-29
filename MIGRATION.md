@@ -1,9 +1,9 @@
-# v0.11.0 candidate migration
+# Migration to v0.11.0
 
 ## Optional learned policy
 
 v0.10.0 was not published; its engine/scope changes are included in this v0.11.0
-candidate on the same PR/branch. Learned mode defaults to off and does not require
+release. Learned mode defaults to off and does not require
 a database migration. Install `[learning]` only where fitting models, not on every
 Hermes runtime. See [the data/training/approval workflow](docs/LEARNED_POLICY.md).
 To activate, select TT as ContextEngine, review an evaluated policy, pin its local
@@ -14,7 +14,7 @@ Set `TOKEN_TERMINATOR_LEARNED_POLICY_MODE=off` and restart to disable this layer
 keep the vault and referenced originals. A corrupt approved active policy preserves
 history rather than falling back silently to semantic pruning.
 
-## Inherited call-scope safety update (review only)
+## Call-scope safety update
 
 Native Hermes main turns are authorized by the registered adapter; installation
 and engine selection are unchanged. Generic Python/async adapters must now pass
@@ -26,9 +26,13 @@ JEV final chat targets preserve history by default; custom aliases can set
 [the scoped behavior and hard-limit boundary](docs/CALL_SCOPE_REVIEW.md).
 
 
-Token Terminator 0.11.0 is prepared for review; v0.9.0 remains released and unchanged.
-Do not use the future `@v0.11.0` tag until publication is approved. Install the review
-branch and adapter using [the ContextEngine guide](docs/CONTEXT_ENGINE.md).
+## Upgrade from v0.9.0
+
+Install the `v0.11.0` tag and managed adapter using
+[the ContextEngine guide](docs/CONTEXT_ENGINE.md). Existing released tags are
+unchanged. Package installation, plugin enablement, engine selection, Desktop
+activation and learned-policy approval are separate actions; none silently enables
+the others.
 
 Explicitly select `context.engine: token-terminator` and enable the generic TT
 middleware plugin. Do not leave LCM selected upstream. The existing JEV provider
@@ -43,8 +47,10 @@ is implemented; previously unavailable originals cannot be reconstructed.
 
 Rollback: select the installed `lcm` engine or `compressor`, restart, and keep the
 generic TT plugin enabled for middleware-only operation. For package rollback,
-remove the two **managed** directory-adapter files before reinstalling v0.9.0:
-that old package does not export the new adapter class. Do not delete the vault.
+disable the Desktop half and remove only the six **managed** adapter files
+listed in [the installation guide](docs/CONTEXT_ENGINE.md) before reinstalling
+v0.9.0; leave unrelated files untouched. The old package does not export the new
+engine or dashboard backend. Restart the gateway. Do not delete the vault.
 Use `TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS=0` when exact old dialogue is
 required in legacy middleware mode. Existing schema version 2 remains readable;
 the new catalog does not change ordinary artifact identifiers or recovery actions.

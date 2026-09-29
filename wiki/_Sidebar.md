@@ -1,32 +1,32 @@
-**Token Terminator**
+**Token Terminator · v0.11.0**
 
 - [Home](Home)
 - [Quick Start](Quick-Start)
+- [Release 0.11.0](Release-0.11.0)
 - [Architecture](Architecture)
 - [Modes & Pipeline](Modes-and-Reduction-Pipeline)
 - [Configuration](Configuration)
 
-**Core mechanics**
+**Context & evidence**
+- [Selectable ContextEngine](Context-Engine)
+- [Learned omission-risk policy](Learned-Policy)
+- [Context IR](Context-IR)
+- [JEV Semantic Context Gate](Jev-Semantic-Context-Gate)
 - [Vault & Exact Recovery](Vault-and-Exact-Recovery)
 - [Temporal Delta Compression](Temporal-Delta-Compression)
 - [Request Compiler & Context Compaction](Request-Compiler-and-Context-Compaction)
-- [Jev Semantic Context Gate](Jev-Semantic-Context-Gate)
-- [Context IR](Context-IR)
 - [Async & Adapter Integration](Async-and-Adapter-Integration)
-- [Context Engine (v0.11.0 candidate)](Context-Engine)
-- [Learned omission-risk policy](Learned-Policy)
 
-**Operations**
+**Observatory & operations**
 - [Dashboard & Desktop counter](Dashboard)
 - [Metrics & Experiments](Metrics-and-Experiments)
 - [Security & Trust Model](Security-and-Trust-Model)
-- [Troubleshooting](Troubleshooting)
 - [Migration & Rollback](Migration-and-Rollback)
+- [Troubleshooting](Troubleshooting)
 
-**Development**
+**Development & history**
 - [Rust Interoperability](Rust-Interoperability)
 - [Developer Guide](Developer-Guide)
-- [v0.11.0 candidate](Release-0.11.0)
 - [Release 0.9.0](Release-0.9.0)
 - [Release 0.8.2](Release-0.8.2)
 - [Release 0.8.1](Release-0.8.1)

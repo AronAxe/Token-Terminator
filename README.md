@@ -12,9 +12,9 @@
 
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.9.0"><img alt="Release v0.9.0" src="https://img.shields.io/badge/release-v0.9.0-ef2b25"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.11.0"><img alt="Release v0.11.0" src="https://img.shields.io/badge/release-v0.11.0-ef2b25"></a>
   <a href="https://github.com/AronAxe/Token-Terminator/wiki"><img alt="GitHub Wiki" src="https://img.shields.io/badge/docs-GitHub%20Wiki-181717?logo=github"></a>
-  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/badge/crates.io-v0.9.0-orange?logo=rust"></a>
+  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/badge/crates.io-v0.11.0-orange?logo=rust"></a>
   <a href="https://docs.rs/token-terminator"><img alt="docs.rs" src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>
   <img alt="Python 3.10–3.13" src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB?logo=python&logoColor=white">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22c55e.svg"></a>
@@ -26,7 +26,22 @@ Token Terminator is an agent-runtime optimization layer. It removes token bloat 
 
 Documentation: see the [GitHub Wiki](https://github.com/AronAxe/Token-Terminator/wiki) for quick start, architecture, configuration, recovery, security, troubleshooting, migration, and release notes.
 
-The engine has eight cooperating reduction paths:
+## New in v0.11.0
+
+**Context, learning & observability.** This release includes the unshipped 0.10.0
+ContextEngine milestone and the completed learned-policy and dashboard work.
+
+| Capability | What ships | Activation |
+| --- | --- | --- |
+| **Selectable ContextEngine** | Full-history JEV attention with exact backing and rediscovery; replaces the selected upstream engine | Explicit Hermes engine selection |
+| **Learned omission-risk policy** | System-2 question discovery + JEV features + CatBoost fitting; approved local inference may retain more evidence | `off` by default; `shadow` / `active` opt-in |
+| **Observatory** | Per-bot input/output accounting at localhost:7474 and a Desktop bottom-bar counter/popover | Start server / enable Desktop component |
+| **Purpose-first call isolation** | Embeddings, reranking, helpers, measurement and internal JEV bypass reduction | Main generation only |
+
+[Release notes](docs/releases/v0.11.0.md) · [Select TT](#select-token-terminator-as-the-hermes-contextengine) ·
+[Dashboard](docs/DASHBOARD.md) · [Learning](docs/LEARNED_POLICY.md) · [Migration](MIGRATION.md)
+
+The portable middleware combines these cooperating reduction mechanisms:
 
 1. transparent terminal-command rewriting through [RTK](https://github.com/rtk-ai/rtk);
 2. temporal delta compression for repeated terminal observations, after the command has actually executed;
@@ -43,7 +58,7 @@ Async agent frameworks can use the included `AsyncRuntime` façade. It keeps pro
 
 In default middleware mode it does **not** replace the host context engine. In the explicitly selected v0.11.0 ContextEngine mode it replaces that context engine, but not the memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, token measurement, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
 
-## v0.11.0 candidate: local dashboard and Desktop counter
+## Observatory: local dashboard and Desktop counter
 
 Run **`token-terminator dashboard`** for the read-only dashboard at
 **`http://localhost:7474`**: per-profile/bot input savings, prepared input,
@@ -59,7 +74,7 @@ monthly bill. Missing prices/usage stay unknown, estimates are separate, and
 shared/ambiguous legacy stores are not credited to the wrong profile.
 See [dashboard setup, rate cards, isolation and caveats](docs/DASHBOARD.md).
 
-## v0.11.0: optional learned omission-risk policy
+## Learning outside JEV: optional omission-risk policy
 
 The new ContextEngine extension can **learn an outer policy without fine-tuning
 JEV**: a System-2 model proposes/revises semantic questions from development errors,
@@ -84,11 +99,14 @@ scheme or paid default behavior is introduced. Nothing is deployed by training.
 [Training, data format, activation, budgets and limits](docs/LEARNED_POLICY.md) ·
 [Real-fitting synthetic benchmark](benchmarks/learned_policy/README.md).
 
-This expands the same PR #19 to v0.11.0; v0.10.0 was not published separately. The
-branch retains its existing `feat/hermes-context-engine-v0.10.0` name. No production
-policy or claim of live-model quality/economic improvement ships with the demo.
+No production policy is shipped or activated. The synthetic demonstration validates
+working training and inference, not live-model quality or economic improvement.
 
-## Call scope and JEV decision roles (v0.11.0 candidate)
+<p align="center">
+  <img src="docs/assets/learning-loop.svg" alt="Learning outside JEV: grouped omission experiments, System-2 question revision, batched JEV features, CatBoost fitting, separate holdout, operator approval and off/shadow/active deployment" width="100%">
+</p>
+
+## Call scope and JEV decision roles
 
 TT optimizes **authorized conversational generation**, not every model-shaped
 call. Native Hermes auxiliary clients, embeddings and memory reranking already
@@ -125,19 +143,19 @@ main turns need no new scope configuration; generic adapters must pass
 See [JEV roles and implemented scope](docs/JEV_ROLES.md) and
 [call-scope review and limits](docs/CALL_SCOPE_REVIEW.md).
 
-## v0.11.0 review build: selectable Hermes ContextEngine
+## Select Token Terminator as the Hermes ContextEngine
 
-**Not yet merged or published. The latest released version remains v0.9.0.**
-Versioned v0.11.0 installation commands later in this document apply only after
-owner-approved publication; use the feature branch for this review build:
+Install **v0.11.0** in the Python environment that runs Hermes, then install its
+managed adapter. Replace `python` below with that environment's interpreter:
 
 ```bash
-git clone --single-branch --branch feat/hermes-context-engine-v0.10.0 \
-  https://github.com/AronAxe/Token-Terminator.git
-cd Token-Terminator
-<hermes-python> -m pip install --upgrade .
-<hermes-python> -m rtk_hermes_plus.cli install-context-engine
+python -m pip install --upgrade \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.0'
+python -m rtk_hermes_plus.cli install-context-engine
 ```
+
+Upgrading from `rtk-hermes-plus` requires removing that older distribution first;
+see [installation](#install-hermes-agent-turnkey). Back up the evidence vault.
 
 Enable the general `token-terminator` plugin, then choose **Token Terminator**
 (slug `token-terminator`) in **hermes plugins -> Provider Plugins -> Context Engine**.
@@ -182,8 +200,8 @@ is removed.
 - **Routes skills before generation.** A runtime-only graph is populated from the current host's installed skills. Each skill stays an isolated internal graph; explicit `related_skills` and dependency metadata are the only cross-skill edges. SkillGate uses that local structure to improve relevance while still sending only compact catalog entries. There is no hard skill-count cap by default, and omitted skills remain discoverable through `skills_list`/`skill_view`.
 - **Keeps the original evidence.** Exact content is stored in a private, content-addressed SQLite vault and can be recovered exactly, previewed deterministically, or searched without returning the whole artifact.
 - **Compiles the final request.** Duplicate artifacts, expired inline exposures, and old context are reduced after the host assembles the provider payload.
-- **Optionally applies Jev after normal TT reduction.** With explicit opt-in and either an OpenRouter or direct TypeSafe API key, remaining prior plain-text user/assistant messages can be semantically screened for relevance and guarded details. System/developer/tool messages and the user's actual current-turn words are never Jev removal candidates; Hermes `<memory-context>` background appended to the current turn is scored separately, and any low-relevance candidate is exact-vaulted before a compact recovery receipt replaces it.
-- **Aligns with the active tokenizer when possible.** A configured Hugging Face `tokenizer.json` or tiktoken backend adds a second acceptance gate; unavailable tokenizers fall back to the established character invariant.
+- **Optionally applies Jev after normal TT reduction.** With explicit opt-in and either an OpenRouter or direct TypeSafe API key, remaining prior plain-text user/assistant messages can be semantically screened for relevance and guarded details. System/developer/tool messages and the user's actual current-turn words are never Jev removal candidates; in legacy middleware without IR, Hermes `<memory-context>` background appended to the current turn can be scored separately; ContextEngine and IR protect the whole current user message, and any low-relevance candidate is exact-vaulted before a compact recovery receipt replaces it.
+- **Uses the actual target tokenizer.** A configured Hugging Face `tokenizer.json` or supported tiktoken backend measures complete requests. ContextEngine and IR require exact-token and character decreases; legacy middleware alone can retain the established character fallback.
 - **Refuses bad optimizations.** A transformed payload is used only when it is strictly smaller, recoverable, provider-valid, and leaves caller-owned objects untouched.
 - **Measures the result.** Content-free request/session telemetry separates compiler, compactor, and end-to-end savings and attributes raw/final token cost across instructions, skill catalogs, tool schemas, tool results, the current user turn, prior history, other fields, and request framing.
 
@@ -207,6 +225,9 @@ This is an optimizer, not a context decorator.
 | Vault, receipts, leases, temporal deltas, native compression, request compiler, telemetry | Agent-agnostic Python | Included |
 | Exact tokenizer alignment | Built-in `tiktoken`; optional Hugging Face `tokenizers` | Included |
 | Jev semantic context gate | Optional Jev call through OpenRouter Decisions API or direct TypeSafe API | Included; disabled by default |
+| Selectable ContextEngine | Hermes context-engine API + existing final-request middleware | Included; explicit selection |
+| Learned omission-risk policy | Optional CatBoost for training; standard-library runtime inference | Included; disabled by default |
+| Local dashboard / Desktop counter | Read-only TT ledgers; Hermes Desktop SDK for the counter | Included; opt-in, no inference |
 | Runtime skill graph | Host-local skill documents; Hermes adapter discovers trusted installed skills | Included; graph ships empty |
 | Rust artifact interoperability | `token-terminator` Rust crate | Published on crates.io |
 | RTK command rewriting | Optional `rtk` binary plus a terminal-tool adapter | Included |
@@ -238,16 +259,22 @@ The Python import package remains `rtk_hermes_plus` for source compatibility. Th
 ## Architecture
 
 <p align="center">
-  <img src="docs/assets/architecture.svg" alt="Token Terminator architecture: an agent-agnostic reduction core connected to a host runtime through an adapter" width="100%">
+  <img src="docs/assets/architecture.svg" alt="Token Terminator v0.11.0: purpose-first authorization, alternative middleware and full-history ContextEngine paths, JEV attention, learned omission veto, Context IR, exact recovery and read-only per-profile observability" width="100%">
 </p>
 
-The host runtime continues to own the conversation, transcript, context-engine lifecycle, and provider dispatch. Token Terminator owns only its private data directory and adapter-visible middleware/hooks. In the included Hermes adapter these are:
+**Two modes, exactly one context owner.** Middleware mode leaves the host engine
+upstream. Selecting TT as the ContextEngine starts from full available history
+instead. The host still owns transcript persistence, memory, tool execution and
+the provider client; the TT engine owns context selection. Its early Hermes hook
+stages history, and final acceptance happens only when the complete provider
+payload and recovery schemas exist. Internal service calls bypass reduction.
 
-- `tool_request` middleware for terminal rewrites;
-- `transform_tool_result` for native compression and temporal terminal deltas;
-- observational lifecycle and `post_tool_call` hooks;
-- `llm_request` middleware for final request reduction and optional tokenizer-aware acceptance;
-- one compact `token_terminator` tool for exact artifact recovery, deterministic layered views, private search, and optional working-state operations.
+Existing RTK command rewriting, post-execution temporal deltas, native tool-result
+compression, exact vaulting and SkillGate remain available at their supported
+boundaries. The diagram is a logical overview; [the ContextEngine guide](docs/CONTEXT_ENGINE.md)
+explains exact ordering, retry ownership, target policy and hard-limit caveats.
+[Learning](docs/LEARNED_POLICY.md) and [dashboard reads](docs/DASHBOARD.md) are
+separate opt-in activities, not recursive conversational generation calls.
 
 ## Structural benchmark
 
@@ -281,9 +308,9 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.11.0 is a candidate built on released v0.9.0 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.11.0 builds on v0.9.0 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
-This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the immutable `v0.9.0` release tag.
+This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the `v0.11.0` release tag.
 
 ### 1. Install RTK when using terminal rewriting
 
@@ -323,7 +350,7 @@ hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip install tokenizers
 ```
 
-When no exact tokenizer is available for a model, Token Terminator keeps the character-based strict-reduction invariant and labels token savings as an estimate instead of presenting them as exact.
+Legacy middleware retains its character-based invariant when no exact tokenizer is available and labels estimates separately. **ContextEngine and Context IR require the actual target tokenizer**; without it, those layers pass through unchanged rather than accepting a character-only saving.
 
 ### 3. Enable one plugin
 
@@ -346,7 +373,7 @@ Installation and enablement are separate operations. Disabling affects subsequen
 Rust agent hosts can use the supported `token-terminator` companion crate for the stable cross-language pieces of the Token Terminator contract:
 
 ```bash
-cargo add token-terminator
+cargo add token-terminator@0.11.0
 ```
 
 ```rust

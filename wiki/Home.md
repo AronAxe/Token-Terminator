@@ -2,74 +2,49 @@
 
 **Keep the evidence. Terminate the redundant tokens.**
 
-Token Terminator is an agent-runtime optimization layer that reduces provider-visible token bloat at tool-result and final-request boundaries while preserving exact recoverability. Hermes Agent has the turnkey adapter; the reduction core itself is ordinary Python + SQLite and can be integrated with other runtimes.
+## v0.11.0 · Context, learning & observability
 
-## Start here
+Token Terminator is an exact-recoverable context optimization layer: use it as
+portable middleware, or select it as the sole Hermes ContextEngine. This release
+adds full-history ownership, externally learned omission-risk policies and an
+Observatory for per-profile input/output accounting. The unshipped 0.10.0 milestone
+is included in 0.11.0; 0.9.0 was the previous published version.
 
-- [Quick Start](Quick-Start) — install v0.9.0 and verify it is active.
-- [Architecture](Architecture) — understand the host/adapter/core boundary.
-- [Modes and Reduction Pipeline](Modes-and-Reduction-Pipeline) — see what each mode enables.
-- [Configuration](Configuration) — all important environment controls.
-- [Vault and Exact Recovery](Vault-and-Exact-Recovery) — artifact identity, receipts, retention, and recovery.
-- [Security and Trust Model](Security-and-Trust-Model) — local data, RTK trust boundary, and fail-open rules.
-- [Troubleshooting](Troubleshooting) — common symptoms and checks.
+| Start here | What you will find |
+| --- | --- |
+| [Quick Start](Quick-Start) | Install the release and choose your integration mode |
+| [Architecture](Architecture) | Two modes, one context owner; purpose-first call isolation |
+| [Context Engine](Context-Engine) | Replace upstream LCM/compressor selection without patching Hermes |
+| [Learned Policy](Learned-Policy) | Train, validate and explicitly approve an omission-risk policy |
+| [Dashboard](Dashboard) | localhost:7474 and the Hermes Desktop bottom-bar counter |
+| [Configuration](Configuration) | Environment variables, limits and optional features |
+| [Vault and Exact Recovery](Vault-and-Exact-Recovery) | Backing evidence, retention and expansion |
+| [Release 0.11.0](Release-0.11.0) | Complete release notes and validation boundaries |
 
-## The core contract
+![Two modes, one context owner](https://raw.githubusercontent.com/AronAxe/Token-Terminator/v0.11.0/docs/assets/architecture.svg)
 
-A transformation is accepted only when it is safer than passing the original through:
+## Defaults and guarantees
 
-1. the complete provider-visible result is strictly smaller;
-2. if an exact tokenizer is available, measured token count also decreases;
-3. exact evidence has been written to the private vault and verified by read-back when recovery is required;
-4. caller-owned request objects are not mutated;
-5. any unsupported or unsafe condition fails open to the original request/result.
+Installation does not select an engine, enable a Desktop component, start a server
+or train/activate a policy. JEV, Context IR and learned-policy deployment remain
+opt-in. Embeddings, reranking, helpers, tokenizer work and internal JEV calls bypass
+conversational reduction. Caller-owned requests remain unchanged.
 
-Temporal terminal reduction adds one more rule: **the command still executes every time**. Only the representation shown to the model may become a smaller delta.
+ContextEngine and IR accept only strictly smaller complete requests measured with
+the actual target tokenizer **and** character counts, with exact evidence available
+for recovery. Legacy middleware alone can use its established character gate when
+no exact tokenizer is available. Counts are not hidden provider billing framing.
+Missing storage, unsupported scopes or failed verification pass through rather
+than silently discard evidence. Protected-history overflow may still require
+host/provider refusal; persistent evidence pins require capacity planning.
 
-## What v0.9.0 adds
+## Before enabling advanced features
 
-v0.9.0 adds the optional [Context IR](Context-IR) compiler after deterministic TT and Jev. It is OFF by default, compacts existing records or exact repeated spans without inventing relations, and requires strict complete-request tokenizer savings plus pinned source evidence. The three-arm offline benchmark checks visible-data answers and recovery, not live-model non-inferiority. See [Release 0.9.0](Release-0.9.0).
+Read [Security and Trust Model](Security-and-Trust-Model),
+[Migration and Rollback](Migration-and-Rollback) and
+[Troubleshooting](Troubleshooting). Rate-card values are API equivalents, not
+subscription discounts; generated output is not measured output savings. Synthetic
+learning/engine tests do not establish production answer quality or service economics.
 
-## What v0.8.2 changes
-
-v0.8.2 corrects Jev provider routing. Auto mode uses OpenRouter when `OPENROUTER_API_KEY` is available and otherwise supports direct TypeSafe access through `TYPESAFE_API_KEY`. Only one provider key is needed.
-
-## What v0.8.1 changes
-
-v0.8.1 makes the Jev gate aware of Hermes `<memory-context>` fencing. Recalled background from Hindsight or another memory provider can be scored separately from the current user request, while the user's own words remain protected from Jev removal.
-
-## What v0.8.0 adds
-
-v0.8.0 adds the optional [Jev Semantic Context Gate](Jev-Semantic-Context-Gate). Jev runs **after** Token Terminator's normal request compiler and deterministic context compactor; it does not replace them. With explicit opt-in and a TypeSafe API key, it can exact-vault low-relevance prior plain-text dialogue and replace it with compact recovery receipts. The default remains Jev-off.
-
-## What v0.7.0 adds
-
-v0.7.0 added the runtime graph-of-skill-graphs used by SkillGate. The graph ships empty and is populated only from the current host's installed skills. Each skill keeps its own internal section/resource graph; cross-skill relationships come only from source-backed metadata such as `related_skills` and explicit dependencies. Skill contents stay local and outside provider-visible requests.
-
-## What v0.6.0 adds
-
-v0.6.0 prevents more prompt bloat before provider dispatch. Request attribution now shows where input tokens come from, and SkillGate reduces large Hermes `<available_skills>` indexes to the entries relevant to the current user request while keeping omitted skills discoverable on demand.
-
-SkillGate has **no hard skill-count ceiling by default**: every entry above the relevance threshold survives. The deterministic lexical-IDF scorer is the bootstrap implementation; a pluggable scorer interface is ready for a tiny learned/local reranker. Routing is fail-open and only touches trusted system/developer instruction fields.
-
-## What v0.5.2 adds
-
-v0.5.2 makes tokenizer-aware savings durable rather than transient: exact raw, final, and saved request-token counts are persisted with model and tokenizer-backend provenance whenever a supported tokenizer is available. `tiktoken` now ships by default for supported OpenAI-family models, active model identity is propagated into native and temporal accounting, and fallback estimates are explicitly labelled instead of being mixed with exact measurements. See [Release 0.5.2](Release-0.5.2).
-
-## What v0.5.1 hardened
-
-v0.5.1 is the post-0.5.0 hardening release. It adds bounded vault lifecycle management, Unicode-safe artifact search, cwd-aware rewrite caching, async temporal parity, schema-owned temporal snapshots, more honest experiment statistics, Windows URI fixes, safer permissions, RTK path pinning, and recovery-safe GC. Artifacts already named by accepted recovery receipts or temporal deltas are protected from automatic retention pruning.
-
-## Current release
-
-- Python package/release: **v0.9.0**
-- Python support: **3.10–3.13**
-- Rust interoperability crate: **token-terminator 0.9.0**
-- First-party runtime adapter: **Hermes Agent**
-
-## v0.10.0 development candidate
-
-[Selectable ContextEngine](Context-Engine) is prepared on a review branch, not
-published. It lets TT replace LCM/built-in context selection through the supported
-Hermes plugin API while preserving ordinary middleware mode. See
-[release candidate notes](Release-0.10.0). v0.9.0 remains the released baseline.
+Python release: **0.11.0** · Rust interoperability companion: **0.11.0** ·
+First-party runtime adapter: **Hermes Agent**. The Rust crate is not the Python runtime.

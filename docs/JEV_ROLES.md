@@ -1,6 +1,6 @@
 # JEV: agentic control and support for an LLM
 
-Scope: v0.11.0 review candidate, PR #19. Documentation checked September 28,
+Scope: v0.11.0, implemented through PR #19. Documentation checked September 28,
 2026. This clarification does not add a new runtime mode or API integration.
 
 ## Two architectural roles, the same decision primitives
@@ -70,8 +70,8 @@ regressions, including intervening learning calls between main-request retries.
 | JEV relevance/guard/salience assessment | Implemented as bounded, batched Noul questions through existing OpenRouter or direct TypeSafe support. |
 | Exact history, source recovery and reversible Context IR | Implemented by TT; JEV scores are selection signals, never newly established facts. |
 | SkillGate | Existing deterministic TT skill filtering; **not** an implementation of TypeSafe's two-stage JEV skill-suggestion cookbook. |
-| JEV workflow/tool/skill controller | Not implemented by this ContextEngine candidate. |
-| Post-answer claim/citation or requirements verification | Not implemented by this candidate. No automatic semantic accept/retry/escalate loop is claimed. |
+| JEV workflow/tool/skill controller | Not implemented by this ContextEngine release. |
+| Post-answer claim/citation or requirements verification | Not implemented by this release. No automatic semantic accept/retry/escalate loop is claimed. |
 | External learned policy / autoresearch feature discovery | Implemented as an optional bounded omission-risk learner: System-2 proposals, JEV semantic features, CatBoost fitting and held-out evaluation. Separate explicit deployment; default fixed gate/cache alone still do not learn. |
 | Scope isolation for outside JEV controller/verifier/learning calls | Implemented: these service calls bypass TT unchanged; the separately authorized answering LLM request can still use TT. |
 
@@ -90,7 +90,7 @@ rejects `state`/`questions` service envelopes even under erroneous conversation
 labels or a JEV target-family hint. Known controller/verifier purposes likewise
 bypass. Internal JEV transports remain protected against recursive reduction.
 
-The candidate's conservative JEV-target policy is **defensive support for an
+The conservative JEV-target policy is **defensive support for an
 explicitly integrated conversational wrapper** identified as JEV-backed; it does
 not make native JEV accept chat messages or implement such a wrapper. Raw TypeSafe
 System One/OpenRouter Decisions requests bypass before this policy is considered.
