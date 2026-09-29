@@ -333,13 +333,27 @@ def test_reader_uses_one_snapshot_for_filter(tmp_path, monkeypatch):
     assert one["totals"]["input_saved"] == 4800
 
 
-def test_installer_packages_both_desktop_and_backend_without_config_change(tmp_path):
+@pytest.mark.parametrize("source_newline", ["\n", "\r\n"], ids=["lf", "crlf"])
+def test_installer_packages_both_desktop_and_backend_without_config_change(
+    tmp_path, monkeypatch, source_newline
+):
+    from rtk_hermes_plus import engine_install
+
+    # Git can check text assets out as CRLF on Windows. The installer reads them
+    # as UTF-8 text and deliberately writes LF; all other content must match.
+    expected = asset("plugin.js").decode("utf-8").replace("\r\n", "\n")
+    resources = tmp_path / "resources"
+    source = resources / "dashboard_assets" / "plugin.js"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(expected.replace("\n", source_newline).encode("utf-8"))
+    monkeypatch.setattr(engine_install, "package_files", lambda _: resources)
     config = tmp_path / "config.yaml"
-    config.write_text("context:\n  engine: lcm\n")
+    config.write_bytes(b"context:\r\n  engine: lcm\r\n")
+    config_before = config.read_bytes()
     result = install_context_engine(tmp_path)
     assert install_context_engine(tmp_path) == result
     dest = Path(result["installed"])
-    assert (dest / "desktop/plugin.js").read_bytes() == asset("plugin.js")
+    assert (dest / "desktop/plugin.js").read_bytes() == expected.encode("utf-8")
     assert (
         json.loads((dest / "dashboard/manifest.json").read_text())["api"]
         == "plugin_api.py"
@@ -347,7 +361,7 @@ def test_installer_packages_both_desktop_and_backend_without_config_change(tmp_p
     assert (
         "dashboard_api import router" in (dest / "dashboard/plugin_api.py").read_text()
     )
-    assert config.read_text() == "context:\n  engine: lcm\n"
+    assert config.read_bytes() == config_before
     assert not list(dest.rglob("*.tt-new"))
 
 
