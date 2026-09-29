@@ -17,6 +17,7 @@
 - [Learned omission-risk policy](Learned-Policy)
 
 **Operations**
+- [Dashboard & Desktop counter](Dashboard)
 - [Metrics & Experiments](Metrics-and-Experiments)
 - [Security & Trust Model](Security-and-Trust-Model)
 - [Troubleshooting](Troubleshooting)

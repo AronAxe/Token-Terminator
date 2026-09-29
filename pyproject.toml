@@ -28,7 +28,7 @@ classifiers = [
 [project.optional-dependencies]
 token-budget = ["tokenizers>=0.21"]
 learning = ["catboost>=1.2.8,<2"]
-dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "tokenizers>=0.21", "twine>=5"]
+dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "tokenizers>=0.21", "twine>=5", "fastapi>=0.115", "httpx>=0.28"]
 
 [project.scripts]
 token-terminator = "rtk_hermes_plus.cli:main"
@@ -43,6 +43,9 @@ Issues = "https://github.com/AronAxe/Token-Terminator/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+rtk_hermes_plus = ["dashboard_assets/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

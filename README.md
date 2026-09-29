@@ -43,6 +43,22 @@ Async agent frameworks can use the included `AsyncRuntime` façade. It keeps pro
 
 In default middleware mode it does **not** replace the host context engine. In the explicitly selected v0.11.0 ContextEngine mode it replaces that context engine, but not the memory system, transcript store, or provider client. It does not add an MCP server or standing prompt text. If storage, recovery, middleware, token measurement, or compilation is unavailable or unsafe, the host receives the original request or result unchanged.
 
+## v0.11.0 candidate: local dashboard and Desktop counter
+
+Run **`token-terminator dashboard`** for the read-only dashboard at
+**`http://localhost:7474`**: per-profile/bot input savings, prepared input,
+host-reported output, a fourteen-day trend and optional model-rate valuation.
+`token-terminator install-dashboard` installs the managed Hermes Desktop
+**bottom status-bar counter and upward popover** without selecting a context
+engine. Enable both the Python plugin and Desktop half; the server starts only
+when you run the command. No Hermes core patch or new model call is involved.
+
+Input and output remain separate. **Output savings are not measured** without a
+counterfactual; subscriptions show API-equivalent value, not a discount on the
+monthly bill. Missing prices/usage stay unknown, estimates are separate, and
+shared/ambiguous legacy stores are not credited to the wrong profile.
+See [dashboard setup, rate cards, isolation and caveats](docs/DASHBOARD.md).
+
 ## v0.11.0: optional learned omission-risk policy
 
 The new ContextEngine extension can **learn an outer policy without fine-tuning

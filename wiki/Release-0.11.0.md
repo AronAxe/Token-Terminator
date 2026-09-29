@@ -5,6 +5,16 @@ The v0.10.0 ContextEngine and call-scope work was not separately published and i
 included here. The branch remains `feat/hermes-context-engine-v0.10.0` so the
 existing pull request and review history stay intact.
 
+## Dashboard addition
+
+Opt-in localhost:7474 profile/bot accounting and a supported Hermes Desktop
+bottom status counter with upward popover are included. Input/output are separate;
+measured input savings are not fabricated output or subscription bill savings.
+Local rate cards provide gross API equivalents and token-weighted average values.
+The reader is content-free and read-only, with profile/connection isolation and
+explicit missing/ambiguous coverage. No server starts automatically or model call
+runs for telemetry. [Setup and qualifications](Dashboard).
+
 ## Included changes
 
 - Selectable Hermes ContextEngine through supported plugin discovery; exact full

@@ -1,0 +1,9 @@
+{
+  "rates": {
+    "YOUR-EXACT-MODEL-ID": {
+      "input_usd_per_million": 1.0,
+      "output_usd_per_million": 4.0,
+      "as_of": "ILLUSTRATIVE ONLY: replace the model id, rates and date"
+    }
+  }
+}

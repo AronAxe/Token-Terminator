@@ -83,14 +83,16 @@ def _csv(
 
 
 def _hermes_home() -> Path:
-    configured = os.getenv("HERMES_HOME", "").strip()
-    if configured:
-        return Path(configured).expanduser()
     try:
         from hermes_constants import get_hermes_home
 
+        # Current Hermes binds a task-local profile home in multiplexed servers.
+        # The launch process's environment must not override that ownership.
         return get_hermes_home()
     except ImportError:
+        configured = os.getenv("HERMES_HOME", "").strip()
+        if configured:
+            return Path(configured).expanduser()
         if sys.platform == "win32":
             local_appdata = os.getenv("LOCALAPPDATA", "").strip()
             base = (

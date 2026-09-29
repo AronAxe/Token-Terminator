@@ -2,6 +2,12 @@
 
 ## 0.11.0 - Unreleased (PR #19; supersedes the unshipped 0.10.0 milestone)
 
+- Added opt-in `token-terminator dashboard` on loopback port 7474, reading existing accounting without source text/model work. Per-profile/bot input savings, input/output usage, trends, exact/fallback separation, local USD rate cards, weighted equivalents and API/subscription labels.
+- Added a supported Hermes Desktop status-bar counter/upward summary popover, packaged backend, connection/profile-scoped cache, and managed installer. No core patch, auto-start, automatic enable or context-engine switch.
+- Kept output savings, invoice savings and JEV/recovery-adjusted net savings unknown where unmeasured. Missing/partial/mixed legacy accounting is explicit; requests/stages/session totals are not double-counted.
+- Corrected Hermes home resolution to respect task-local profile ownership ahead of launch environment; standalone environment fallbacks and explicit custom DB paths remain supported. No automatic data migration.
+- Added dashboard accounting/security/HTTP/installer/retry regressions, real pinned-Hermes route checks, Desktop ESM/React contract checks and desktop/mobile browser QA. No paid model tests.
+
 - Includes the selectable Hermes ContextEngine and call-scope safeguards developed under the unreleased 0.10.0 milestone below. Released v0.9.0 is unchanged; no separate 0.10.0 release is implied.
 - Added real, opt-in external learning: a bounded System-2 feature-proposal/error-feedback loop, existing JEV Noul/Score probability measurements, and optional CatBoost fitting for omission harm and recovery-token cost. JEV weights stay fixed; this is not another fixed weighted score.
 - Added grouped development cross-validation and frozen-before-holdout evaluation, exact source hashes, generation-target/scorer/schema binding, and a versioned private numeric-tree artifact. Observed outcome labels must come from explicit human/deterministic experiments, not JEV self-labels; synthetic demos are marked.

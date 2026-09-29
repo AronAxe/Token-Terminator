@@ -57,6 +57,20 @@ def build_parser() -> argparse.ArgumentParser:
     install.add_argument("--hermes-home", type=Path)
     install.add_argument("--json", action="store_true")
 
+    dashboard = sub.add_parser(
+        "dashboard", help="Serve the read-only local dashboard on port 7474."
+    )
+    dashboard.add_argument("--hermes-home", type=Path)
+    dashboard.add_argument("--config", type=Path)
+    dashboard.add_argument("--port", type=int, default=7474)
+
+    install_dashboard = sub.add_parser(
+        "install-dashboard",
+        help="Install the managed Hermes adapter and opt-in Desktop counter; do not select a context engine.",
+    )
+    install_dashboard.add_argument("--hermes-home", type=Path)
+    install_dashboard.add_argument("--json", action="store_true")
+
     status = sub.add_parser("status", help="Show structural counts and configuration.")
     status.add_argument("--json", action="store_true")
 
@@ -101,7 +115,18 @@ def run(args: argparse.Namespace) -> int:
         from .policy_cli import run as train_policy
 
         return train_policy(args)
-    if args.command == "install-context-engine":
+    if args.command == "dashboard":
+        from .config import _hermes_home
+        from .dashboard import serve
+
+        if not 1 <= args.port <= 65535:
+            raise ValueError("port must be in 1..65535")
+        home = args.hermes_home or _hermes_home()
+        if args.hermes_home is None and home.parent.name == "profiles":
+            home = home.parent.parent
+        serve(home, args.config, port=args.port)
+        return 0
+    if args.command in {"install-context-engine", "install-dashboard"}:
         from .engine_install import install_context_engine
 
         _emit(install_context_engine(args.hermes_home), as_json=args.json)

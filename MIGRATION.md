@@ -296,3 +296,20 @@ hermes plugins enable rtk-plus --no-allow-tool-override
 ```
 
 Commence a new Hermes session and verify `/rtk-plus status`.
+
+## Dashboard / Desktop addition to the v0.11.0 candidate
+
+`token-terminator dashboard` serves localhost:7474 when explicitly started.
+`token-terminator install-dashboard` (or re-running `install-context-engine`)
+adds the managed Desktop status contribution and backend files; it does not
+change the selected engine or enabled-plugin configuration. Restart the gateway
+for new backend routes and enable the Desktop half separately. See
+[the complete guide](docs/DASHBOARD.md) for root discovery, custom paths and pricing.
+
+Hermes task-local profile home now takes precedence over the launch environment.
+This fixes new default vault/ledger locations for multiplexed profile runtimes;
+explicit path overrides are unchanged. Historical shared stores are not copied,
+split or deleted. Contradictory profile attribution is displayed as unavailable
+rather than guessed. Keep prior vaults for recovery and map custom stores
+explicitly in local `dashboard.json`. Set no new API keys. Stopping the dashboard
+and disabling its Desktop half removes UI without changing the reducer policy.

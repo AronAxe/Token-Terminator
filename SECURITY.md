@@ -159,3 +159,24 @@ Use trusted callbacks and bounded synthetic/recorded tests before live operation
 See [LEARNED_POLICY.md](docs/LEARNED_POLICY.md) for exact limits, deployment
 approval, finite-sample quality qualifications and the existing unresolved
 context-limit enforcement boundary.
+
+## Local dashboard and Desktop accounting (v0.11.0 candidate)
+
+The optional standalone dashboard binds only 127.0.0.1:7474. It has no user
+authentication: local users/processes can read profile labels, model ids and
+numeric accounting. Do not publish it to a network. It offers GET-only fixed
+assets/aggregate endpoints, strict Host/Origin checks, no CORS, frame denial,
+no-store and CSP. Local configuration is the only source of database paths;
+symlinked or duplicate/hardlinked sources are refused. It reads SQLite accounting
+columns in read-only snapshots, never vault/source content or credentials, and
+never calls a provider or tokenizer. A local adversary who controls those files
+is outside this boundary. Some incomplete/unattributed legacy stores are withheld.
+
+The Desktop half uses supported namespaced `ctx.rest` behind Hermes' existing
+authentication and Python plugin allowlist. Its backend limits reads to the
+current task-local profile home; client parameters cannot choose a filesystem
+path. The status counter and cache are connection/profile-scoped and do not
+silently route a remote dashboard to this machine's localhost. Installation and
+enable are separate and opt-in. See [DASHBOARD.md](docs/DASHBOARD.md) for limits,
+accounting qualifications and rollback. The dashboard adds no service credential,
+background training or publication.

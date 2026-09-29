@@ -82,6 +82,13 @@ def inspect_archive(path: Path) -> dict[str, object]:
     if path.suffix == ".whl":
         required = (
             "rtk_hermes_plus/plugin.py",
+            "rtk_hermes_plus/dashboard.py",
+            "rtk_hermes_plus/dashboard_data.py",
+            "rtk_hermes_plus/dashboard_api.py",
+            "rtk_hermes_plus/dashboard_assets/index.html",
+            "rtk_hermes_plus/dashboard_assets/dashboard.js",
+            "rtk_hermes_plus/dashboard_assets/dashboard.css",
+            "rtk_hermes_plus/dashboard_assets/plugin.js",
             "rtk_hermes_plus/compiler.py",
             "rtk_hermes_plus/storage.py",
             "rtk_hermes_plus/hermes_engine.py",
