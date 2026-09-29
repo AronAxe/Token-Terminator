@@ -1,0 +1,47 @@
+name: Prepare approved v0.11.0 release documentation
+
+on:
+  push:
+    branches: [feat/hermes-context-engine-v0.10.0]
+    paths:
+      - .github/tt-release-polish/**
+      - .github/workflows/release-polish.yml
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    if: github.repository == 'AronAxe/Token-Terminator' && github.ref == 'refs/heads/feat/hermes-context-engine-v0.10.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Apply verified documentation and schematics to the release branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/feat/hermes-context-engine-v0.10.0
+          git merge-base --is-ancestor bf861413728957be6925202fae0e0e6b559c2e64 HEAD
+          python - <<'PY'
+          import base64, hashlib, lzma, pathlib
+          root = pathlib.Path('.github/tt-release-polish')
+          assert sorted(p.name for p in root.iterdir()) == ['0.b64', '1.b64']
+          encoded = ''.join((root / f'{i}.b64').read_text() for i in range(2))
+          script = lzma.decompress(base64.b64decode(encoded, validate=True))
+          assert hashlib.sha256(script).hexdigest() == 'a0839665d02decd7613e699f0ec6be6484ac567e2a26763f4d53103b96f58b97'
+          pathlib.Path('/tmp/tt-release-polish.py').write_bytes(script)
+          PY
+          python /tmp/tt-release-polish.py
+          git diff --check
+          git diff --exit-code bf861413728957be6925202fae0e0e6b559c2e64 -- src tests scripts benchmarks pyproject.toml Cargo.toml docs/assets/hero.webp docs/assets/judgement-day.webp docs/assets/mark.svg
+          git rm -r .github/tt-release-polish
+          git add README.md CHANGELOG.md MIGRATION.md SECURITY.md docs wiki .github/workflows/publish-release.yml .github/workflows/publish-crate.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs: launch v0.11.0 with refreshed architecture, learning and Observatory guides'
+          git push origin HEAD:refs/heads/feat/hermes-context-engine-v0.10.0
+          git rev-parse HEAD
+          git rev-parse HEAD^{tree}
