@@ -1,0 +1,43 @@
+name: Dashboard development bundle
+on:
+  push:
+    branches: [feat/hermes-context-engine-v0.10.0]
+    paths: [.github/workflows/dashboard-dev-bundle.yml]
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: NousResearch/hermes-agent
+          ref: fd0b98f6256446a9115c54f1a92ace5ea74c929f
+          path: upstream-hermes
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Bundle public source and offline test requirements
+        env:
+          TIKTOKEN_CACHE_DIR: ${{ github.workspace }}/bundle/tiktoken-cache
+        run: |
+          mkdir -p bundle/wheels
+          python -m pip download -d bundle/wheels tiktoken 'ruff>=0.16' build wheel 'setuptools>=77' tokenizers 'openai>=2.24' python-dotenv rich fire tenacity pyyaml truststore croniter snowballstemmer tomli-w 'ruamel.yaml==0.18.16' prompt-toolkit fastapi httpx
+          python -m pip install --no-index --find-links bundle/wheels tiktoken
+          python -c "import tiktoken; tiktoken.get_encoding('cl100k_base'); tiktoken.get_encoding('o200k_base')"
+          git archive 9cfdbcc91f7640fffeb0b369bb76249c37b7c9c6 | gzip > bundle/tt-baseline.tar.gz
+          git -C upstream-hermes archive HEAD | gzip > bundle/hermes.tar.gz
+          mkdir -p bundle/js
+          cd bundle/js
+          npm pack react react-dom
+      - uses: actions/upload-artifact@v6
+        with:
+          name: tt-dashboard-dev-bundle
+          path: bundle/
+          retention-days: 1
