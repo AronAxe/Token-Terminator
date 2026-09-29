@@ -13,6 +13,7 @@
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.11.0"><img alt="Release v0.11.0" src="https://img.shields.io/badge/release-v0.11.0-ef2b25"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/wiki/Jev-Semantic-Context-Gate" title="Optional JEV integration via OpenRouter or direct TypeSafe; off by default"><img alt="JEV-powered" src="https://img.shields.io/badge/JEV-powered-8b5cf6"></a>
   <a href="https://github.com/AronAxe/Token-Terminator/wiki"><img alt="GitHub Wiki" src="https://img.shields.io/badge/docs-GitHub%20Wiki-181717?logo=github"></a>
   <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/badge/crates.io-v0.11.0-orange?logo=rust"></a>
   <a href="https://docs.rs/token-terminator"><img alt="docs.rs" src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>
