@@ -1,4 +1,4 @@
-# Migration to v0.11.0
+# Migration to Token Terminator 0.11.0
 
 ## Optional learned policy
 
@@ -28,8 +28,15 @@ JEV final chat targets preserve history by default; custom aliases can set
 
 ## Upgrade from v0.9.0
 
-Install the `v0.11.0` tag and managed adapter using
-[the ContextEngine guide](docs/CONTEXT_ENGINE.md). Existing released tags are
+Install the `v0.11.0` tag using the Python environment that runs Hermes:
+
+```bash
+python -m pip install --upgrade \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.0'
+python -m rtk_hermes_plus.cli install-context-engine
+```
+
+Follow [the ContextEngine guide](docs/CONTEXT_ENGINE.md). Existing released tags are
 unchanged. Package installation, plugin enablement, engine selection, Desktop
 activation and learned-policy approval are separate actions; none silently enables
 the others.
@@ -303,7 +310,7 @@ hermes plugins enable rtk-plus --no-allow-tool-override
 
 Commence a new Hermes session and verify `/rtk-plus status`.
 
-## Dashboard / Desktop addition to the v0.11.0 candidate
+## Dashboard / Desktop addition to v0.11.0
 
 `token-terminator dashboard` serves localhost:7474 when explicitly started.
 `token-terminator install-dashboard` (or re-running `install-context-engine`)
