@@ -1,5 +1,61 @@
 # Changelog
 
+## 0.11.0 - 2026-09-29
+
+**Context, learning & observability.** Includes the unshipped 0.10.0 milestone;
+the previous published version is 0.9.0. Existing tags are unchanged.
+
+### Context ownership and call-scope safety
+
+- Added an explicitly selectable Hermes ContextEngine through the supported plugin
+  API, with exact pinned full-history backing, bounded lexical rediscovery and
+  paginated session recovery. Middleware mode remains available; no core patch,
+  generative history summarizer or automatic engine switch is required.
+- Preserved compiler, SkillGate, native/temporal reduction, vault recovery and
+  Context IR. The final complete-request gate requires exact-token and character
+  decreases. Retries and async execution retain engine ownership and scoring caches.
+- Authorized conversational scope before reduction; embeddings, reranking,
+  classifier/helper calls, counting operations and internal JEV bypass unchanged.
+  Execution-local guards prevent re-entry. Generic adapters must explicitly pass
+  `request_purpose="conversation"` only for actual generation.
+- Added conservative history retention for explicitly integrated JEV-backed chat
+  wrappers. Native JEV remains a typed-decision service. Protected-history overflow
+  is reported without destructive truncation; host/provider enforcement is still needed.
+
+### Learned omission-risk policy
+
+- Added bounded System-2 feature proposal/revision, JEV Noul/Score measurements and
+  real CatBoost fitting for omission harm and recovery-token cost. JEV weights stay fixed.
+- Added grouped development CV, frozen-before-holdout assessment, exact source hashes
+  and generation-target/scorer/schema-bound numeric JSON artifacts. Outcome labels
+  require explicit independently labelled experiments, not JEV self-labels.
+- Added `off` (default), `shadow` and approved `active` modes. The policy is an extra
+  omission veto; it cannot weaken fixed guards, scope, provenance or token acceptance.
+- Added `policy-train` replay and consented live modes, bounded calls/data/model sizes
+  and create-only private outputs. Extra JEV questions share region batches; shadow
+  may double batches. No automatic export, self-training or activation is enabled.
+- Kept CatBoost training-only and deployed inference standard-library-only. Policy
+  SHA-256 approval hashes cover identical UTF-8 disk bytes on Windows and Unix.
+
+### Observatory and release documentation
+
+- Added loopback `token-terminator dashboard` on port 7474, per-profile/bot filtering,
+  input/output separation, exact/fallback coverage, fourteen-day trends and configured
+  USD model-rate equivalents. Recorded costs and token-weighted averages stay separate.
+- Added the native Hermes Desktop bottom status-bar counter and upward summary popover
+  using supported SDK/authenticated backend routes. Managed install does not change
+  config or activate the engine; no model call or server auto-start is added.
+- Corrected Hermes task-local profile-home precedence. Read-only accounting rejects
+  duplicate source mappings and marks mixed/ambiguous historical attribution rather
+  than assigning it to the wrong bot. Missing output/financial counterfactuals stay unknown.
+- Added scope, exact-history, learning, accounting, security, HTTP, installer and
+  cross-platform regressions, plus pinned-Hermes and Chromium dashboard verification.
+  Real fitting uses synthetic data in CI; no paid inference or live quality claim.
+- Refreshed README release badges/install instructions, architecture and learning-loop
+  schematics, wiki navigation, migration guidance and complete release notes.
+
+[Full v0.11.0 release notes](https://github.com/AronAxe/Token-Terminator/blob/v0.11.0/docs/releases/v0.11.0.md).
+
 ## 0.9.0 - 2026-09-28
 
 - Added experimental **Context IR**, OFF by default: a local compiler after deterministic TT and optional Jev, without replacing native/temporal reduction, SkillGate, compaction, vaults or recovery.

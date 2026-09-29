@@ -74,6 +74,10 @@ jobs:
           from pathlib import Path
 
           version = os.environ["VERSION"]
+          curated = Path("docs/releases") / f"v{version}.md"
+          if curated.is_file():
+              Path("release-notes.md").write_text(curated.read_text(encoding="utf-8"), encoding="utf-8")
+              raise SystemExit(0)
           lines = Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines()
           heading = f"## {version} -"
           start = next(i for i, line in enumerate(lines) if line.startswith(heading))
@@ -84,6 +88,13 @@ jobs:
           notes = "\n".join(lines[start + 1:end]).strip() + "\n"
           Path("release-notes.md").write_text(notes, encoding="utf-8")
           PY
+
+      - name: Record distribution checksums
+        if: steps.existing.outputs.exists != 'true'
+        run: |
+          (cd dist && sha256sum *.whl *.tar.gz) > SHA256SUMS
+          cp SHA256SUMS dist/SHA256SUMS
+          (cd dist && sha256sum --check SHA256SUMS)
 
       - name: Create tag and GitHub release
         if: steps.existing.outputs.exists != 'true'

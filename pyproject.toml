@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "token-terminator"
-version = "0.9.0"
+version = "0.11.0"
 description = "Fail-open token reduction, exact recovery, and request compilation for Hermes Agent"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,11 +22,13 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
 
 [project.optional-dependencies]
 token-budget = ["tokenizers>=0.21"]
-dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "tokenizers>=0.21", "twine>=5"]
+learning = ["catboost>=1.2.8,<2"]
+dev = ["build>=1.2", "pytest>=8", "ruff>=0.16", "tokenizers>=0.21", "twine>=5", "fastapi>=0.115", "httpx>=0.28"]
 
 [project.scripts]
 token-terminator = "rtk_hermes_plus.cli:main"
@@ -41,6 +43,9 @@ Issues = "https://github.com/AronAxe/Token-Terminator/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+rtk_hermes_plus = ["dashboard_assets/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

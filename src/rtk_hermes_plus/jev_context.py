@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.request import Request, urlopen
 
+from .call_scope import internal_call
 from .config import Config
 from .context_safety import history_items, plain_message, protected_prose
 from .storage import TokenTerminatorStore
@@ -59,6 +60,7 @@ class JevReductionResult:
     cost_usd: float | None = None
     elapsed_ms: float = 0.0
     attention: tuple[JevAttention, ...] = field(default=(), repr=False)
+    features: tuple = field(default=(), repr=False)
 
     def as_dict(self) -> dict[str, Any]:
         # Provider/request content must never leak into metrics or status.
@@ -113,11 +115,17 @@ class JevSemanticReducer:
         *,
         transport: Transport | None = None,
         token_budget: Any = None,
+        feature_specs=None,
     ) -> None:
         self.store = store
         self.config = config
         self.transport = transport
         self.token_budget = token_budget
+        from .policy_features import validate_specs
+
+        self.feature_specs = (
+            None if feature_specs is None else validate_specs(feature_specs)
+        )
 
     @property
     def enabled(self) -> bool:
@@ -291,6 +299,13 @@ class JevSemanticReducer:
                     ),
                 }
 
+        if self.feature_specs is not None:
+            for candidate in candidates:
+                for feature in self.feature_specs:
+                    questions[f"{candidate.candidate_id}_learned_{feature.name}"] = (
+                        feature.wire_question(candidate.candidate_id)
+                    )
+
         return {
             "state": {
                 "current_request": current_user,
@@ -300,6 +315,7 @@ class JevSemanticReducer:
             "questions": questions,
         }
 
+    @internal_call()
     def _call(self, payload: dict[str, Any]) -> dict[str, Any]:
         if self.transport is not None:
             return self.transport(payload)
@@ -332,6 +348,91 @@ class JevSemanticReducer:
         if not isinstance(decoded, dict):
             raise TypeError("Jev response must be an object")
         return decoded
+
+    def score_batch(
+        self, current_user: str, candidates: list[_Candidate]
+    ) -> JevReductionResult:
+        """Score one bounded batch without rewriting or vaulting any source.
+
+        The ContextEngine reuses the same provider transport and exact answer
+        schema as middleware mode. Invalid/missing scores are never negatives.
+        """
+        started = time.perf_counter()
+        result = JevReductionResult(
+            request=None, raw_chars=0, final_chars=0, saved_chars=0
+        )
+        try:
+            if not self.enabled or not candidates:
+                return result
+            response = self._call(self._payload(current_user, candidates))
+            answers = response.get("answers") if isinstance(response, dict) else None
+            if not isinstance(answers, dict):
+                raise TypeError("missing JEV answers object")
+            usage = response.get("usage") or {}
+            if isinstance(usage, dict):
+                for key in ("input_tokens", "output_tokens"):
+                    value = usage.get(key, 0)
+                    if type(value) is int and value >= 0:
+                        setattr(result, key, value)
+                cost = usage.get("cost", usage.get("cost_usd"))
+                if type(cost) in (int, float) and math.isfinite(cost) and cost >= 0:
+                    result.cost_usd = float(cost)
+            scores = []
+            for candidate in candidates:
+                values = [
+                    self._noul(answers.get(f"{candidate.candidate_id}_{name}"))
+                    for name in ("relevance", "guard", "salience")
+                ]
+                if any(value is None for value in values):
+                    continue
+                scores.append(
+                    JevAttention(
+                        candidate.ordinal,
+                        candidate.role,
+                        hashlib.sha256(candidate.content.encode("utf-8")).hexdigest(),
+                        *values,
+                    )
+                )
+            result.attention = tuple(scores)
+            if self.feature_specs is not None:
+                from .policy_features import vector_from_answers
+
+                valid = {s.ordinal for s in scores}
+                returned_model = response.get("model")
+                configured_model = self.config.jev_model.lstrip("~").removeprefix(
+                    "typesafe/"
+                )
+                if returned_model is not None and (
+                    not isinstance(returned_model, str)
+                    or (
+                        "latest" not in configured_model.lower()
+                        and returned_model.lstrip("~").removeprefix("typesafe/")
+                        != configured_model
+                    )
+                ):
+                    valid = (
+                        set()
+                    )  # declared scorer drift invalidates learned feature vectors
+                vectors = []
+                for candidate in candidates:
+                    if candidate.ordinal not in valid:
+                        continue
+                    try:
+                        vectors.append(
+                            vector_from_answers(candidate, answers, self.feature_specs)
+                        )
+                    except (ValueError, TypeError, AttributeError):
+                        pass  # missing semantic features are abstentions, never negatives
+                result.features = tuple(vectors)
+            result.candidates = len(candidates)
+        except Exception as exc:  # noqa: BLE001 - retain original evidence on any scorer failure
+            result.failed_open = True
+            result.error = type(
+                exc
+            ).__name__  # never copy provider bodies or source text to telemetry
+        finally:
+            result.elapsed_ms = (time.perf_counter() - started) * 1000
+        return result
 
     @staticmethod
     def _receipt(artifact_id: str, char_count: int) -> str:

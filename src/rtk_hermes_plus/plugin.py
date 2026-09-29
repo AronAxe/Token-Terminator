@@ -221,6 +221,7 @@ class Runtime:
         if not self.config.compiler_enabled or self.compiler is None:
             return None
         session_id = str(kwargs.get("session_id") or "")
+        engine_plan = kwargs.get("_tt_engine_plan")
         compiled = self.compiler.compile(
             request,
             session_id=session_id,
@@ -237,7 +238,20 @@ class Runtime:
         compaction: CompactionResult | None = None
         final_request: Any = compiled.request
         if self.context_compactor is not None and not compiled.failed_open:
-            compaction = self.context_compactor.compact(
+            compactor = self.context_compactor
+            if engine_plan is not None:
+                # ContextEngine semantic selection owns old-text omission. Preserve
+                # tool vaulting but never age-collapse its selected exact evidence.
+                compactor = ContextCompactor(
+                    self.store,
+                    min_vault_chars=self.config.context_min_vault_chars,
+                    collapse_after_turns=0,
+                    inline_recent_turns=self.config.context_inline_recent_turns,
+                )
+                compactor.token_budget = getattr(
+                    self.context_compactor, "token_budget", None
+                )
+            compaction = compactor.compact(
                 compiled.request if compiled.saved_chars > 0 else request,
                 session_id=session_id,
             )
@@ -251,7 +265,11 @@ class Runtime:
         # Jev may only remove remaining prior plain-text context after exact
         # vaulting, and any failure leaves the existing TT result untouched.
         jev_reduction: JevReductionResult | None = None
-        if self.jev_reducer is not None and not compiled.failed_open:
+        if (
+            engine_plan is None
+            and self.jev_reducer is not None
+            and not compiled.failed_open
+        ):
             jev_reduction = self.jev_reducer.reduce(
                 final_request,
                 session_id=session_id,
@@ -273,11 +291,20 @@ class Runtime:
                     session_id=session_id,
                     request_id=compiled.request_id,
                     model=str(request.get("model") or ""),
-                    attention=jev_reduction.attention if jev_reduction else (),
+                    attention=(
+                        engine_plan.attention
+                        if engine_plan is not None
+                        else jev_reduction.attention
+                        if jev_reduction
+                        else ()
+                    ),
                     require_attention=bool(
                         self.jev_reducer and self.jev_reducer.enabled
                     ),
-                    semantic_failed=bool(jev_reduction and jev_reduction.failed_open),
+                    semantic_failed=bool(
+                        (engine_plan is not None and engine_plan.semantic_failed)
+                        or (jev_reduction and jev_reduction.failed_open)
+                    ),
                 )
                 if not ir_reduction.failed_open and ir_reduction.saved_chars > 0:
                     final_request = ir_reduction.request
@@ -768,7 +795,7 @@ def register(ctx) -> None:
         and recovery_tool_registered
         and callable(register_middleware)
     ):
-        register_middleware("llm_request", runtime.llm_request_middleware)
+        register_middleware("llm_request", runtime.hermes_llm_request_middleware)
         ctx.register_hook("post_tool_call", runtime.post_tool_call)
 
     if runtime.config.native_enabled and recovery_tool_registered:

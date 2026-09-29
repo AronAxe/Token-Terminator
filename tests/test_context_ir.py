@@ -514,7 +514,9 @@ def test_actual_runtime_adds_ir_after_existing_stages(tmp_path):
     runtime = Runtime(cfg)
     request = request_for()
     request["_tt_private_marker"] = "not-provider-bound"
-    result = runtime.llm_request_middleware(request=request, session_id="s1")
+    result = runtime.llm_request_middleware(
+        request_purpose="conversation", request=request, session_id="s1"
+    )
     assert result is not None
     assert result["metrics"]["context_ir"]["compiled_messages"] == 1
     assert "_tt_private_marker" not in result["request"]

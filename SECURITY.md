@@ -24,7 +24,7 @@ On POSIX, Token Terminator enforces `0700` on private parent directories and `06
 - The complete model-visible payload, including receipts and optional working state, must be strictly smaller.
 - Request compilation operates on deep copies and fails open if a request cannot be copied safely.
 - Malformed requests, unavailable storage, migration failures, vault-capacity failures, missing host APIs, and non-smaller output leave normal Hermes behavior unchanged.
-- Token Terminator does not register a Hermes context engine and does not modify LCM state.
+- Token Terminator registers a ContextEngine only through explicit installation/selection; it does not modify LCM state.
 - Receipt metadata is bounded and excludes raw tool arguments and content.
 - Artifact reads, searches, graph operations, identifiers, metadata, and replay batches are bounded in the domain layer.
 
@@ -78,3 +78,105 @@ The existing adapter's canonical JSON measurement is exact for that string under
 Status exposes version/limits. Per-decision `metrics.context_ir` contains format counts, evaluations, raw/final tokens/chars, elapsed time, failure reason and `measurement_scope=canonical-request-json`. Source text, source IDs and raw exceptions are excluded from those metrics.
 
 The optional live benchmark explicitly calls configured Jev and OpenRouter and validates read-only recovery calls against source IDs already in the request. Raw answers and keys are not persisted. CI never runs the live benchmark.
+
+
+## v0.11.0 selected ContextEngine boundary
+
+Selection is explicit; installing its user-directory adapter does not select it,
+change Hermes core/config, or migrate LCM. Full available conversation messages
+(including sensitive content) are persisted locally as exact message JSON in the
+existing private vault. Hashes prove integrity, not truth. Persistent history pins
+survive reset and normal pruning; vault capacity and bounded-search failures retain
+original requests and return explicit recovery errors. This release has no automatic
+history deletion/unpin policy. Back up and secure the vault; deleting it invalidates
+references. File-system protection is not encryption or multi-tenant isolation.
+
+Enabling existing JEV sends bounded exact older user/assistant regions, the current
+query and recent plain conversation to the configured OpenRouter/TypeSafe service.
+This is an expanded historical-data boundary, not a local-only classifier. It adds
+no API key model. The complete body, batches and timeout are bounded; caps are not
+a verified dollar budget. Scores may be wrong or missing and are not factual claims.
+Malformed global results undo all semantic edits; individual invalid probabilities
+never authorize omission. Only complete valid score batches are cached in process,
+bound to the full payload hash; session/model resets clear the cache.
+
+The new history tool checks session membership and source hashes before returning
+exact pages. Historical recall is labeled data and cannot regain system/developer
+or tool authority. Existing generic artifact recovery retains its original scope;
+this addition is not an authorization retrofit for unrelated tools. Regex guards
+are conservative vetoes, not a universal multilingual instruction detector or
+prompt-injection defense. Source text is never converted into invented graph facts.
+
+A turn-scoped execution-context binding prevents cross-session plan reuse and keeps
+provider retries out of legacy age-collapse. The async adapter copies this binding
+to executor work. Missing tools, stale bindings, unsupported stateful requests,
+unknown tokenizers and storage/measurement failures do not authorize compaction.
+The final invariant covers the complete request at TT's middleware output, not later
+third-party rewrites, hidden provider framing or pre-middleware host hard limits.
+The user transcript remains unchanged even when the provider cannot fit it.
+
+
+## Call-purpose boundary (v0.11.0)
+
+The public request entry point checks purpose before any engine/semantic/tokenizer
+work. Internal service envelopes and negative/unknown host role signals bypass;
+TT's own work has an execution-local re-entry guard. Prompt metadata cannot opt a
+request in. Native Hermes auxiliary clients already bypass this hook and remain
+unchanged. This is routing defense, not a sandbox against arbitrary trusted
+plugins forging all main-hook metadata. See [call-scope review](docs/CALL_SCOPE_REVIEW.md)
+for the exact authorization contract, executor propagation and unresolved context
+limit handling. No new external service or credential boundary is introduced.
+
+## v0.11.0 learned-policy boundary
+
+The learner is an opt-in ContextEngine omission veto, not a source of facts or
+instruction authority. It cannot relax existing guards, exact source/recovery
+verification or the final tokenizer gate. Invalid deployment artifacts/features
+retain evidence. Policy loading occurs only after conversational scope approval;
+feature/proposal/evaluation callbacks run under internal-call protection.
+
+Deployment accepts only bounded numeric JSON trees with an explicitly pinned
+SHA-256, matching feature/scorer/generation-target identities and an eligible
+held-out assessment. No pickle, eval, arbitrary imports or native CatBoost model
+loader runs in Hermes. A checksum is not a signature or proof of label quality.
+
+Training reads only an explicitly supplied labelled file; it does not mine or
+export the live vault. Live mode requires explicit data-transfer consent. Current
+query/source data goes to the configured JEV provider, and up to six development
+error examples per round go to the chosen System-2 proposer. Holdout labels never
+guide discovery or fitting. Connected session/task/exact-source groups prevent
+exact split leakage, not all semantic duplication or reuse across separate runs.
+
+Treat generated question rubrics, numeric models, replay and reports as private:
+questions can reproduce training information even when reports omit raw source
+fields. Outputs are local/create-only, mode 0600 with new directories 0700 on
+Unix; secure parents and platform ACLs remain the operator's responsibility. No
+training data, policy or outcome telemetry is uploaded or enabled automatically.
+Request/body/round budgets and HTTP timeouts bound built-in service work but are
+not a hard spending ceiling or preemptive sandbox for arbitrary custom callbacks.
+Use trusted callbacks and bounded synthetic/recorded tests before live operation.
+
+See [LEARNED_POLICY.md](docs/LEARNED_POLICY.md) for exact limits, deployment
+approval, finite-sample quality qualifications and the existing unresolved
+context-limit enforcement boundary.
+
+## Local dashboard and Desktop accounting (v0.11.0 candidate)
+
+The optional standalone dashboard binds only 127.0.0.1:7474. It has no user
+authentication: local users/processes can read profile labels, model ids and
+numeric accounting. Do not publish it to a network. It offers GET-only fixed
+assets/aggregate endpoints, strict Host/Origin checks, no CORS, frame denial,
+no-store and CSP. Local configuration is the only source of database paths;
+symlinked or duplicate/hardlinked sources are refused. It reads SQLite accounting
+columns in read-only snapshots, never vault/source content or credentials, and
+never calls a provider or tokenizer. A local adversary who controls those files
+is outside this boundary. Some incomplete/unattributed legacy stores are withheld.
+
+The Desktop half uses supported namespaced `ctx.rest` behind Hermes' existing
+authentication and Python plugin allowlist. Its backend limits reads to the
+current task-local profile home; client parameters cannot choose a filesystem
+path. The status counter and cache are connection/profile-scoped and do not
+silently route a remote dashboard to this machine's localhost. Installation and
+enable are separate and opt-in. See [DASHBOARD.md](docs/DASHBOARD.md) for limits,
+accounting qualifications and rollback. The dashboard adds no service credential,
+background training or publication.

@@ -1,88 +1,78 @@
 # Migration and Rollback
 
-## 0.8.1 → 0.8.2
+## v0.9.0 → v0.11.0
 
-v0.8.2 corrects Jev provider routing. `auto` prefers `OPENROUTER_API_KEY`; direct TypeSafe remains available through `TYPESAFE_API_KEY`. One provider key is enough.
+The unshipped v0.10.0 milestone is included in v0.11.0. Back up the private TT
+vault, ledger and Hermes configuration before upgrading. Keep evidence pins:
+resetting counters or uninstalling the package must not silently remove originals.
 
-```bash
-hermes plugins disable token-terminator
-<hermes-python> -m pip uninstall -y token-terminator
-<hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.2'
-hermes plugins enable token-terminator --no-allow-tool-override
-```
-
-## 0.8.0 → 0.8.1
-
-Normal patch upgrade. v0.8.1 makes Jev aware of Hermes `<memory-context>` fences so recalled background can be scored separately from the user's actual current-turn words. Existing vault content and configuration remain compatible.
+Use the Python interpreter that actually runs Hermes:
 
 ```bash
-hermes plugins disable token-terminator
-<hermes-python> -m pip uninstall -y token-terminator
-<hermes-python> -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.1'
-hermes plugins enable token-terminator --no-allow-tool-override
+python -m pip install --upgrade \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.0'
+python -m rtk_hermes_plus.cli install-context-engine
 ```
 
-## 0.7.0 → 0.8.0
+Remove the old `rtk-hermes-plus` distribution first if present: it shares the
+`rtk_hermes_plus` import namespace with `token-terminator`. Do not install both.
 
-Normal in-place upgrade. v0.8.0 adds the optional Jev semantic context gate after the existing request compiler and deterministic context compactor. Jev is off by default, so an existing 0.7.0 installation keeps its previous behavior until you explicitly enable Jev and supply a TypeSafe API key.
+Enable the general `token-terminator` plugin. To replace LCM or the built-in
+compressor, explicitly select **Provider Plugins → Context Engine → Token
+Terminator**, allow `context_engine` in restricted toolsets, and restart Hermes.
+Only one engine owns context selection. Keeping another engine selected preserves
+middleware-only operation. Existing OpenRouter/direct TypeSafe credentials remain
+valid; JEV and Context IR still need their existing opt-in settings.
 
-All existing reduction paths remain active when Jev is enabled. Existing vault content and artifact identities remain compatible.
+The installer does not edit `config.yaml`, enable the plugin or change your running
+profile. It installs managed engine, backend and Desktop adapter files in the
+chosen Hermes home. Install separately in other profile homes where needed.
 
-Install the immutable release tag:
+## Dashboard and learned-policy activation
 
-```bash
-HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
-hermes plugins disable token-terminator
-"$HERMES_PY" -m pip uninstall -y token-terminator
-"$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.8.0'
-hermes plugins enable token-terminator --no-allow-tool-override
+`token-terminator install-dashboard` installs the managed adapter assets without
+selecting an engine. Enable its Desktop half under **Capabilities → Plugins** and
+reload Desktop after restarting the gateway. Run `token-terminator dashboard` to
+start the separate read-only service on localhost:7474. No server starts on import.
+See [Dashboard](Dashboard) for profile discovery, rates and ambiguous legacy stores.
+
+The learned policy remains `off`. Training requires explicit labelled data;
+deployment requires a reviewed artifact and approved SHA-256. Start with `shadow`
+before considering `active`. Training does not activate a policy, export the live
+vault or change JEV's weights. See [Learned Policy](Learned-Policy).
+
+## Return to middleware-only operation
+
+Select your installed LCM engine or `compressor`, then restart Hermes. Keep the
+general TT plugin enabled for middleware. For exact-history workloads, set
+`TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS=0` to disable the legacy preview-based
+age-collapse path. The selected TT ContextEngine already excludes that path.
+
+## Roll the package back to v0.9.0
+
+First select another context engine and disable the Desktop component. Stop
+Hermes/the gateway. Remove **only TT's managed adapter files** from the relevant
+`<HERMES_HOME>/plugins/token-terminator/` directory:
+
+```text
+__init__.py
+plugin.yaml
+dashboard/plugin_api.py
+dashboard/manifest.json
+dashboard/noop.js
+desktop/plugin.js
 ```
 
-See [Jev Semantic Context Gate](Jev-Semantic-Context-Gate) before enabling the external API boundary.
+Do not delete unrelated files, user configuration, the private evidence vault,
+or an LCM archive. Install the v0.9.0 package, re-enable ordinary TT middleware
+as appropriate, and restart. An older package cannot import the new engine or
+Desktop/backend adapter. Disable the learned layer with
+`TOKEN_TERMINATOR_LEARNED_POLICY_MODE=off` when rolling back.
 
-## 0.6.0 → 0.7.0
+Full available history is not destructively shortened by the new engine. It cannot
+reconstruct originals already missing from an older LCM transcript, and it does not
+import an external LCM archive. Persistent pins can fill storage; plan retention.
 
-Normal in-place upgrade. v0.7.0 adds the runtime graph-of-skill-graphs used by SkillGate. The graph starts empty and is populated from the current host's installed skills; skill contents remain local and outside provider-visible requests. Existing vault content and artifact identities remain compatible.
-
-## 0.5.2 → 0.6.0
-
-Normal in-place upgrade. v0.6.0 adds component-level request attribution and fail-open SkillGate routing. Existing vault content remains valid. SkillGate has no default count cap: all skills above the relevance threshold survive, while filtered skills remain available through `skills_list` and `skill_view`.
-
-## 0.5.1 → 0.5.2
-
-v0.5.2 adds persistent tokenizer-aware savings accounting and makes `tiktoken` a default dependency. Existing vault data remains compatible; upgrade the package in place and start a new agent session.
-
-## 0.5.0 → 0.5.1
-
-v0.5.1 is an in-place hardening release. Artifact identity remains compatible. Existing vaults are opened with additive schema management for temporal snapshots and vault metadata.
-
-Key behavior changes include bounded retention, recovery-safe GC, Unicode search, async temporal parity, cwd-aware rewrite caching, and hardened measurement/security behavior.
-
-Install the immutable release tag:
-
-```bash
-HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
-
-hermes plugins disable token-terminator
-"$HERMES_PY" -m pip uninstall -y token-terminator
-"$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.5.1'
-hermes plugins enable token-terminator --no-allow-tool-override
-```
-
-Start a fresh session and verify `/token-terminator status`.
-
-## From RTK Hermes Plus 0.2.0
-
-Uninstall the old distribution first. Do not leave `rtk-hermes-plus` and `token-terminator` installed together because they share the `rtk_hermes_plus` Python package.
-
-Legacy recovery files are not automatically copied into the content-addressed vault.
-
-## Rollback
-
-Package uninstall does not erase the private Token Terminator data directory. Back it up or remove it separately if that is your intent.
-
-For the detailed pre-change checklist, rollback commands, and compatibility boundary, use the repository's `MIGRATION.md` as the authoritative operational document.
+The repository [MIGRATION.md](https://github.com/AronAxe/Token-Terminator/blob/v0.11.0/MIGRATION.md)
+is the detailed operational reference, including earlier version transitions.
+[Release history](Home#release-history) preserves the earlier release notes.

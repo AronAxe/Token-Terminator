@@ -1,0 +1,56 @@
+name: Dashboard verification
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: NousResearch/hermes-agent
+          ref: fd0b98f6256446a9115c54f1a92ace5ea74c929f
+          path: upstream-hermes
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install bounded UI / backend test dependencies
+        run: |
+          python -m pip install -e '.[dev]'
+          python -m pip install playwright openai python-dotenv rich fire tenacity pyyaml truststore croniter snowballstemmer tomli-w 'ruamel.yaml==0.18.16' prompt-toolkit
+          python -m playwright install --with-deps chromium
+          npm install --prefix .dashboard-qa --no-audit --no-fund react@19.3.0 react-dom@19.3.0
+      - name: Accounting, profile isolation, read-only HTTP and retry regressions
+        run: python -m pytest tests/test_dashboard.py --junitxml=dashboard-tests.xml
+      - name: Native Hermes discovery, mount, allowlist and profile dependency
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/upstream-hermes
+        run: python scripts/smoke_dashboard_hermes.py > dashboard-hermes.json
+      - name: Desktop ESM contribution and React rendering contract
+        env:
+          NODE_PATH: ${{ github.workspace }}/.dashboard-qa/node_modules
+        run: node --experimental-vm-modules scripts/smoke_dashboard.mjs > dashboard-desktop.json
+      - name: Real localhost Chromium desktop and mobile QA
+        run: python scripts/smoke_dashboard_browser.py --output dashboard-browser
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: dashboard-verification
+          path: |
+            dashboard-tests.xml
+            dashboard-hermes.json
+            dashboard-desktop.json
+            dashboard-browser/
+          retention-days: 14

@@ -1,0 +1,431 @@
+{
+  "version": "0.10.0",
+  "mode": "fixture-scores",
+  "repeats": 3,
+  "hermes_commit": "801a9022a742562a3c4578c0d8dd12cfd393fc47",
+  "paid_api_calls": 0,
+  "measurement": "complete canonical provider-request JSON; not hidden provider framing or billed tokens",
+  "quality_scope": "independent visible-data golden checks; no live LLM or real JEV evaluation",
+  "corpus": "five structured/prose/constraint tasks, source followed by fifty distracting conversation turns",
+  "timing": "cold per-arm store; tokenizer warmed; engine capture included; optional retry cache separately measured",
+  "config": {
+    "jev_max_candidate_chars": 64000,
+    "jev_max_state_chars": 200000,
+    "engine_max_batches": 2,
+    "engine_region_chars": 8000,
+    "context_collapse_after_turns_middleware": 6
+  },
+  "lcm_tt": {
+    "status": "not_reproduced",
+    "reason": "Pinned upstream has no bundled LCM implementation; no external LCM repository/commit, configuration or scored transcript was supplied. No simulated LCM result is substituted."
+  },
+  "summary": [
+    {
+      "model": "gpt-4o",
+      "arm": "tt_middleware_default",
+      "evaluations": 15,
+      "raw_tokens_five_tasks_once": 92829,
+      "final_tokens_five_tasks_once": 19002,
+      "median_local_ms": 51.754,
+      "golden_passes": 0,
+      "exact_target_passes": 0,
+      "no_enlargement_passes": 15,
+      "jev_fixture_calls_per_trial": [
+        0
+      ],
+      "median_recovery_probe_resend_tokens": 0
+    },
+    {
+      "model": "gpt-4o",
+      "arm": "tt_middleware_jev_ir",
+      "evaluations": 15,
+      "raw_tokens_five_tasks_once": 92829,
+      "final_tokens_five_tasks_once": 12962,
+      "median_local_ms": 83.949,
+      "golden_passes": 0,
+      "exact_target_passes": 0,
+      "no_enlargement_passes": 15,
+      "jev_fixture_calls_per_trial": [
+        1
+      ],
+      "median_recovery_probe_resend_tokens": 3079
+    },
+    {
+      "model": "gpt-4o",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "evaluations": 15,
+      "raw_tokens_five_tasks_once": 92829,
+      "final_tokens_five_tasks_once": 70554,
+      "median_local_ms": 154.927,
+      "golden_passes": 15,
+      "exact_target_passes": 15,
+      "no_enlargement_passes": 15,
+      "jev_fixture_calls_per_trial": [
+        1
+      ],
+      "median_recovery_probe_resend_tokens": 17014
+    },
+    {
+      "model": "gpt-4o",
+      "arm": "tt_context_engine_jev_ir",
+      "evaluations": 15,
+      "raw_tokens_five_tasks_once": 93499,
+      "final_tokens_five_tasks_once": 31934,
+      "median_local_ms": 771.776,
+      "golden_passes": 15,
+      "exact_target_passes": 15,
+      "no_enlargement_passes": 15,
+      "jev_fixture_calls_per_trial": [
+        2
+      ],
+      "median_recovery_probe_resend_tokens": 6296
+    },
+    {
+      "model": "gpt-4",
+      "arm": "tt_middleware_default",
+      "evaluations": 15,
+      "raw_tokens_five_tasks_once": 97360,
+      "final_tokens_five_tasks_once": 20088,
+      "median_local_ms": 69.793,
+      "golden_passes": 0,
+      "exact_target_passes": 0,
+      "no_enlargement_passes": 15,
+      "jev_fixture_calls_per_trial": [
+        0
+      ],
+      "median_recovery_probe_resend_tokens": 0
+    },
+    {
+      "model": "gpt-4",
+      "arm": "tt_middleware_jev_ir",
+      "evaluations": 15,
+      "raw_tokens_five_tasks_once": 97360,
+      "final_tokens_five_tasks_once": 13598,
+      "median_local_ms": 96.058,
+      "golden_passes": 0,
+      "exact_target_passes": 0,
+      "no_enlargement_passes": 15,
+      "jev_fixture_calls_per_trial": [
+        1
+      ],
+      "median_recovery_probe_resend_tokens": 3222
+    },
+    {
+      "model": "gpt-4",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "evaluations": 15,
+      "raw_tokens_five_tasks_once": 97360,
+      "final_tokens_five_tasks_once": 74251,
+      "median_local_ms": 187.362,
+      "golden_passes": 15,
+      "exact_target_passes": 15,
+      "no_enlargement_passes": 15,
+      "jev_fixture_calls_per_trial": [
+        1
+      ],
+      "median_recovery_probe_resend_tokens": 17755
+    },
+    {
+      "model": "gpt-4",
+      "arm": "tt_context_engine_jev_ir",
+      "evaluations": 15,
+      "raw_tokens_five_tasks_once": 98000,
+      "final_tokens_five_tasks_once": 32100,
+      "median_local_ms": 760.46,
+      "golden_passes": 15,
+      "exact_target_passes": 15,
+      "no_enlargement_passes": 15,
+      "jev_fixture_calls_per_trial": [
+        2
+      ],
+      "median_recovery_probe_resend_tokens": 6324
+    }
+  ],
+  "engine_failures": [],
+  "local_execution": "Same container, separate invocations per tokenizer; three repeats each.",
+  "per_case_checks": [
+    {
+      "model": "gpt-4o",
+      "case": "dependency-path",
+      "arm": "tt_middleware_default",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "dependency-path",
+      "arm": "tt_middleware_jev_ir",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "dependency-path",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "dependency-path",
+      "arm": "tt_context_engine_jev_ir",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "exact-values-and-negation",
+      "arm": "tt_middleware_default",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "exact-values-and-negation",
+      "arm": "tt_middleware_jev_ir",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "exact-values-and-negation",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "exact-values-and-negation",
+      "arm": "tt_context_engine_jev_ir",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "protected-code-quotation-control",
+      "arm": "tt_middleware_default",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "protected-code-quotation-control",
+      "arm": "tt_middleware_jev_ir",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "protected-code-quotation-control",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "protected-code-quotation-control",
+      "arm": "tt_context_engine_jev_ir",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "repeated-exact-spans",
+      "arm": "tt_middleware_default",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "repeated-exact-spans",
+      "arm": "tt_middleware_jev_ir",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "repeated-exact-spans",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "repeated-exact-spans",
+      "arm": "tt_context_engine_jev_ir",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "temporal-confusable-entities",
+      "arm": "tt_middleware_default",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "temporal-confusable-entities",
+      "arm": "tt_middleware_jev_ir",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "temporal-confusable-entities",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4o",
+      "case": "temporal-confusable-entities",
+      "arm": "tt_context_engine_jev_ir",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "dependency-path",
+      "arm": "tt_middleware_default",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "dependency-path",
+      "arm": "tt_middleware_jev_ir",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "dependency-path",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "dependency-path",
+      "arm": "tt_context_engine_jev_ir",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "exact-values-and-negation",
+      "arm": "tt_middleware_default",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "exact-values-and-negation",
+      "arm": "tt_middleware_jev_ir",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "exact-values-and-negation",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "exact-values-and-negation",
+      "arm": "tt_context_engine_jev_ir",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "protected-code-quotation-control",
+      "arm": "tt_middleware_default",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "protected-code-quotation-control",
+      "arm": "tt_middleware_jev_ir",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "protected-code-quotation-control",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "protected-code-quotation-control",
+      "arm": "tt_context_engine_jev_ir",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "repeated-exact-spans",
+      "arm": "tt_middleware_default",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "repeated-exact-spans",
+      "arm": "tt_middleware_jev_ir",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "repeated-exact-spans",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "repeated-exact-spans",
+      "arm": "tt_context_engine_jev_ir",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "temporal-confusable-entities",
+      "arm": "tt_middleware_default",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "temporal-confusable-entities",
+      "arm": "tt_middleware_jev_ir",
+      "golden_passes": 0,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "temporal-confusable-entities",
+      "arm": "tt_middleware_jev_ir_no_age_collapse",
+      "golden_passes": 3,
+      "evaluations": 3
+    },
+    {
+      "model": "gpt-4",
+      "case": "temporal-confusable-entities",
+      "arm": "tt_context_engine_jev_ir",
+      "golden_passes": 3,
+      "evaluations": 3
+    }
+  ],
+  "identical_retry_new_jev_calls": [
+    0
+  ]
+}

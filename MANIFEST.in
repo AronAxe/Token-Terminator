@@ -12,3 +12,19 @@ include scripts/benchmark.py
 include scripts/quality_ab.py
 include scripts/benchmark_context_ir.py
 recursive-include benchmarks/context_ir *.md *.json
+
+include scripts/smoke_hermes_context_engine.py
+include scripts/hermes_call_scope_checks.py
+include scripts/benchmark_context_engine.py
+recursive-include benchmarks/context_engine *.md *.json
+recursive-include examples *.yaml
+
+include scripts/benchmark_learned_policy.py
+recursive-include benchmarks/learned_policy *.md *.json
+
+recursive-include src/rtk_hermes_plus/dashboard_assets *
+recursive-include examples *.json
+include scripts/smoke_dashboard.mjs
+include scripts/smoke_dashboard_browser.py
+include scripts/smoke_dashboard_hermes.py
+include tests/dashboard_fixtures.py

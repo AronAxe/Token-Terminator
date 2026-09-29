@@ -70,7 +70,7 @@ The collapse window must be disabled (`0`) or be at least as large as the fully-
 
 ## Jev semantic context gate
 
-Jev is **disabled by default** and does not replace any existing reduction path. It runs after the deterministic compiler/compactor.
+Jev is **disabled by default** and does not replace any existing reduction path. In middleware mode it runs after the deterministic compiler/compactor; the selected ContextEngine scores full-history regions before final compilation.
 
 | Variable | Default |
 |---|---:|
@@ -144,3 +144,40 @@ Use `/token-terminator status` after changing configuration and start a fresh ho
 ### Jev provider selection
 
 `TOKEN_TERMINATOR_JEV_PROVIDER` accepts `auto`, `openrouter`, or `typesafe`. Auto mode prefers `OPENROUTER_API_KEY` when present and otherwise uses `TYPESAFE_API_KEY`. If both keys exist, OpenRouter is selected. You never need both keys for one Jev call.
+
+## v0.11.0 selectable ContextEngine
+
+Explicit selection: `context.engine: token-terminator`; also enable the general
+`token-terminator` plugin for final middleware. Run
+`token-terminator install-context-engine` first, preserve other plugin selections,
+allow the `context_engine` toolset where restricted, then restart. Existing
+OpenRouter/TypeSafe keys and JEV/IR flags are unchanged.
+
+| Variable | Default | Range |
+|---|---:|---:|
+| `TOKEN_TERMINATOR_ENGINE_MAX_BATCHES` | 2 | 1–8 |
+| `TOKEN_TERMINATOR_ENGINE_PROTECT_LAST` | 6 messages | 1–64 |
+| `TOKEN_TERMINATOR_ENGINE_REGION_CHARS` | 8000 | 256–64000 |
+| `TOKEN_TERMINATOR_ENGINE_RECALL_SOURCES` | 3 | 0–16 |
+| `TOKEN_TERMINATOR_ENGINE_SEARCH_SOURCES` | 10000 | 1–100000 |
+
+The existing JEV candidate/body/time limits also apply; the complete outbound body
+is bounded. Missing/uncertain scores leave evidence inline. Search-bound/capacity
+failures are explicit, not newest-only truncation. ContextEngine acceptance always
+requires an exact target tokenizer; character fallback is not sufficient.
+
+See [Context Engine](Context-Engine) for installation, retention and provider limits.
+
+
+## v0.11.0 learned policy and Observatory
+
+Learning mode is independently `off` by default. An evaluated local artifact,
+approved `TOKEN_TERMINATOR_LEARNED_POLICY_SHA256` and matching scorer/target
+identities are required before deployment. `shadow` audits without replacing the
+fixed-gate request; approved `active` may retain otherwise omitted sources.
+See [Learned Policy](Learned-Policy) for all training limits and configuration.
+
+`token-terminator dashboard` starts the read-only loopback server on port 7474.
+Optional `dashboard.json` maps local stores and exact-model USD rate cards.
+The Desktop half uses the authorized profile's native API. See [Dashboard](Dashboard).
+No dashboard command activates JEV or learned mode, and no learning job is automatic.

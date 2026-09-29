@@ -71,7 +71,41 @@ class RuntimeV06(RuntimeV05):
         """
         self.skill_gate.set_scorer(scorer)
 
+    def hermes_llm_request_middleware(self, *, request: dict, **kwargs: Any):
+        """Adapter for the inspected, main-turn-only Hermes middleware contract."""
+        kwargs["_tt_hermes_main_hook"] = True
+        return self.llm_request_middleware(request=request, **kwargs)
+
     def llm_request_middleware(self, *, request: dict, **kwargs: Any):
+        from .call_scope import (
+            conservative_chat_target,
+            conversational_request,
+            internal_call,
+        )
+        from .engine_bridge import current
+
+        allowed, reason = conversational_request(request, kwargs)
+        self._last_call_scope = reason
+        if not allowed:
+            return None  # no vault, scoring, tokenization, model cache or payload edits
+        self._last_chat_target = {}
+        try:
+            with internal_call():
+                binding = current()
+                if binding is not None:
+                    return binding.engine.reduce_request(
+                        self, request, _tt_bound_generation=binding.generation, **kwargs
+                    )
+                if conservative_chat_target(request, kwargs):
+                    from .chat_target import preserve_chat_request
+
+                    return preserve_chat_request(self, request, **kwargs)
+                return self._middleware_pipeline(request=request, **kwargs)
+        finally:
+            # An internal transport/measurement callback may have reentered us.
+            self._last_call_scope = reason
+
+    def _middleware_pipeline(self, *, request: dict, **kwargs: Any):
         if not isinstance(request, dict):
             return super().llm_request_middleware(request=request, **kwargs)
 
@@ -201,6 +235,8 @@ class RuntimeV06(RuntimeV05):
 
     def status(self) -> dict[str, Any]:
         status = super().status()
+        status["call_scope"] = getattr(self, "_last_call_scope", "not_called")
+        status["chat_target"] = getattr(self, "_last_chat_target", {})
         status["request_attribution"] = self.request_attribution.summary()
         status["skill_graph"] = self.skill_graph.status()
         status["skill_gate"] = {

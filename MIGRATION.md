@@ -1,3 +1,69 @@
+# Migration to Token Terminator 0.11.0
+
+## Optional learned policy
+
+v0.10.0 was not published; its engine/scope changes are included in this v0.11.0
+release. Learned mode defaults to off and does not require
+a database migration. Install `[learning]` only where fitting models, not on every
+Hermes runtime. See [the data/training/approval workflow](docs/LEARNED_POLICY.md).
+To activate, select TT as ContextEngine, review an evaluated policy, pin its local
+path and SHA-256, start with shadow, then explicitly select active and restart.
+Scorer and generation targets must match the evaluated identities. Training never
+changes the running policy, exports the vault or overwrites previous artifacts.
+Set `TOKEN_TERMINATOR_LEARNED_POLICY_MODE=off` and restart to disable this layer;
+keep the vault and referenced originals. A corrupt approved active policy preserves
+history rather than falling back silently to semantic pruning.
+
+## Call-scope safety update
+
+Native Hermes main turns are authorized by the registered adapter; installation
+and engine selection are unchanged. Generic Python/async adapters must now pass
+out-of-band `request_purpose="conversation"` for their actual generation route.
+Bare unscoped calls and explicit internal/service calls return `None` unchanged.
+Do not propagate conversation authorization into embedding/rerank/helper work.
+JEV final chat targets preserve history by default; custom aliases can set
+`TOKEN_TERMINATOR_CHAT_TARGET_POLICY=preserve`. See
+[the scoped behavior and hard-limit boundary](docs/CALL_SCOPE_REVIEW.md).
+
+
+## Upgrade from v0.9.0
+
+Install the `v0.11.0` tag using the Python environment that runs Hermes:
+
+```bash
+python -m pip install --upgrade \
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.0'
+python -m rtk_hermes_plus.cli install-context-engine
+```
+
+Follow [the ContextEngine guide](docs/CONTEXT_ENGINE.md). Existing released tags are
+unchanged. Package installation, plugin enablement, engine selection, Desktop
+activation and learned-policy approval are separate actions; none silently enables
+the others.
+
+Explicitly select `context.engine: token-terminator` and enable the generic TT
+middleware plugin. Do not leave LCM selected upstream. The existing JEV provider
+and keys remain valid; IR and JEV retain their own opt-in flags. Restart the host.
+The installer does not edit config, touch LCM, or change Hermes core files.
+
+The additive `tt_context_sources` table and pinned ordinary artifacts share the
+existing vault. Back it up before changing packages. Session reset intentionally
+does not delete backing evidence. Retention is manual and capacity failures pass
+through rather than pruning pinned history. No import of an external LCM archive
+is implemented; previously unavailable originals cannot be reconstructed.
+
+Rollback: select the installed `lcm` engine or `compressor`, restart, and keep the
+generic TT plugin enabled for middleware-only operation. For package rollback,
+disable the Desktop half and remove only the six **managed** adapter files
+listed in [the installation guide](docs/CONTEXT_ENGINE.md) before reinstalling
+v0.9.0; leave unrelated files untouched. The old package does not export the new
+engine or dashboard backend. Restart the gateway. Do not delete the vault.
+Use `TOKEN_TERMINATOR_CONTEXT_COLLAPSE_AFTER_TURNS=0` when exact old dialogue is
+required in legacy middleware mode. Existing schema version 2 remains readable;
+the new catalog does not change ordinary artifact identifiers or recovery actions.
+
+---
+
 # Migration and rollback: 0.2.0 / 0.4.0 / 0.5.x / 0.6.0 / 0.7.0 / 0.8.x → 0.9.0
 
 Token Terminator 0.9.0 supersedes Token Terminator 0.8.2 and replaces the older RTK Hermes Plus 0.2.0 distribution. The Python import package remains `rtk_hermes_plus`; `token-terminator` and `rtk-hermes-plus` must not coexist because both own that package.
@@ -243,3 +309,20 @@ hermes plugins enable rtk-plus --no-allow-tool-override
 ```
 
 Commence a new Hermes session and verify `/rtk-plus status`.
+
+## Dashboard / Desktop addition to v0.11.0
+
+`token-terminator dashboard` serves localhost:7474 when explicitly started.
+`token-terminator install-dashboard` (or re-running `install-context-engine`)
+adds the managed Desktop status contribution and backend files; it does not
+change the selected engine or enabled-plugin configuration. Restart the gateway
+for new backend routes and enable the Desktop half separately. See
+[the complete guide](docs/DASHBOARD.md) for root discovery, custom paths and pricing.
+
+Hermes task-local profile home now takes precedence over the launch environment.
+This fixes new default vault/ledger locations for multiplexed profile runtimes;
+explicit path overrides are unchanged. Historical shared stores are not copied,
+split or deleted. Contradictory profile attribution is displayed as unavailable
+rather than guessed. Keep prior vaults for recovery and map custom stores
+explicitly in local `dashboard.json`. Set no new API keys. Stopping the dashboard
+and disabling its Desktop half removes UI without changing the reducer policy.

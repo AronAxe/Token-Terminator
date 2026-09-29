@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Callable
 from concurrent.futures import Executor
 from contextlib import suppress
+from contextvars import copy_context
 from functools import partial
 from typing import Any, TypeVar
 
@@ -43,7 +44,10 @@ class AsyncRuntime:
     ) -> _T:
         self._raise_if_cancelled(cancellation)
         loop = asyncio.get_running_loop()
-        future = loop.run_in_executor(self.executor, partial(function, *args, **kwargs))
+        context = copy_context()
+        future = loop.run_in_executor(
+            self.executor, context.run, partial(function, *args, **kwargs)
+        )
         cancellation_waiter: asyncio.Task[None] | None = None
         try:
             if cancellation is None:

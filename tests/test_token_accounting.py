@@ -70,11 +70,13 @@ def test_request_token_savings_are_persisted_and_reported(tmp_path):
     }
 
     runtime.llm_request_middleware(
+        request_purpose="conversation",
         request=request,
         session_id="session-a",
         api_request_id="request-1",
     )
     decision = runtime.llm_request_middleware(
+        request_purpose="conversation",
         request=request,
         session_id="session-a",
         api_request_id="request-2",
