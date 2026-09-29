@@ -1,36 +1,33 @@
-# Rust crate: `token-terminator`
+# Rust crate: `token-terminator` 0.11.0
 
-Token Terminator ships a small Rust interoperability crate alongside the Python runtime.
+Token Terminator ships a small Rust interoperability crate alongside its Python
+runtime. The package name is `token-terminator`; the library is `token_terminator`.
 
-- crates.io: <https://crates.io/crates/token-terminator>
-- docs.rs: <https://docs.rs/token-terminator>
-- package name: `token-terminator`
-- library name: `token_terminator`
+[crates.io](https://crates.io/crates/token-terminator/0.11.0) ·
+[Rust API](https://docs.rs/token-terminator/0.11.0/token_terminator/)
 
 ## Why a Rust crate exists
 
-Token Terminator is agent-runtime infrastructure, so adapters do not all live in Python. The Rust crate exposes only the stable pieces that a Rust host can share with the Python implementation without duplicating the whole runtime:
-
-1. SHA-256 artifact identity over exact UTF-8 bytes;
-2. normal short artifact IDs (`a_` plus the first 32 digest hex characters);
-3. the full collision-fallback artifact ID;
-4. exact digest and artifact-ID verification; and
-5. the baseline strictly-smaller-in-characters acceptance invariant.
-
-This keeps cross-language adapters compatible with the private artifact vault while leaving the main runtime dependency-light and fail-open.
+Adapters do not all live in Python. The crate exposes stable pieces a Rust host
+can share with TT without duplicating its runtime: SHA-256 identity over exact
+UTF-8 bytes, normal short IDs, the full collision-fallback ID, digest/ID verification,
+and the baseline strictly-smaller-in-characters invariant. Storage, recovery and
+provider-specific measurement remain the host adapter's responsibility.
 
 ## Install
 
 ```bash
-cargo add token-terminator
+cargo add token-terminator@0.11.0
 ```
 
-Or pin the release explicitly:
+Or declare the compatible release series:
 
 ```toml
 [dependencies]
-token-terminator = "0.8.2"
+token-terminator = "0.11.0"
 ```
+
+Use `=0.11.0` instead when an exact Cargo version requirement is desired.
 
 ## Example
 
@@ -44,50 +41,39 @@ use token_terminator::{
 
 let raw = "the complete exact tool result";
 let identity = artifact_identity(raw);
-
 assert!(verify_sha256(raw, &identity.sha256));
 assert!(artifact_id_matches(raw, &identity.artifact_id));
 assert!(strictly_smaller_chars(raw, "receipt"));
 ```
 
-## Artifact identity compatibility
+## Artifact identity
 
-The Python vault computes:
+The Python vault computes `SHA256(content.encode("utf-8"))`. The normal ID is
+`a_` followed by the first 32 lowercase hexadecimal digest characters. A short-ID
+collision with different exact content uses `a_` plus the full digest instead.
+The Rust helpers support both forms without opening the vault database.
 
-```text
-sha256 = SHA256(content.encode("utf-8"))
-artifact_id = "a_" + sha256_hex[0:32]
-```
+## Measurement and recovery boundaries
 
-If the 32-hex-character short ID ever collides with an existing different digest, the Python vault uses:
+`strictly_smaller_chars(raw, candidate)` only compares character lengths. It does
+not prove exact token savings, source availability, valid provider shape or answer
+quality. Python's ContextEngine and Context IR require strict actual-tokenizer AND
+character decreases across complete canonical request JSON. Legacy middleware
+can retain its character-only fallback. A Rust host must implement the matching
+measurement and exact-source recovery checks for its integration.
 
-```text
-artifact_id = "a_" + full_sha256_hex
-```
+## Not a Rust port or mandatory accelerator
 
-The Rust crate exposes helpers for both forms. It does not access the vault database directly; the host adapter remains responsible for storage and recovery boundaries.
-
-## Strict reduction compatibility
-
-`strictly_smaller_chars(raw, candidate)` mirrors the portable baseline invariant: a candidate must contain fewer characters than the original provider-visible text.
-
-The Python 0.5 runtime can impose a **second** model-aware gate when an exact tokenizer is available. The Rust interoperability crate deliberately does not guess tokenizer behavior. A Rust host that has an exact provider tokenizer should apply the same second gate itself.
-
-## Deliberate boundary: this is not the native accelerator
-
-Publishing a Rust crate does **not** change the v0.5 architecture:
-
-- Python remains the production reduction engine and Hermes adapter.
-- No PyO3 extension is required.
-- No Rust code is imported by the Python package.
-- The SQLite vault schema and lifecycle stay owned by the Python runtime.
-- Rust/PyO3 hot-path acceleration remains deferred until profiling demonstrates that crossing the FFI boundary is worth the complexity.
-
-That distinction is intentional: crates.io gives Rust agent runtimes a supported compatibility surface now, without turning an unmeasured optimization idea into a mandatory dependency.
+The full-history ContextEngine, JEV attention, learned omission-risk system,
+Context IR, SQLite vault, dashboard, temporal state and Hermes hooks remain in
+Python. CatBoost is optional and training-only. The crate supplies none of these
+features and is not loaded by the Python package. No PyO3/FFI dependency is added.
+Native acceleration remains contingent on actual profiling, not the publication
+of an interoperability crate.
 
 ## Release verification
 
-The repository CI treats the Rust package as a first-class distribution surface. It runs:
+CI and crate publication run:
 
 ```bash
 cargo fmt --check
@@ -97,8 +83,6 @@ RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
 cargo publish --dry-run
 ```
 
-The crates.io publication workflow uses the repository secret `CARGO_REGISTRY_TOKEN`, matching the publishing convention used by the author's other Rust projects. Tokens are never committed to repository files or logs.
-
-## Versioning
-
-The Rust crate follows Token Terminator product versions when its interoperability contract changes. Version `0.8.2` accompanies Token Terminator 0.8.2; the Rust interoperability contract itself remains stable and continues to expose artifact identity and strict-reduction helpers.
+Publication uses the existing repository `CARGO_REGISTRY_TOKEN` secret. The token
+is never committed. Version 0.11.0 aligns this companion with the Python release
+and its refreshed documentation; the artifact identity contract remains unchanged.

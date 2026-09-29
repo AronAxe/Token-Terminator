@@ -48,3 +48,10 @@ learning/engine tests do not establish production answer quality or service econ
 
 Python release: **0.11.0** · Rust interoperability companion: **0.11.0** ·
 First-party runtime adapter: **Hermes Agent**. The Rust crate is not the Python runtime.
+
+## Release history
+
+[0.11.0](Release-0.11.0) · [0.9.0](Release-0.9.0) ·
+[0.8.2](Release-0.8.2) · [0.8.1](Release-0.8.1) · [0.8.0](Release-0.8.0) ·
+[0.7.0](Release-0.7.0) · [0.6.0](Release-0.6.0) · [0.5.2](Release-0.5.2) ·
+[0.5.1](Release-0.5.1). The [0.10.0 milestone](Release-0.10.0) was not published separately.

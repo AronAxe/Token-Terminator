@@ -1,61 +1,47 @@
 # Rust Interoperability
 
-The `token-terminator` crate provides the stable cross-language pieces of the artifact contract. It is intentionally **not** a second implementation of the full Python runtime.
+The `token-terminator` **0.11.0** crate supplies stable cross-language artifact
+identity and reduction helpers. It is the Rust interoperability companion, **not**
+a second implementation of the Python ContextEngine, learned policy or dashboard.
 
 ## Install
 
 ```bash
-cargo add token-terminator
+cargo add token-terminator@0.11.0
 ```
 
-Or pin:
+Or declare:
 
 ```toml
 [dependencies]
-token-terminator = "0.8.2"
+token-terminator = "0.11.0"
 ```
 
 ## Example
 
 ```rust
-use token_terminator::{
-    artifact_identity,
-    strictly_smaller_chars,
-    verify_sha256,
-};
+use token_terminator::{artifact_identity, strictly_smaller_chars, verify_sha256};
 
 let evidence = "exact tool evidence";
 let identity = artifact_identity(evidence);
-
 assert!(identity.artifact_id.starts_with("a_"));
 assert!(verify_sha256(evidence, &identity.sha256));
-assert!(strictly_smaller_chars(
-    "long provider-visible evidence",
-    "short receipt",
-));
+assert!(strictly_smaller_chars("long provider-visible evidence", "short receipt"));
 ```
 
-## Compatibility contract
+## Stable compatibility contract
 
-The crate mirrors:
+SHA-256 covers exact UTF-8 bytes. Normal IDs use `a_` followed by the first 32
+lowercase digest characters; the full-digest collision fallback remains supported.
+The helper's strict character-reduction check is a baseline, not an exact-token
+measurement. Hosts must apply their own actual target-tokenizer gate where required.
 
-- SHA-256 over exact UTF-8 bytes;
-- normal artifact IDs as `a_` + first 32 lowercase digest hex characters;
-- full-digest collision fallback compatibility;
-- the portable strictly-smaller-in-characters baseline.
+The crate does not supply SQLite storage, Hermes hooks, Context IR, semantic
+selection, CatBoost training, tokenizers, the dashboard, RTK rewriting or PyO3
+acceleration. The Python package remains dependency-light at runtime; Rust is not
+silently imported by it. Version 0.11.0 aligns the companion package and documentation
+with the product release without claiming a new artifact identity scheme.
 
-The Python runtime can additionally require fewer exact measured tokens.
-
-## Not included in the crate
-
-The Rust crate does not implement:
-
-- the SQLite vault;
-- Hermes hooks;
-- request compilation;
-- temporal state;
-- tokenizer adapters;
-- RTK rewriting;
-- PyO3 acceleration.
-
-Native acceleration remains profiling-driven. The project should not add a Rust/PyO3 dependency merely because Rust exists elsewhere in the repository.
+[Complete integration notes](https://github.com/AronAxe/Token-Terminator/blob/v0.11.0/docs/RUST_CRATE.md) ·
+[Rust API](https://docs.rs/token-terminator/0.11.0/token_terminator/) ·
+[crates.io](https://crates.io/crates/token-terminator/0.11.0)

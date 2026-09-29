@@ -1,73 +1,95 @@
 # Security and Trust Model
 
-Token Terminator intentionally stores exact evidence locally because exact recovery is part of its product contract.
+Token Terminator stores exact evidence locally because recovery is part of its
+contract. A smaller prompt is never permission to discard backing evidence.
 
-## Private data
+## Private storage and ownership
 
-By default plugin-owned files live under:
+Plugin-owned data normally lives under `<HERMES_HOME>/token-terminator/`. The vault
+can contain sensitive original messages, tool results, provenance and temporal
+state. The separate ledger stores accounting and salted fingerprints, not prompt
+text. Protect and back up both. Hermes' task-local profile home takes precedence
+over the process launch home; explicit TT path overrides remain operator choices.
 
-```text
-<HERMES_HOME>/token-terminator/
-```
+Middleware mode leaves the host context engine in place. Explicitly selecting TT
+makes it the context owner, not the transcript store, memory system or provider
+client. The host's full transcript remains intact. Session-scoped history recovery
+requires membership and verified source hashes; the older general vault tool is
+not redefined as a multi-tenant authorization service.
 
-The artifact vault may contain raw tool artifacts, tool arguments, provenance, observations, exposure records, temporal state, bounded working state, and request-reduction metrics.
+## Purpose before reduction
 
-The separate experiment ledger stores content-free accounting and salted prompt fingerprints. It does not store prompt text, command strings, or tool contents.
+Only an authorized conversational request may enter context reduction. Native
+auxiliary clients remain separate, and forwarded embedding, reranking, classifier,
+helper, tokenizer and typed JEV service requests bypass. Internal JEV and counting
+callbacks cannot recursively enter TT or overwrite the conversation binding.
+A model name, inherited binding or prompt metadata is not authorization.
 
-The plugin itself does not upload this private data by default.
+## Optional JEV external boundary
 
-## Optional Jev external-service boundary
+JEV is disabled by default. Enabling it sends bounded source regions, the current
+query and relevant recent referents to the configured OpenRouter or direct TypeSafe
+route. Existing provider keys are read from the environment, not logged or returned
+by status tools. One selected JEV provider key is sufficient.
 
-Jev is disabled by default. If you explicitly enable it with `TOKEN_TERMINATOR_JEV=true`, Token Terminator uses one selected-provider credential: `OPENROUTER_API_KEY` for OpenRouter or `TYPESAFE_API_KEY` for direct TypeSafe. Auto mode prefers OpenRouter when both exist. The old `TOKEN_TERMINATOR_JEV_API_KEY` is only a temporary direct-TypeSafe compatibility alias.
+Middleware and ContextEngine have different segmentation contracts. The legacy
+middleware can separately score fenced memory background; ContextEngine and IR
+protect the whole current user message. See the [Context Engine](Context-Engine)
+and [JEV gate](Jev-Semantic-Context-Gate) guides before enabling external transfer.
+Relevance/guard/salience are probabilistic selection signals, not proof of truth.
+Malformed or missing scores cannot grant omission authority.
 
-The bounded state is sent either through OpenRouter's Decisions API or directly to TypeSafe. It contains the current user request and selected prior **plain-text user/assistant** candidate messages. Hermes `<memory-context>` background appended to the current user message may also be included as a separately fenced candidate. System/developer messages, tool messages/results, messages containing tool calls, structured/multimodal content, and the user's actual current-turn words as a removal candidate are excluded.
+## Optional external learning
 
-The API key is read from the process environment only. It is not stored in the artifact vault, experiment ledger, request metrics, repository, or status output.
+Training requires an explicit independently labelled dataset and offline replay,
+or explicit `--live --allow-external-data` consent. Live feature extraction sends
+bounded dataset evidence to JEV; bounded development-error examples can go to the
+chosen System-2 proposer. No automatic live-vault mining, export, self-labelling,
+background training or model promotion is enabled.
 
-Jev has no destructive authority. A low relevance/guard decision only makes a prior message eligible for compaction; Token Terminator must still exact-vault and read back the original, prove a smaller complete request, and pass the exact-token veto when available. Any Jev failure leaves the already-reduced non-Jev request unchanged.
+Deployment is off by default. A policy is approved by path and SHA-256, bound to
+its feature schema, scorer and evaluated targets, and evaluated as bounded numeric
+JSON rather than executable/pickle content. It can veto otherwise eligible omissions,
+not override protected or uncertain content. Invalid artifacts or features retain
+evidence. Training artifacts themselves may contain sensitive information.
+Call/row/volume/time limits are not a hard dollar ceiling, and finite holdout checks
+are not a guarantee of real-model accuracy. See [Learned Policy](Learned-Policy).
 
-## Transformation safety
+## Final gate and recovery-safe retention
 
-- RTK is invoked with an argument array and `shell=False`.
-- Remote terminal backends are disabled by default.
-- Native compression requires successful exact write + read-back.
-- The complete provider-visible payload must be smaller.
-- Exact-tokenizer expansion vetoes a character-saving candidate.
-- Request compilation works on copies.
-- Unsupported or unsafe states fail open.
-- Token Terminator does not replace the host memory/context engine.
+Changes operate on copies and require a smaller complete provider envelope.
+ContextEngine and IR require exact target-tokenizer AND character savings, including
+receipts, tools and source references. Legacy middleware may use its character gate
+when no exact tokenizer is available. Counts are canonical request JSON, not hidden
+provider billing framing. Protected-history overflow can remain unresolved and
+still needs host/provider enforcement; later third-party rewrites need their own gate.
 
-## RTK executable trust boundary
+Source insertion and exposure pinning are transactional and read/hash-verified.
+Pins protect promised evidence from ordinary pruning/reset/restart. Capacity failures
+fail open instead of silently breaking recovery. Plan retention; deleting the vault
+breaks recovery. Missing external LCM originals are not recreated or imported.
 
-If `TOKEN_TERMINATOR_RTK_PATH` is unset, executable discovery uses the host process `PATH`. A shadowed malicious `rtk` executable can influence rewrite decisions.
+## Read-only dashboard boundary
 
-Security-sensitive deployments should pin the expected binary:
+The standalone server binds only to loopback on port 7474. It exposes bounded,
+read-only accounting queries, not prompts, artifacts, keys or filesystem paths.
+Host/Origin checks and restrictive browser headers reject cross-site access. It is
+not authenticated against other users/processes on the same machine and must not be
+publicly proxied. Missing/busy/corrupt or ambiguous stores are reported, not guessed.
 
-```text
-TOKEN_TERMINATOR_RTK_PATH=/absolute/path/to/rtk
-```
+The Desktop component uses Hermes' authenticated plugin API and active profile/
+connection identity; it does not make cross-origin localhost requests. Native API
+configuration cannot escape the authorized home. No refresh invokes a model.
+Configured API-equivalent value is not verified cash or subscription savings.
 
-Protect the binary and its parent directory from untrusted writes.
+## RTK trust boundary
 
-## Recovery-safe retention
-
-Automatic vault GC is allowed to reclaim abandoned evidence under capacity pressure, but not evidence already promised through accepted recovery receipts/exposures or active temporal references.
-
-This distinction is essential: disk management must not silently break the model's recovery contract.
+RTK uses argument arrays and `shell=False`; remote terminal backends are disabled
+by default. Pin `TOKEN_TERMINATOR_RTK_PATH` and protect the executable and its
+parent directory against untrusted writes rather than relying on an unsafe PATH.
 
 ## Reporting vulnerabilities
 
-Use a private GitHub security advisory rather than a public issue.
-
-## v0.10.0 history-engine boundary
-
-The explicitly selected engine persists full available message snapshots, including
-sensitive source content, in the existing private vault. Pinned evidence survives
-reset and pruning; plan retention, do not delete referenced artifacts. The new
-history tool enforces session membership and hash verification; the general vault
-tool's existing access scope is unchanged. With JEV enabled, bounded historical
-regions plus query/recent referents cross the existing configured provider boundary.
-Invalid scores cannot authorize omission. Source identity is not a truth verdict.
-Unknown tokenizers/missing tools/stale bindings/capacity faults fail open. Hard host
-limits before middleware and later third-party rewrites are outside the final gate.
-See [Context Engine](Context-Engine) for complete limits.
+Use a private GitHub security advisory rather than publishing sensitive evidence
+in an issue. The repository [SECURITY.md](https://github.com/AronAxe/Token-Terminator/blob/v0.11.0/SECURITY.md)
+contains the complete operational constraints and disclosure guidance.
