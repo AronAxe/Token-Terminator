@@ -39,8 +39,14 @@ class LiveConfigTests(unittest.TestCase):
 
     def test_cap_values(self):
         cases = [
-            (None, None), (0, None), (-1, None), ("bad", None),
-            ("", None), (180000, 180000), ("180000", 180000), (float("inf"), None),
+            (None, None),
+            (0, None),
+            (-1, None),
+            ("bad", None),
+            ("", None),
+            (180000, 180000),
+            ("180000", 180000),
+            (float("inf"), None),
         ]
         for value, expected in cases:
             with self.subTest(value=value):
@@ -65,9 +71,7 @@ class LiveConfigTests(unittest.TestCase):
         with patch(
             "agent.model_metadata.get_model_context_length", return_value=600000
         ) as resolver:
-            self.apply(
-                {"compression": {"threshold": 0.7, "threshold_tokens": None}}
-            )
+            self.apply({"compression": {"threshold": 0.7, "threshold_tokens": None}})
             self.assertIsNone(self.engine._config_context_length)
             self.assertEqual(self.engine.context_length, 600000)
             self.assertEqual(self.engine.threshold_tokens, 420000)
