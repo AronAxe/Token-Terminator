@@ -18,11 +18,11 @@ Nine offline regression tests passed against the installed Hermes checkout
 live-config function with mocked model metadata and disposable stores. They do not
 claim paid-provider validation or a reduction of an existing live session.
 
-Operational state: applying the tested patch to the live managed installation was
-blocked by the remote execution tool. No live adapter replacement or backend restart
-was performed. The test candidate is retained separately. A partial older patch
-was already present in the managed source; it must not be confused with repository
-v0.11.0 or evidence that a running process has loaded a repair.
+Release scope: v0.11.1 publishes PR #20's adapter and tests. Earlier incident
+deployment notes are historical; a separately deployed adapter snapshot is not
+proof that this exact release has loaded in a running process. Installation,
+engine discovery and actual current-model request reduction remain separate
+checks. This release performs no live installation or backend restart.
 
 The observed host directory loader can expose a partially initialized cached module
 to simultaneous discovery. This adapter patch does not modify that upstream loader
@@ -30,3 +30,7 @@ or claim to resolve its race. Deployment must use the host's managed plugin upda
 path and a controlled backend restart, then check loaded engine identity and actual
 provider-request metrics. Do not kill unrelated relay/messaging/dashboard processes,
 delete conversation/vault data, or claim a reset UI percentage proves reduction.
+
+Unknown target tokenizers still cause ContextEngine/IR to pass through. This
+patch does not supply new tokenizer mappings, guess a replacement model window,
+or guarantee a reduction in a live session.
