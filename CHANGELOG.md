@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.1 - 2026-10-04
+
+- Fixed the Hermes live-compression adapter's missing `_coerce_threshold_tokens_cap`
+  method and lazy context-window/threshold cache invalidation.
+- Reused installed Hermes route metadata and per-model threshold handling; current
+  `select_context` budgets refresh the window without resetting retry/usage state.
+- Preserved independent cloned-engine configuration, exact recovery, internal-call
+  isolation and the existing strict tokenizer acceptance gate.
+- Added nine real-Hermes regression cases and corrected their Ruff formatting.
+- Updated release/install references and corrected the README's stale context-engine
+  FAQ. Rust companion version aligned; its runtime behavior is unchanged.
+- Unknown-model tokenizers and the host's plugin-discovery race remain separate
+  limitations; publication does not install or restart a running Hermes profile.
+
 ## 0.11.0 - 2026-09-29
 
 **Context, learning & observability.** Includes the unshipped 0.10.0 milestone;

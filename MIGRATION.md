@@ -1,3 +1,27 @@
+# Migration to Token Terminator 0.11.1
+
+## 0.11.0 to 0.11.1
+
+This is the PR #20 Hermes live-compression compatibility repair. No new key,
+database migration, tokenizer override or engine-selection change is required.
+Upgrade the environment actually used by the managed Hermes launcher, not an
+unrelated Python environment or stale venv copy:
+
+```bash
+python -m pip install --upgrade 'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.1'
+python -m rtk_hermes_plus.cli install-context-engine
+```
+
+Confirm the imported `rtk_hermes_plus` path in that environment. When the relevant
+backend is idle, restart it once through its normal supervisor; do not start a
+competing gateway or delete histories/vaults. Verify the loaded version and
+current-model request metrics. A healthy restart or a lower UI percentage alone
+does not prove reduction. Unknown target tokenizers still bypass the engine.
+See [the compatibility guide](docs/LIVE_COMPRESSION_COMPAT.md). These instructions
+do not imply publication performs a live installation or restart.
+
+---
+
 # Migration to Token Terminator 0.11.0
 
 ## Optional learned policy
