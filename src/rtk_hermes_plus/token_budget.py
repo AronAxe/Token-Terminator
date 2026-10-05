@@ -9,6 +9,23 @@ from typing import Any
 _TRUE = frozenset({"1", "true", "yes", "on"})
 _FALSE = frozenset({"0", "false", "no", "off"})
 _OPENAI_MODEL_PREFIXES = ("gpt-4o", "gpt-4.1", "gpt-5", "o1", "o3", "o4")
+# Explicit compatibility entry while upstream tiktoken's model-name table lags.
+# See docs/TOKENIZER_COMPAT.md for the measurement boundary and validation.
+_MODEL_ENCODING_COMPAT = {"gpt-6.1-sol": "o200k_base"}
+_COMPAT_NAMESPACES = frozenset({"", "openai", "openai-codex", "openrouter/openai"})
+
+
+def _compat_encoding(model: str) -> str:
+    raw = str(model or "").strip().lower()
+    if "/" in raw:
+        namespace, name = raw.rsplit("/", 1)
+    elif ":" in raw:
+        namespace, name = raw.rsplit(":", 1)
+    else:
+        namespace, name = "", raw
+    if namespace not in _COMPAT_NAMESPACES:
+        return ""
+    return _MODEL_ENCODING_COMPAT.get(name, "")
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -147,7 +164,7 @@ class TokenBudgetAdapter:
             return None, ""
 
         lookup_model = _tokenizer_model_name(model)
-        cache_key = lookup_model or self.encoding_name or ""
+        cache_key = str(model or "").strip() or self.encoding_name or ""
         if cache_key in self._encodings:
             return self._encodings[cache_key]
 
@@ -164,6 +181,14 @@ class TokenBudgetAdapter:
             try:
                 encoding = tiktoken.get_encoding(self.encoding_name)
                 label = f"tiktoken:encoding:{self.encoding_name}"
+            except ValueError:
+                encoding = None
+
+        compat = _compat_encoding(model)
+        if encoding is None and compat:
+            try:
+                encoding = tiktoken.get_encoding(compat)
+                label = f"tiktoken:compat:{lookup_model}:{compat}"
             except ValueError:
                 encoding = None
 

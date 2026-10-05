@@ -180,3 +180,13 @@ silently route a remote dashboard to this machine's localhost. Installation and
 enable are separate and opt-in. See [DASHBOARD.md](docs/DASHBOARD.md) for limits,
 accounting qualifications and rollback. The dashboard adds no service credential,
 background training or publication.
+
+## v0.11.2 explicit Hermes loader repair
+
+The engine-install CLI can modify only the reviewed affected plugin_loader.py,
+with a normalized source-hash guard, adjacent exact backup, and atomic replacement.
+This resolves a race before TT plugin initialization; it is not a hidden import-time
+patch. The wrapper targets only TT user ContextEngine loads and separates profile
+module identities. Other plugin loads retain their host behavior. Unknown/modified
+source is refused. No credentials, config, conversation or vault files are changed.
+The library installer API requires explicit repair_discovery=True for this action.

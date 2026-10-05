@@ -1,3 +1,20 @@
+# Migration to Token Terminator 0.11.2
+
+Install with the managed Hermes interpreter:
+
+```bash
+python -m pip install --upgrade 'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.2'
+python -m rtk_hermes_plus.cli install-context-engine
+```
+
+The explicit engine installer now requests the reviewed host-loader repair; inspect
+its `discovery_repair` result before restarting the appropriate idle backend once.
+A byte-exact host backup is retained. Unknown host sources are refused. No new keys,
+manual Sol encoding override or data migration is required. See
+[repair/rollback](docs/HERMES_DISCOVERY.md) and [counter evidence](docs/TOKENIZER_COMPAT.md).
+
+---
+
 # Migration to Token Terminator 0.11.1
 
 ## 0.11.0 to 0.11.1

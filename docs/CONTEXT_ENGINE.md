@@ -1,5 +1,11 @@
 # Token Terminator ContextEngine — v0.11.0
 
+> **v0.11.2 install change:** The explicit engine installer also repairs the reviewed
+> affected Hermes directory loader, with an exact source guard and backup. This is
+> a narrow host-file repair for concurrent TT loading, not a replacement Hermes
+> runtime. See the repository `docs/HERMES_DISCOVERY.md` before installation.
+
+
 **Experimental and explicitly selected.** Available in v0.11.0; ordinary
 middleware mode remains the default. Installing the managed adapter does not
 change Hermes core, select a context engine, enable plugins, alter LCM data or

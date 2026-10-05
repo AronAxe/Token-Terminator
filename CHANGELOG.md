@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.2 - 2026-10-05
+
+- Added empirically validated GPT-6.1-Sol tokenizer compatibility, without overriding upstream mappings or guessing future model IDs.
+- Fixed concurrent TT directory discovery and cross-profile module reuse through an explicit, source-guarded installer repair with exact backup.
+- Added non-skipping Sol pipeline and real-loader concurrency CI regressions.
+- Preserved call scope, protected context, exact recovery and strict final gates.
+
 ## 0.11.1 - 2026-10-04
 
 - Fixed the Hermes live-compression adapter's missing `_coerce_threshold_tokens_cap`
