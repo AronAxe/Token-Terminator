@@ -1,5 +1,9 @@
 # Token Terminator Wiki
 
+**Current patch: [v0.11.2](Release-0.11.2)** — GPT-6.1-Sol token lookup and synchronized, profile-isolated TT discovery.
+
+The explicit engine installer now includes a guarded host-loader repair for affected Hermes versions; see [repair and rollback](Tokenizer-and-Discovery-Repair).
+
 **Keep the evidence. Terminate the redundant tokens.**
 
 ## v0.11.0 · Context, learning & observability

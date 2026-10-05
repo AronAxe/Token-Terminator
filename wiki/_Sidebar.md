@@ -35,3 +35,6 @@
 - [Release 0.6.0](Release-0.6.0)
 - [Release 0.5.2](Release-0.5.2)
 - [Release 0.5.1](Release-0.5.1)
+
+- [Release 0.11.2](Release-0.11.2)
+- [Tokenizer and discovery repair](Tokenizer-and-Discovery-Repair)
