@@ -14,6 +14,12 @@ from rtk_hermes_plus.token_budget import TokenBudgetAdapter, _compat_encoding
     "model",
     [
         "gpt-6.1-sol",
+        "gpt-6.1-sol-900k",
+        "openai/gpt-6.1-sol-900k",
+        "openai:gpt-6.1-sol-900k",
+        "openai-codex/gpt-6.1-sol-900k",
+        "openai-codex:gpt-6.1-sol-900k",
+        "openrouter/openai/gpt-6.1-sol-900k",
         "openai/gpt-6.1-sol",
         "openai:gpt-6.1-sol",
         "openai-codex/gpt-6.1-sol",
@@ -87,15 +93,30 @@ def test_upstream_mapping_takes_precedence(monkeypatch):
     assert label == "tiktoken:model:gpt-6.1-sol"
 
 
-def test_sol_context_engine_reaches_selection_and_strict_gate(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gpt-6.1-sol",
+        "gpt-6.1-sol-900k",
+        "openai/gpt-6.1-sol-900k",
+        "openai-codex/gpt-6.1-sol-900k",
+        "openai-codex:gpt-6.1-sol-900k",
+        "openrouter/openai/gpt-6.1-sol-900k",
+    ],
+)
+@pytest.mark.parametrize("key", ["messages", "input"])
+def test_sol_context_engine_reaches_selection_and_strict_gate(
+    tmp_path, monkeypatch, model, key
+):
     from test_history_engine import low_scores, request, run, setup
 
     monkeypatch.delenv("TOKEN_TERMINATOR_TIKTOKEN_ENCODING", raising=False)
     monkeypatch.delenv("TOKEN_TERMINATOR_TOKENIZER_JSON", raising=False)
     runtime, engine = setup(tmp_path)
-    engine.update_model("gpt-6.1-sol", 1050000)
-    req = request(engine)
-    req["model"] = "gpt-6.1-sol"
+    window = 900000 if model.endswith("-900k") else 1050000
+    engine.update_model(model, window)
+    req = request(engine, key=key)
+    req["model"] = model
     original = copy.deepcopy(req)
     calls = []
 
@@ -107,13 +128,15 @@ def test_sol_context_engine_reaches_selection_and_strict_gate(tmp_path, monkeypa
     final = run(runtime, engine, req)
     assert calls, "Sol must not return early as unknown tokenizer before JEV"
     assert engine.get_status()["context_engine"]["omitted_messages"] > 0
-    assert final["messages"][0] == original["messages"][0]
-    assert final["messages"][-1] == original["messages"][-1]
-    aid = final["messages"][1]["content"].split()[2].rstrip(";")
-    assert engine._history().read("session", aid) == original["messages"][1]
+    assert final[key][0] == original[key][0]
+    assert final[key][-1] == original[key][-1]
+    aid = final[key][1]["content"].split()[2].rstrip(";")
+    assert engine._history().read("session", aid) == original[key][1]
     counter = TokenBudgetAdapter()
     assert counter.measure_request(final).tokens < counter.measure_request(req).tokens
     assert req == original
+    assert final["model"] == model
+    assert engine.context_length == window
 
 
 def test_recorded_provider_corpus_matches_local_content_counter():

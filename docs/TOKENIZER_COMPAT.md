@@ -36,3 +36,17 @@ exact recovery are unchanged. The full pipeline regression must actually reach
 JEV and reduce the request, not merely return a numeric count.
 
 Reference: https://developers.openai.com/api/docs/guides/token-counting
+
+## v0.11.3: Hermes Codex context-window aliases
+
+`gpt-6.1-sol-900k` resolves to `gpt-6.1-sol` for tokenizer lookup only; its
+request model string and 900k window are retained. Known OpenAI/Codex namespaces
+work with `/` or `:` separators; `openrouter/openai/` remains supported.
+
+The same alias normalization applies to Hermes' explicitly eligible base families
+and their supported dated snapshots, then uses the base model's existing tokenizer
+support. It does not infer new tokenizers, invent model families, or strip arbitrary
+suffixes. The portable helper is regression-checked against the pure alias rules
+in Hermes `agent/model_metadata.py` at `72a346e8eae5cd9e6d7c35ec02e6a609a4120c85`.
+The original request and measurement provenance keep the selected alias. No
+additional API calls or manual encoding override are required for Sol-900k.

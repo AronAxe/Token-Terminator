@@ -18,6 +18,12 @@ jobs:
           ref: 188a1a5efd098f067638032fea6e24c42d06178f
           path: upstream-hermes
           persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: NousResearch/hermes-agent
+          ref: 72a346e8eae5cd9e6d7c35ec02e6a609a4120c85
+          path: alias-hermes
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
@@ -25,7 +31,8 @@ jobs:
       - name: Actual Sol pipeline and actual host-loader race regressions
         env:
           TT_HERMES_LOADER: ${{ github.workspace }}/upstream-hermes/plugins/plugin_loader.py
-        run: python -m pytest tests/test_gpt61_tokenizer.py tests/test_discovery_repair.py --junitxml=sol-discovery-tests.xml
+          TT_HERMES_MODEL_METADATA: ${{ github.workspace }}/alias-hermes/agent/model_metadata.py
+        run: python -m pytest tests/test_gpt61_tokenizer.py tests/test_codex_tokenizer_aliases.py tests/test_discovery_repair.py --junitxml=sol-discovery-tests.xml
       - uses: actions/upload-artifact@v6
         if: always()
         with:

@@ -1,3 +1,19 @@
+# Migration to Token Terminator 0.11.3
+
+Use the environment running Hermes:
+
+```bash
+python -m pip install --upgrade 'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.3'
+```
+
+Keep your selected `gpt-6.1-sol-900k` model. This patch fixes its tokenizer lookup;
+it does not downgrade the model or window. Existing v0.11.2 engine installations
+need no new encoding setting or repeat of the loader repair. Restart the affected
+idle backend through its normal supervisor once to load the updated package.
+No data migration, new key or deletion of history/vault evidence is required.
+
+---
+
 # Migration to Token Terminator 0.11.2
 
 Install with the managed Hermes interpreter:

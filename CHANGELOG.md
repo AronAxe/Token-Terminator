@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.3 - 2026-10-07
+
+- Fixed tokenizer lookup for Hermes' eligible `-900k` context-window aliases,
+  including `gpt-6.1-sol-900k` and qualified OpenAI/Codex names.
+- Kept request model identity, context budgets, recovery and strict gates intact.
+- Added full Sol-900k reduction/recovery regressions and host alias-contract checks.
+- No changes to the discovery repair or Rust runtime behavior.
+
 ## 0.11.2 - 2026-10-05
 
 - Added empirically validated GPT-6.1-Sol tokenizer compatibility, without overriding upstream mappings or guessing future model IDs.
