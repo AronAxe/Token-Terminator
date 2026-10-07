@@ -147,7 +147,9 @@ def test_alias_contract_matches_real_hermes_source():
         if isinstance(node, ast.FunctionDef):
             names = {node.name}
         elif isinstance(node, ast.Assign):
-            names = {target.id for target in node.targets if isinstance(target, ast.Name)}
+            names = {
+                target.id for target in node.targets if isinstance(target, ast.Name)
+            }
         else:
             continue
         if names & wanted:

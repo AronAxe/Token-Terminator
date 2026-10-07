@@ -104,8 +104,9 @@ def test_upstream_mapping_takes_precedence(monkeypatch):
         "openrouter/openai/gpt-6.1-sol-900k",
     ],
 )
+@pytest.mark.parametrize("key", ["messages", "input"])
 def test_sol_context_engine_reaches_selection_and_strict_gate(
-    tmp_path, monkeypatch, model
+    tmp_path, monkeypatch, model, key
 ):
     from test_history_engine import low_scores, request, run, setup
 
@@ -114,7 +115,7 @@ def test_sol_context_engine_reaches_selection_and_strict_gate(
     runtime, engine = setup(tmp_path)
     window = 900000 if model.endswith("-900k") else 1050000
     engine.update_model(model, window)
-    req = request(engine)
+    req = request(engine, key=key)
     req["model"] = model
     original = copy.deepcopy(req)
     calls = []
@@ -127,10 +128,10 @@ def test_sol_context_engine_reaches_selection_and_strict_gate(
     final = run(runtime, engine, req)
     assert calls, "Sol must not return early as unknown tokenizer before JEV"
     assert engine.get_status()["context_engine"]["omitted_messages"] > 0
-    assert final["messages"][0] == original["messages"][0]
-    assert final["messages"][-1] == original["messages"][-1]
-    aid = final["messages"][1]["content"].split()[2].rstrip(";")
-    assert engine._history().read("session", aid) == original["messages"][1]
+    assert final[key][0] == original[key][0]
+    assert final[key][-1] == original[key][-1]
+    aid = final[key][1]["content"].split()[2].rstrip(";")
+    assert engine._history().read("session", aid) == original[key][1]
     counter = TokenBudgetAdapter()
     assert counter.measure_request(final).tokens < counter.measure_request(req).tokens
     assert req == original
