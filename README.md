@@ -12,10 +12,10 @@
 
 <p align="center">
   <a href="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/AronAxe/Token-Terminator/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.11.2"><img alt="Release v0.11.2" src="https://img.shields.io/badge/release-v0.11.2-ef2b25"></a>
+  <a href="https://github.com/AronAxe/Token-Terminator/releases/tag/v0.11.3"><img alt="Release v0.11.3" src="https://img.shields.io/badge/release-v0.11.3-ef2b25"></a>
   <a href="https://github.com/AronAxe/Token-Terminator/wiki/Jev-Semantic-Context-Gate" title="Optional JEV integration via OpenRouter or direct TypeSafe; off by default"><img alt="JEV-powered" src="https://img.shields.io/badge/JEV-powered-8b5cf6"></a>
   <a href="https://github.com/AronAxe/Token-Terminator/wiki"><img alt="GitHub Wiki" src="https://img.shields.io/badge/docs-GitHub%20Wiki-181717?logo=github"></a>
-  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/badge/crates.io-v0.11.2-orange?logo=rust"></a>
+  <a href="https://crates.io/crates/token-terminator"><img alt="crates.io" src="https://img.shields.io/badge/crates.io-v0.11.3-orange?logo=rust"></a>
   <a href="https://docs.rs/token-terminator"><img alt="docs.rs" src="https://img.shields.io/docsrs/token-terminator?logo=docs.rs"></a>
   <img alt="Python 3.10–3.13" src="https://img.shields.io/badge/Python-3.10%E2%80%933.13-3776AB?logo=python&logoColor=white">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-22c55e.svg"></a>
@@ -26,6 +26,14 @@
 Token Terminator is an agent-runtime optimization layer. It removes token bloat at the tool-result and provider-request boundaries without discarding the underlying evidence.
 
 Documentation: see the [GitHub Wiki](https://github.com/AronAxe/Token-Terminator/wiki) for quick start, architecture, configuration, recovery, security, troubleshooting, migration, and release notes.
+
+## Patch v0.11.3: Codex 900k model aliases
+
+**`gpt-6.1-sol-900k` now uses its base model's tokenizer without changing the
+selected model or context window.** Known provider-qualified aliases work too.
+Existing v0.11.2 installs need only the package upgrade and a normal idle-backend
+restart for this fix, not a manual tokenizer override or another loader patch.
+[Patch notes](docs/releases/v0.11.3.md) · [Tokenizer details](docs/TOKENIZER_COMPAT.md)
 
 ## Patch v0.11.2: GPT-6.1-Sol and multiplex startup
 
@@ -174,12 +182,12 @@ See [JEV roles and implemented scope](docs/JEV_ROLES.md) and
 
 ## Select Token Terminator as the Hermes ContextEngine
 
-Install **v0.11.2** in the Python environment that runs Hermes, then install its
+Install **v0.11.3** in the Python environment that runs Hermes, then install its
 managed adapter. Replace `python` below with that environment's interpreter:
 
 ```bash
 python -m pip install --upgrade \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.2'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.3'
 python -m rtk_hermes_plus.cli install-context-engine
 ```
 
@@ -337,9 +345,9 @@ The optional working-state block defaults to zero characters, even in `balanced`
 
 ## Install: Hermes Agent (turnkey)
 
-Token Terminator 0.11.2 builds on v0.9.0 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
+Token Terminator 0.11.3 builds on v0.9.0 and replaces the earlier `rtk-hermes-plus` distribution. `token-terminator` and `rtk-hermes-plus` must not coexist because both own the `rtk_hermes_plus` Python import package.
 
-This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the `v0.11.2` release tag.
+This is the supported zero-glue installation: the repository already contains the Hermes hooks, slash command, recovery tool, and lifecycle accounting. The commands below pin the `v0.11.3` release tag.
 
 ### 1. Install RTK when using terminal rewriting
 
@@ -361,7 +369,7 @@ HERMES_PY="$HOME/.hermes/hermes-agent/venv/bin/python"
 hermes plugins disable rtk-plus
 "$HERMES_PY" -m pip uninstall -y rtk-hermes-plus token-terminator
 "$HERMES_PY" -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.2'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.3'
 ```
 
 Windows example:
@@ -370,7 +378,7 @@ Windows example:
 $HermesPy = "$env:LOCALAPPDATA\hermes\hermes-agent\venv\Scripts\python.exe"
 hermes plugins disable rtk-plus
 & $HermesPy -m pip uninstall -y rtk-hermes-plus token-terminator
-& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.11.2"
+& $HermesPy -m pip install "git+https://github.com/AronAxe/Token-Terminator.git@v0.11.3"
 ```
 
 `tiktoken` now ships with Token Terminator and is used automatically for supported OpenAI-family models, including common provider-qualified model IDs. Hugging Face `tokenizers` remains optional when pointing Token Terminator at a local `tokenizer.json`:
@@ -402,7 +410,7 @@ Installation and enablement are separate operations. Disabling affects subsequen
 Rust agent hosts can use the supported `token-terminator` companion crate for the stable cross-language pieces of the Token Terminator contract:
 
 ```bash
-cargo add token-terminator@0.11.2
+cargo add token-terminator@0.11.3
 ```
 
 ```rust
@@ -424,7 +432,7 @@ Install the same distribution in the environment that owns your agent loop:
 
 ```bash
 python -m pip install \
-  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.2'
+  'git+https://github.com/AronAxe/Token-Terminator.git@v0.11.3'
 ```
 
 Then connect your runtime's tool-result and final-request hooks to `Runtime`. The adapter must map equivalent tools to Token Terminator's canonical names (`search_files`, `process`, and optionally `read_file`) and expose `Runtime.tool` to the model for exact recovery.

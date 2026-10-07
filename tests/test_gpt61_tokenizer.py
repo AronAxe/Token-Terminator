@@ -14,6 +14,12 @@ from rtk_hermes_plus.token_budget import TokenBudgetAdapter, _compat_encoding
     "model",
     [
         "gpt-6.1-sol",
+        "gpt-6.1-sol-900k",
+        "openai/gpt-6.1-sol-900k",
+        "openai:gpt-6.1-sol-900k",
+        "openai-codex/gpt-6.1-sol-900k",
+        "openai-codex:gpt-6.1-sol-900k",
+        "openrouter/openai/gpt-6.1-sol-900k",
         "openai/gpt-6.1-sol",
         "openai:gpt-6.1-sol",
         "openai-codex/gpt-6.1-sol",
@@ -87,15 +93,29 @@ def test_upstream_mapping_takes_precedence(monkeypatch):
     assert label == "tiktoken:model:gpt-6.1-sol"
 
 
-def test_sol_context_engine_reaches_selection_and_strict_gate(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gpt-6.1-sol",
+        "gpt-6.1-sol-900k",
+        "openai/gpt-6.1-sol-900k",
+        "openai-codex/gpt-6.1-sol-900k",
+        "openai-codex:gpt-6.1-sol-900k",
+        "openrouter/openai/gpt-6.1-sol-900k",
+    ],
+)
+def test_sol_context_engine_reaches_selection_and_strict_gate(
+    tmp_path, monkeypatch, model
+):
     from test_history_engine import low_scores, request, run, setup
 
     monkeypatch.delenv("TOKEN_TERMINATOR_TIKTOKEN_ENCODING", raising=False)
     monkeypatch.delenv("TOKEN_TERMINATOR_TOKENIZER_JSON", raising=False)
     runtime, engine = setup(tmp_path)
-    engine.update_model("gpt-6.1-sol", 1050000)
+    window = 900000 if model.endswith("-900k") else 1050000
+    engine.update_model(model, window)
     req = request(engine)
-    req["model"] = "gpt-6.1-sol"
+    req["model"] = model
     original = copy.deepcopy(req)
     calls = []
 
@@ -114,6 +134,8 @@ def test_sol_context_engine_reaches_selection_and_strict_gate(tmp_path, monkeypa
     counter = TokenBudgetAdapter()
     assert counter.measure_request(final).tokens < counter.measure_request(req).tokens
     assert req == original
+    assert final["model"] == model
+    assert engine.context_length == window
 
 
 def test_recorded_provider_corpus_matches_local_content_counter():

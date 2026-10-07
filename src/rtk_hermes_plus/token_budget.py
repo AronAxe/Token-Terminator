@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -14,9 +15,51 @@ _OPENAI_MODEL_PREFIXES = ("gpt-4o", "gpt-4.1", "gpt-5", "o1", "o3", "o4")
 _MODEL_ENCODING_COMPAT = {"gpt-6.1-sol": "o200k_base"}
 _COMPAT_NAMESPACES = frozenset({"", "openai", "openai-codex", "openrouter/openai"})
 
+# Hermes picker aliases select a larger window, not another tokenizer. Mirror
+# its explicit eligibility contract without importing Hermes into portable TT.
+_CODEX_CONTEXT_SUFFIX = "-900k"
+_CODEX_SNAPSHOT_BASES = (
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+    "gpt-6-sol",
+    "gpt-6-luna",
+)
+_CODEX_CONTEXT_BASES = frozenset(
+    {
+        *_CODEX_SNAPSHOT_BASES,
+        "gpt-5.4",
+        "gpt-daybreak-blue-latest",
+        "gpt-6-astra",
+        "gpt-6.1-sol",
+    }
+)
+
+
+def _tokenizer_alias_identity(model: str) -> str:
+    """Resolve known window aliases for counting, never change the request."""
+    raw = str(model or "").strip()
+    namespace, name = "", raw
+    if "/" in raw:
+        namespace, name = raw.rsplit("/", 1)
+    elif ":" in raw:
+        namespace, name = raw.rsplit(":", 1)
+    name = name.lower()
+    if namespace.lower() not in _COMPAT_NAMESPACES or not name.endswith(
+        _CODEX_CONTEXT_SUFFIX
+    ):
+        return raw
+    base = name[: -len(_CODEX_CONTEXT_SUFFIX)]
+    eligible = base in _CODEX_CONTEXT_BASES or any(
+        base.startswith(prefix + "-")
+        and re.fullmatch(r"\d{4}-\d{2}-\d{2}", base[len(prefix) + 1 :])
+        for prefix in _CODEX_SNAPSHOT_BASES
+    )
+    return raw[: -len(_CODEX_CONTEXT_SUFFIX)] if eligible else raw
+
 
 def _compat_encoding(model: str) -> str:
-    raw = str(model or "").strip().lower()
+    raw = _tokenizer_alias_identity(model).lower()
     if "/" in raw:
         namespace, name = raw.rsplit("/", 1)
     elif ":" in raw:
@@ -62,15 +105,17 @@ def _serialize(value: Any) -> str:
 
 def _tokenizer_model_name(model: str) -> str:
     """Normalize common provider-qualified model names for tokenizer lookup."""
-    normalized = str(model or "").strip()
+    normalized = _tokenizer_alias_identity(model)
     if not normalized:
         return ""
     # OpenRouter and several compatible gateways expose names like
     # ``openai/gpt-5``. Tiktoken expects the provider-local model name.
     if "/" in normalized:
         normalized = normalized.rsplit("/", 1)[-1]
-    if normalized.lower().startswith("openai:"):
-        normalized = normalized.split(":", 1)[1]
+    if ":" in normalized:
+        namespace, local_name = normalized.rsplit(":", 1)
+        if namespace.lower() in _COMPAT_NAMESPACES:
+            normalized = local_name
     return normalized
 
 
